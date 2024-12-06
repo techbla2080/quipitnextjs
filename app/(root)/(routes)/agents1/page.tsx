@@ -20,6 +20,10 @@ export type TripData = {
   date_range: string;
   interests: string;
   job_id?: string;
+  result?: {
+    content: string;
+  };
+  content?: string;
 };
 
 // Add a new interface for saved itineraries
@@ -520,13 +524,14 @@ return (
 
       {/* Intro Box */}
       {(() => {
-        const introText = tripResult && (tripResult as unknown as string);
-        let intro = '';
-        
-        if (typeof introText === 'string' && introText) {
-          const parts = introText.split(/Day \d+:/);
-          intro = parts[0]?.trim() || '';
-        }
+  // First try to get content from result object, fallback to direct content
+  const introText = tripResult?.content || tripResult?.result?.content || (tripResult as unknown as string);
+  let intro = '';
+  
+  if (typeof introText === 'string' && introText) {
+    const parts = introText.split(/Day \d+:/);
+    intro = parts[0]?.trim() || '';
+  }
 
         const createBullets = (text: string) => {
           if (!text) return null;
