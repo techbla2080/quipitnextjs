@@ -524,14 +524,13 @@ return (
 
       {/* Intro Box */}
       {(() => {
-  // First try to get content from result object, fallback to direct content
-  const introText = tripResult?.content || tripResult?.result?.content || (tripResult as unknown as string);
-  let intro = '';
-  
-  if (typeof introText === 'string' && introText) {
-    const parts = introText.split(/Day \d+:/);
-    intro = parts[0]?.trim() || '';
-  }
+        const introText = tripResult && (tripResult as unknown as string);
+        let intro = '';
+        
+        if (typeof introText === 'string' && introText) {
+          const parts = introText.split(/Day \d+:/);
+          intro = parts[0]?.trim() || '';
+        }
 
         const createBullets = (text: string) => {
           if (!text) return null;
@@ -559,6 +558,7 @@ return (
           </div>
         ) : null;
       })()}
+
 
       {/* Day Boxes */}
       {addedDateRange && (
