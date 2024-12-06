@@ -20,10 +20,6 @@ export type TripData = {
   date_range: string;
   interests: string;
   job_id?: string;
-  result?: {
-    content: string;
-  };
-  content?: string;
 };
 
 // Add a new interface for saved itineraries
