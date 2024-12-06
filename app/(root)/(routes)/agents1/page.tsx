@@ -511,7 +511,7 @@ return (
       </div>
     </div>
     <h2 className="text-3xl font-bold">
-      <span className="text-black">TRAVEL</span>
+      <span className="text-black">TRAVELOGUE</span>
       <span className="text-cyan-500"> ITINERARY</span>
     </h2>
     <div className="mt-4 text-gray-600">
