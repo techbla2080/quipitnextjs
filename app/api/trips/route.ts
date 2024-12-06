@@ -5,33 +5,22 @@ import { Trip } from '@/models/Trip';
 export async function POST(req: Request) {
   try {
     await connectToDatabase();
-    
-    // Get request data
     const data = await req.json();
-    
-    // Format the trip data
+
     const tripData = {
       job_id: data.job_id,
       location: data.location,
       dateRange: data.dateRange,
-      interests: Array.isArray(data.interests) ? data.interests.join(', ') : data.interests,
-      cities: Array.isArray(data.cities) ? data.cities.join(', ') : data.cities,
+      interests: data.interests,
+      cities: data.cities,
       content: data.content
     };
 
-    // Check if trip already exists
-    const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
-    
     let trip;
+    const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
     if (existingTrip) {
-      // Update existing trip
-      trip = await Trip.findOneAndUpdate(
-        { job_id: tripData.job_id },
-        tripData,
-        { new: true }
-      );
+      trip = await Trip.findOneAndUpdate({ job_id: tripData.job_id }, tripData, { new: true });
     } else {
-      // Create new trip
       trip = await Trip.create(tripData);
     }
 

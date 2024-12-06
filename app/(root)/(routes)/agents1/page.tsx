@@ -212,33 +212,27 @@ const handlePlanTrip = async () => {
 
 // Update the handleSaveItinerary function
 // In page.tsx, update the handleSaveItinerary function:
-
 const handleSaveItinerary = async () => {
   if (!tripResult || !jobId) {
     toast.error("No trip to save!");
     return;
   }
 
-  setLoading(true); // Show loading state
+  setLoading(true);
 
   try {
-    // Format according to our Trip model
     const tripData = {
       job_id: jobId,
       location: addedLocation,
       dateRange: addedDateRange,
-      interests: interestsList,
-      cities: citiesList,
+      interests: interestsList.join(", "),
+      cities: citiesList.join(", "),
       content: tripResult
     };
 
-    console.log("Attempting to save trip:", tripData);
-
     const response = await fetch('/api/trips', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripData)
     });
 
@@ -248,19 +242,9 @@ const handleSaveItinerary = async () => {
     }
 
     const savedTrip = await response.json();
-    console.log("Trip saved successfully:", savedTrip);
-    
-    // Save to local storage as backup
     localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify(tripData));
-    
-    // Trigger sidebar refresh
     window.dispatchEvent(new CustomEvent('tripsUpdated', { detail: savedTrip }));
-    
     toast.success('Trip saved successfully!');
-    
-    // Optional: Redirect to the saved trip view
-    // router.push(`/agents1?job_id=${jobId}`);
-
   } catch (error) {
     console.error("Error saving trip:", error);
     toast.error(error instanceof Error ? error.message : 'Failed to save trip');
