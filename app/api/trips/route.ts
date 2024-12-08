@@ -1,66 +1,77 @@
-import { NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { Trip } from '@/models/Trip';
+// app/api/trips/route.ts
+import { NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
+import { Trip } from "@/models/Trip";
 
 export async function POST(req: Request) {
   try {
-    await connectToDatabase();
-    const data = await req.json();
+    const body = await req.json();
+    const { job_id, location, dateRange, interests, cities, content } = body;
 
-    const tripData = {
-      job_id: data.job_id,
-      location: data.location,
-      dateRange: data.dateRange,
-      interests: data.interests,
-      cities: data.cities,
-      content: data.content
-    };
-
-    let trip;
-    const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
-    if (existingTrip) {
-      trip = await Trip.findOneAndUpdate({ job_id: tripData.job_id }, tripData, { new: true });
-    } else {
-      trip = await Trip.create(tripData);
+    if (!job_id || !location) {
+      return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    return NextResponse.json(trip);
+    const client = await clientPromise;
+    const db = client.db("tripplanner");
+    
+    const trip: Trip = {
+      job_id,
+      location,
+      dateRange,
+      interests,
+      cities,
+      content,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const result = await db.collection<Trip>("trips").insertOne(trip);
+
+    return NextResponse.json({
+      _id: result.insertedId,
+      ...trip
+    });
   } catch (error) {
-    console.error('Error saving trip:', error);
-    return NextResponse.json({ error: 'Failed to save trip' }, { status: 500 });
+    console.error("[TRIPS_POST]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    await connectToDatabase();
-    const trips = await Trip.find().sort({ createdAt: -1 });
+    const client = await clientPromise;
+    const db = client.db("tripplanner");
+    
+    const trips = await db.collection<Trip>("trips")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
     return NextResponse.json(trips);
   } catch (error) {
-    console.error('Error fetching trips:', error);
-    return NextResponse.json({ error: 'Failed to fetch trips' }, { status: 500 });
+    console.error("[TRIPS_GET]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
-    await connectToDatabase();
     const { searchParams } = new URL(req.url);
-    const job_id = searchParams.get('job_id');
+    const job_id = searchParams.get("job_id");
 
     if (!job_id) {
-      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+      return new NextResponse("Job ID required", { status: 400 });
     }
 
-    const result = await Trip.deleteOne({ job_id });
+    const client = await clientPromise;
+    const db = client.db("tripplanner");
     
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
-    }
+    await db.collection<Trip>("trips").deleteOne({ job_id });
 
-    return NextResponse.json({ message: 'Trip deleted successfully' });
+    return NextResponse.json({ message: "Trip deleted" });
   } catch (error) {
-    console.error('Error deleting trip:', error);
-    return NextResponse.json({ error: 'Failed to delete trip' }, { status: 500 });
+    console.error("[TRIPS_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

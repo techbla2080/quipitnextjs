@@ -237,17 +237,21 @@ const handleSaveItinerary = async () => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to save trip');
+      throw new Error('Failed to save trip');
     }
 
     const savedTrip = await response.json();
+    
+    // Save to localStorage for quick access
     localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify(tripData));
-    window.dispatchEvent(new CustomEvent('tripsUpdated', { detail: savedTrip }));
+    
+    // Trigger sidebar update
+    window.dispatchEvent(new CustomEvent('tripsUpdated'));
+    
     toast.success('Trip saved successfully!');
   } catch (error) {
     console.error("Error saving trip:", error);
-    toast.error(error instanceof Error ? error.message : 'Failed to save trip');
+    toast.error('Failed to save trip');
   } finally {
     setLoading(false);
   }

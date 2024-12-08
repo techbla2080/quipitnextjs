@@ -8,7 +8,6 @@ import { useProModal } from "@/hooks/use-pro-modal";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 
-// Simplified interface to match what's coming from the database
 interface SavedTrip {
   _id: string;
   job_id: string;
@@ -16,7 +15,7 @@ interface SavedTrip {
   dateRange: string;
   interests: string;
   cities: string;
-  content: string;
+  content: any;
   createdAt: Date;
 }
 
@@ -47,7 +46,6 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   useEffect(() => {
     loadSavedTrips();
 
-    // Listen for trip updates
     const handleTripUpdate = () => {
       loadSavedTrips();
     };
