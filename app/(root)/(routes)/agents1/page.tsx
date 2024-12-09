@@ -218,45 +218,55 @@ const handleSaveItinerary = async () => {
     return;
   }
 
-  setLoading(true);
+  setLoading(true); // Show loading state
 
   try {
+    // Format according to our Trip model
     const tripData = {
       job_id: jobId,
       location: addedLocation,
       dateRange: addedDateRange,
-      interests: interestsList.join(", "),
-      cities: citiesList.join(", "),
+      interests: interestsList,
+      cities: citiesList,
       content: tripResult
     };
 
+    console.log("Attempting to save trip:", tripData);
+
     const response = await fetch('/api/trips', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(tripData)
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save trip');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to save trip');
     }
 
     const savedTrip = await response.json();
+    console.log("Trip saved successfully:", savedTrip);
     
-    // Save to localStorage for quick access
+    // Save to local storage as backup
     localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify(tripData));
     
-    // Trigger sidebar update
-    window.dispatchEvent(new CustomEvent('tripsUpdated'));
+    // Trigger sidebar refresh
+    window.dispatchEvent(new CustomEvent('tripsUpdated', { detail: savedTrip }));
     
     toast.success('Trip saved successfully!');
+    
+    // Optional: Redirect to the saved trip view
+    // router.push(`/agents1?job_id=${jobId}`);
+
   } catch (error) {
     console.error("Error saving trip:", error);
-    toast.error('Failed to save trip');
+    toast.error(error instanceof Error ? error.message : 'Failed to save trip');
   } finally {
     setLoading(false);
   }
 };
-
 // First useEffect - Handles loading saved trips
 useEffect(() => {
   // Only run if we have a job_id in URL
