@@ -1,156 +1,77 @@
-// app/api/trips/route.ts
-import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
-import { Trip } from "@/models/Trip";
-
-export async function OPTIONS(req: Request) {
-  return new NextResponse(null, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-    },
-  });
-}
+import { NextResponse } from 'next/server';
+import { connectToDatabase } from '@/lib/mongodb';
+import { Trip } from '@/models/Trip';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { job_id, location, dateRange, interests, cities, content } = body;
-
-    if (!job_id || !location) {
-      return new NextResponse(
-        JSON.stringify({ error: "Missing required fields" }), 
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
-        }
-      );
-    }
-
-    const client = await clientPromise;
-    const db = client.db("tripplanner");
+    await connectToDatabase();
     
-    const trip: Trip = {
-      job_id,
-      location,
-      dateRange,
-      interests,
-      cities,
-      content,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    // Get request data
+    const data = await req.json();
+    
+    // Format the trip data
+    const tripData = {
+      job_id: data.job_id,
+      location: data.location,
+      dateRange: data.dateRange,
+      interests: Array.isArray(data.interests) ? data.interests.join(', ') : data.interests,
+      cities: Array.isArray(data.cities) ? data.cities.join(', ') : data.cities,
+      content: data.content
     };
 
-    const result = await db.collection<Trip>("trips").insertOne(trip);
+    // Check if trip already exists
+    const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
+    
+    let trip;
+    if (existingTrip) {
+      // Update existing trip
+      trip = await Trip.findOneAndUpdate(
+        { job_id: tripData.job_id },
+        tripData,
+        { new: true }
+      );
+    } else {
+      // Create new trip
+      trip = await Trip.create(tripData);
+    }
 
-    return new NextResponse(
-      JSON.stringify({
-        _id: result.insertedId,
-        ...trip
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    return NextResponse.json(trip);
   } catch (error) {
-    console.error("[TRIPS_POST]", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error" }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    console.error('Error saving trip:', error);
+    return NextResponse.json({ error: 'Failed to save trip' }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db("tripplanner");
-    
-    const trips = await db.collection<Trip>("trips")
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    return new NextResponse(
-      JSON.stringify(trips),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    await connectToDatabase();
+    const trips = await Trip.find().sort({ createdAt: -1 });
+    return NextResponse.json(trips);
   } catch (error) {
-    console.error("[TRIPS_GET]", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error" }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    console.error('Error fetching trips:', error);
+    return NextResponse.json({ error: 'Failed to fetch trips' }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
   try {
+    await connectToDatabase();
     const { searchParams } = new URL(req.url);
-    const job_id = searchParams.get("job_id");
+    const job_id = searchParams.get('job_id');
 
     if (!job_id) {
-      return new NextResponse(
-        JSON.stringify({ error: "Job ID required" }),
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
-        }
-      );
+      return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
     }
 
-    const client = await clientPromise;
-    const db = client.db("tripplanner");
+    const result = await Trip.deleteOne({ job_id });
     
-    await db.collection<Trip>("trips").deleteOne({ job_id });
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
+    }
 
-    return new NextResponse(
-      JSON.stringify({ message: "Trip deleted" }),
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    return NextResponse.json({ message: 'Trip deleted successfully' });
   } catch (error) {
-    console.error("[TRIPS_DELETE]", error);
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error" }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
-    );
+    console.error('Error deleting trip:', error);
+    return NextResponse.json({ error: 'Failed to delete trip' }, { status: 500 });
   }
 }

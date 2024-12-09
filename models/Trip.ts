@@ -1,13 +1,26 @@
-import { ObjectId } from "mongodb";
+import mongoose from 'mongoose';
 
-export interface Trip {
-  _id?: ObjectId;
-  job_id: string;
-  location: string;
-  dateRange: string;
-  interests: string;
-  cities: string;
-  content: any;
-  createdAt: Date;
-  updatedAt: Date;
-}
+const TripSchema = new mongoose.Schema({
+  job_id: { 
+    type: String, 
+    required: true,
+    unique: true 
+  },
+  location: {
+    type: String,
+    required: true
+  },
+  dateRange: {
+    type: String,
+    required: true
+  },
+  interests: String,
+  cities: String,
+  content: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+export const Trip = mongoose.models.Trip || mongoose.model('Trip', TripSchema);
