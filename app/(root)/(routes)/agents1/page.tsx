@@ -252,13 +252,7 @@ const handleSaveItinerary = async () => {
     // Save to local storage as backup
     localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify(tripData));
     
-    // Trigger sidebar refresh
-    window.dispatchEvent(new CustomEvent('tripsUpdated', { detail: savedTrip }));
-    
     toast.success('Trip saved successfully!');
-    
-    // Optional: Redirect to the saved trip view
-    // router.push(`/agents1?job_id=${jobId}`);
 
   } catch (error) {
     console.error("Error saving trip:", error);
