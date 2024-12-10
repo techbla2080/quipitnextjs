@@ -246,13 +246,9 @@ const handleSaveItinerary = async () => {
       throw new Error(errorData.error || 'Failed to save trip');
     }
 
-    const { success, trip } = await response.json();
-    if (success) {
-      console.log("Trip saved successfully:", trip);
-      toast.success('Trip saved successfully!');
-    } else {
-      throw new Error('Failed to save trip');
-    }
+    const message = await response.text();
+    console.log("Trip saved successfully:", message);
+    toast.success(message);
   } catch (error) {
     console.error("Error saving trip:", error);
     toast.error(error instanceof Error ? error.message : 'Failed to save trip');

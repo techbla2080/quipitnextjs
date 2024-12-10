@@ -31,10 +31,10 @@ export async function POST(req: Request) {
       trip = await Trip.create(tripData);
     }
 
-    return NextResponse.json({ success: true, trip });
+    return NextResponse.json("Trip saved successfully!");
   } catch (error) {
     console.error('Error saving trip:', error);
-    return NextResponse.json({ success: false, error: 'Failed to save trip' });
+    return NextResponse.json("Failed to save trip", { status: 500 });
   }
 }
 
