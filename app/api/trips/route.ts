@@ -4,39 +4,38 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Trip } from '@/models/Trip';
 
 export async function POST(req: Request) {
- try {
-   await connectToDatabase();
-   
-   const data = await req.json();
-   
-   const tripData = {
-     job_id: data.job_id,
-     location: data.location,
-     dateRange: data.dateRange,
-     interests: data.interests,
-     cities: data.cities,
-     content: data.content
-   };
+  try {
+    await connectToDatabase();
 
-   const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
+    const data = await req.json();
 
-   let trip;
-   if (existingTrip) {
-     trip = await Trip.findOneAndUpdate(
-       { job_id: tripData.job_id },
-       tripData,
-       { new: true }
-     );
-   } else {
-     trip = await Trip.create(tripData);
-   }
+    const tripData = {
+      job_id: data.job_id,
+      location: data.location,
+      dateRange: data.dateRange,
+      interests: data.interests,
+      cities: data.cities,
+      content: data.content,
+    };
 
-   return NextResponse.json({ success: true, trip });
+    const existingTrip = await Trip.findOne({ job_id: tripData.job_id });
 
- } catch (error) {
-   console.error('Error saving trip:', error);
-   return NextResponse.json({ success: false, error: 'Failed to save trip' });
- }
+    let trip;
+    if (existingTrip) {
+      trip = await Trip.findOneAndUpdate(
+        { job_id: tripData.job_id },
+        tripData,
+        { new: true }
+      );
+    } else {
+      trip = await Trip.create(tripData);
+    }
+
+    return NextResponse.json({ success: true, trip });
+  } catch (error) {
+    console.error('Error saving trip:', error);
+    return NextResponse.json({ success: false, error: 'Failed to save trip' });
+  }
 }
 
 // app/api/trips/route.ts

@@ -228,17 +228,17 @@ const handleSaveItinerary = async () => {
       dateRange: addedDateRange,
       interests: interestsList,
       cities: citiesList,
-      content: tripResult
+      content: tripResult,
     };
 
     console.log("Attempting to save trip:", tripData);
 
     const response = await fetch('/api/trips', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
+      headers: {
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(tripData)
+      body: JSON.stringify(tripData),
     });
 
     if (!response.ok) {
@@ -246,11 +246,13 @@ const handleSaveItinerary = async () => {
       throw new Error(errorData.error || 'Failed to save trip');
     }
 
-    const savedTrip = await response.json();
-    console.log("Trip saved successfully:", savedTrip);
-    
-    toast.success('Trip saved successfully!');
-
+    const { success, trip } = await response.json();
+    if (success) {
+      console.log("Trip saved successfully:", trip);
+      toast.success('Trip saved successfully!');
+    } else {
+      throw new Error('Failed to save trip');
+    }
   } catch (error) {
     console.error("Error saving trip:", error);
     toast.error(error instanceof Error ? error.message : 'Failed to save trip');
@@ -258,6 +260,7 @@ const handleSaveItinerary = async () => {
     setLoading(false);
   }
 };
+
 // First useEffect - Handles loading saved trips
 useEffect(() => {
   // Only run if we have a job_id in URL
