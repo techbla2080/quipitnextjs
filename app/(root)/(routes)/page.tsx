@@ -2,7 +2,7 @@
 
 const agents = [
   {
-    url: "http://localhost:3000/agents1", // URL for the Travel Agent
+    url: "https://quipitnextjs.vercel.app/agents1", // URL for the Travel Agent
     name: "Travel Agent",
     description: "Assists you in planning your trip",
   },

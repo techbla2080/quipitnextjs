@@ -242,8 +242,8 @@ const handleSaveItinerary = async () => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to save trip');
+      const errorData = await response.text();
+      throw new Error(errorData || 'Failed to save trip');
     }
 
     const message = await response.text();
