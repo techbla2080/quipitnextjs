@@ -29,38 +29,6 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const loadSavedTrips = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-  
-      const response = await fetch('/api/trips', {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-  
-      if (!response.ok) throw new Error('Failed to fetch');
-      const data = await response.json();
-      setSavedTrips(data.trips || []);
-    } catch (error) {
-      console.error('Error loading trips:', error);
-      // Don't show error toast on initial load
-      setSavedTrips([]);
-    }
-  };
-
-  useEffect(() => {
-    loadSavedTrips();
-
-    const handleTripUpdate = () => {
-      loadSavedTrips();
-    };
-
-    window.addEventListener('tripsUpdated', handleTripUpdate);
-    return () => window.removeEventListener('tripsUpdated', handleTripUpdate);
-  }, []);
-
   const onNavigate = (url: string, pro: boolean) => {
     if (pro && !isPro) {
       return proModal.onOpen();
