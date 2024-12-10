@@ -14,8 +14,8 @@ export async function POST(req: Request) {
       job_id: data.job_id,
       location: data.location,
       dateRange: data.dateRange,
-      interests: Array.isArray(data.interests) ? data.interests.join(', ') : data.interests,
-      cities: Array.isArray(data.cities) ? data.cities.join(', ') : data.cities,
+      interests: data.interests, 
+      cities: data.cities,
       content: data.content
     };
 
