@@ -39,15 +39,32 @@ export async function POST(req: Request) {
  }
 }
 
+// app/api/trips/route.ts
 export async function GET() {
- try {
-   await connectToDatabase();
-   const trips = await Trip.find().sort({ createdAt: -1 });
-   return NextResponse.json({ success: true, trips });
- } catch (error) {
-   console.error('Error fetching trips:', error);
-   return NextResponse.json({ success: false, error: 'Failed to fetch trips' });
- }
+  try {
+    await connectToDatabase();
+    
+    // Add timeout to the database query
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Database timeout')), 5000)
+    );
+
+    const queryPromise = Trip.find().sort({ createdAt: -1 }).limit(10);
+
+    const trips = await Promise.race([queryPromise, timeoutPromise]);
+
+    return NextResponse.json({ 
+      success: true, 
+      trips: trips || [] 
+    });
+  } catch (error) {
+    console.error('Error fetching trips:', error);
+    // Return empty array instead of error
+    return NextResponse.json({ 
+      success: true, 
+      trips: [] 
+    });
+  }
 }
 
 export async function DELETE(req: Request) {

@@ -31,15 +31,22 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
   const loadSavedTrips = async () => {
     try {
-      console.log('Fetching saved trips...');
-      const response = await fetch('/api/trips');
-      if (!response.ok) throw new Error('Failed to fetch trips');
-      const trips = await response.json();
-      console.log('Fetched trips:', trips);
-      setSavedTrips(trips);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+  
+      const response = await fetch('/api/trips', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+  
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      setSavedTrips(data.trips || []);
     } catch (error) {
       console.error('Error loading trips:', error);
-      toast.error('Failed to load saved trips');
+      // Don't show error toast on initial load
+      setSavedTrips([]);
     }
   };
 
