@@ -218,26 +218,21 @@ const handleSaveItinerary = async () => {
     return;
   }
 
-  setLoading(true); // Show loading state
+  setLoading(true);
 
   try {
-    // Format according to our Trip model
     const tripData = {
       job_id: jobId,
       location: addedLocation,
       dateRange: addedDateRange,
-      interests: interestsList.join(', '), // Convert array to string
-      cities: citiesList.join(', '),       // Convert array to string
+      interests: interestsList,
+      cities: citiesList,
       content: tripResult
     };
 
-    console.log("Attempting to save trip:", tripData);
-
     const response = await fetch('/api/trips', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(tripData)
     });
 
@@ -247,12 +242,13 @@ const handleSaveItinerary = async () => {
     }
 
     const savedTrip = await response.json();
-    console.log("Trip saved successfully:", savedTrip);
     
-    // Save to local storage as backup
-    localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify(tripData));
-    
-    toast.success('Trip saved successfully!');
+    if (savedTrip.success) {
+      window.dispatchEvent(new CustomEvent('tripsUpdated'));
+      toast.success('Trip saved successfully!');
+    } else {
+      throw new Error('Failed to save trip');
+    }
 
   } catch (error) {
     console.error("Error saving trip:", error);
