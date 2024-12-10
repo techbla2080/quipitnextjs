@@ -226,8 +226,8 @@ const handleSaveItinerary = async () => {
       job_id: jobId,
       location: addedLocation,
       dateRange: addedDateRange,
-      interests: interestsList,
-      cities: citiesList,
+      interests: interestsList.join(', '), // Convert array to string
+      cities: citiesList.join(', '),       // Convert array to string
       content: tripResult
     };
 
@@ -261,6 +261,7 @@ const handleSaveItinerary = async () => {
     setLoading(false);
   }
 };
+
 // First useEffect - Handles loading saved trips
 useEffect(() => {
   // Only run if we have a job_id in URL
