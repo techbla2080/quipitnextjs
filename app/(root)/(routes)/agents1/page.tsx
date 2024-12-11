@@ -211,48 +211,26 @@ const handlePlanTrip = async () => {
     };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
-  if (!tripResult || !jobId) {
-    toast.error('No trip data to save');
-    return;
-  }
-
   try {
-    const tripData = {
-      location: addedLocation,
-      cities: citiesList,
-      dateRange: addedDateRange,
-      interests: interestsList,
-      jobId: jobId,
-      tripResult: tripResult,
-    };
-
     const response = await fetch('/api/trips/save', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(tripData),
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      toast.success('Trip saved successfully!');
-      
-      // Save to localStorage for quick access
-      localStorage.setItem(`saved_trip_${jobId}`, JSON.stringify({
+      body: JSON.stringify({
         location: addedLocation,
+        cities: citiesList,
         dateRange: addedDateRange,
         interests: interestsList,
-        cities: citiesList,
-        content: tripResult,
-        jobId: jobId
-      }));
+        jobId: jobId,
+        tripResult: tripResult
+      }),
+    });
 
-      // Update URL with job_id
-      router.push(`/trip-planner?job_id=${jobId}`);
+    if (response.ok) {
+      toast.success('Trip saved successfully!');
     } else {
-      throw new Error(data.error || 'Failed to save trip');
+      toast.error('Failed to save trip');
     }
   } catch (error) {
     console.error('Error saving trip:', error);
