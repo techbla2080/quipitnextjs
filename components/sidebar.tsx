@@ -31,29 +31,27 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
     // Add the useEffect HERE, after the state declarations
     useEffect(() => {
-      const fetchSavedTrips = async () => {
+      // Only fetch if we have a save event
+      const handleTripSaved = async () => {
         try {
-          console.log('Fetching saved trips...');
+          console.log('Trip saved, fetching updated trips...');
           const response = await fetch('/api/trips');
-          
-          if (!response.ok) {
-            // If response is not OK (like 404), just set empty array
-            setSavedTrips([]);
-            return;
-          }
-    
           const data = await response.json();
+          
           if (data.success) {
             setSavedTrips(data.trips || []);
           }
         } catch (error) {
-          console.error('Error loading trips:', error);
-          // On error, just set empty array
-          setSavedTrips([]);
+          console.log('No trips to fetch yet');
         }
       };
     
-      fetchSavedTrips();
+      // Listen for save events
+      window.addEventListener('tripSaved', handleTripSaved);
+    
+      return () => {
+        window.removeEventListener('tripSaved', handleTripSaved);
+      };
     }, []);
 
   const onNavigate = (url: string, pro: boolean) => {
