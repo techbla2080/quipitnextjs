@@ -47,12 +47,17 @@ export async function POST(request: Request) {
   }
 }
 
+// app/api/trips/route.ts
 export async function GET() {
   try {
     await connectDB();
     const trips = await Trip.find({}).sort({ createdAt: -1 });
-    console.log('Fetched trips:', trips); // Debug log
-    return NextResponse.json({ success: true, trips });
+    
+    // Even if no trips, return success with empty array
+    return NextResponse.json({ 
+      success: true, 
+      trips: trips || [] 
+    });
   } catch (error) {
     console.error('Error fetching trips:', error);
     return NextResponse.json(

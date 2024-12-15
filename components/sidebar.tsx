@@ -33,36 +33,27 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     useEffect(() => {
       const fetchSavedTrips = async () => {
         try {
-          console.log('Fetching saved trips...'); // Debug log
+          console.log('Fetching saved trips...');
           const response = await fetch('/api/trips');
-          const data = await response.json();
           
+          if (!response.ok) {
+            // If response is not OK (like 404), just set empty array
+            setSavedTrips([]);
+            return;
+          }
+    
+          const data = await response.json();
           if (data.success) {
-            console.log('Trips loaded:', data.trips); // Debug log
-            setSavedTrips(data.trips);
+            setSavedTrips(data.trips || []);
           }
         } catch (error) {
           console.error('Error loading trips:', error);
-          toast.error('Failed to load saved trips');
+          // On error, just set empty array
+          setSavedTrips([]);
         }
       };
     
-      // Initial fetch
       fetchSavedTrips();
-    
-      // Add listener for when new trips are saved
-      const handleTripSaved = () => {
-        console.log('Trip saved event received'); // Debug log
-        fetchSavedTrips(); // Refetch trips when save occurs
-      };
-    
-      // Add event listener
-      window.addEventListener('tripSaved', handleTripSaved);
-    
-      // Cleanup listener when component unmounts
-      return () => {
-        window.removeEventListener('tripSaved', handleTripSaved);
-      };
     }, []);
 
   const onNavigate = (url: string, pro: boolean) => {
