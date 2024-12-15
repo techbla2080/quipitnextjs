@@ -211,6 +211,11 @@ const handlePlanTrip = async () => {
     };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
+
+  if (!jobId) {
+    toast.error('No job ID available');
+    return;
+  }
   try {
     console.log('Data being sent:', {
       location: addedLocation,
