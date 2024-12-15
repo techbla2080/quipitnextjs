@@ -29,6 +29,42 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
+    // Add the useEffect HERE, after the state declarations
+    useEffect(() => {
+      const fetchSavedTrips = async () => {
+        try {
+          console.log('Fetching saved trips...'); // Debug log
+          const response = await fetch('/api/trips');
+          const data = await response.json();
+          
+          if (data.success) {
+            console.log('Trips loaded:', data.trips); // Debug log
+            setSavedTrips(data.trips);
+          }
+        } catch (error) {
+          console.error('Error loading trips:', error);
+          toast.error('Failed to load saved trips');
+        }
+      };
+    
+      // Initial fetch
+      fetchSavedTrips();
+    
+      // Add listener for when new trips are saved
+      const handleTripSaved = () => {
+        console.log('Trip saved event received'); // Debug log
+        fetchSavedTrips(); // Refetch trips when save occurs
+      };
+    
+      // Add event listener
+      window.addEventListener('tripSaved', handleTripSaved);
+    
+      // Cleanup listener when component unmounts
+      return () => {
+        window.removeEventListener('tripSaved', handleTripSaved);
+      };
+    }, []);
+
   const onNavigate = (url: string, pro: boolean) => {
     if (pro && !isPro) {
       return proModal.onOpen();

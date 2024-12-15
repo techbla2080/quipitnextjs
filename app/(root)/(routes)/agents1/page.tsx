@@ -250,6 +250,11 @@ const handleSaveItinerary = async () => {
     }
 
     toast.success('Trip saved successfully!');
+
+    // Add this line to trigger sidebar refresh
+    const event = new CustomEvent('tripSaved');
+    window.dispatchEvent(event);
+
   } catch (error) {
     console.error('Save error:', error);
     toast.error('Failed to save trip');
