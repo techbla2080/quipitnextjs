@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log('3. Received body:', JSON.stringify(body, null, 2));
     
-    const trip = await Trip.create({
+    const trip = await Trip.create({  
       location: body.location,
       cities: body.cities,
       dateRange: body.dateRange,

@@ -211,12 +211,16 @@ const handlePlanTrip = async () => {
     };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
-  if (!tripResult || !jobId) {
-    toast.error('No trip data to save');
-    return;
-  }
-
   try {
+    console.log('Data being sent:', {
+      location: addedLocation,
+      cities: citiesList,
+      dateRange: addedDateRange,
+      interests: interestsList,
+      jobId: jobId,
+      tripResult: tripResult
+    });
+
     const response = await fetch('/api/trips/save', {
       method: 'POST',
       headers: {
@@ -228,18 +232,22 @@ const handleSaveItinerary = async () => {
         dateRange: addedDateRange,
         interests: interestsList,
         jobId: jobId,
-        tripResult: typeof tripResult === 'string' ? tripResult : JSON.stringify(tripResult)
+        tripResult: tripResult
       })
     });
 
-    if (response.ok) {
-      toast.success('Trip saved successfully!');
-    } else {
-      throw new Error('Failed to save trip');
+    const data = await response.json();
+    console.log('Server response:', data);
+
+    if (!response.ok) {
+      console.error('Server error details:', data);
+      throw new Error(data.error || 'Failed to save trip');
     }
+
+    toast.success('Trip saved successfully!');
   } catch (error) {
-    console.error('Error saving trip:', error);
-    toast.error(error instanceof Error ? error.message : 'Failed to save trip');
+    console.error('Save error:', error);
+    toast.error('Failed to save trip');
   }
 };
 

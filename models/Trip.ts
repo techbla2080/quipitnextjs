@@ -1,4 +1,3 @@
-// models/Trip.ts
 import mongoose from 'mongoose';
 
 const TripSchema = new mongoose.Schema({
@@ -11,8 +10,7 @@ const TripSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  },
-  userId: String
+  }
 });
 
 export const Trip = mongoose.models.Trip || mongoose.model('Trip', TripSchema);
