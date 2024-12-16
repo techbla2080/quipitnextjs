@@ -22,6 +22,9 @@ export async function GET() {
   }
 }
 
+// app/api/trips/route.ts
+// Keep your existing GET function
+
 export async function DELETE(request: Request) {
     try {
       await connectDB();
@@ -29,6 +32,8 @@ export async function DELETE(request: Request) {
       // Get job_id from URL
       const { searchParams } = new URL(request.url);
       const jobId = searchParams.get('job_id');
+  
+      console.log('Attempting to delete trip with jobId:', jobId); // Debug log
   
       if (!jobId) {
         return NextResponse.json(
@@ -38,6 +43,7 @@ export async function DELETE(request: Request) {
       }
   
       const result = await Trip.deleteOne({ jobId: jobId });
+      console.log('Delete result:', result); // Debug log
   
       if (result.deletedCount === 0) {
         return NextResponse.json(

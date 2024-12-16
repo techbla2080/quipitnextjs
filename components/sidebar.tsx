@@ -61,28 +61,39 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     return router.push(url);
   };
 
-  const navigateToTrip = (trip: SavedTrip) => {
-    router.push(`/agents1?job_id=${trip.job_id}`);
-  };
-
-  const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
+  const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, jobId: string) => {
     e.stopPropagation();
     try {
-      const response = await fetch(`/api/trips?job_id=${job_id}`, {
+      console.log('Attempting to delete trip:', jobId); // Debug log
+      const response = await fetch(`/api/trips?job_id=${jobId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to delete trip');
-      setSavedTrips(current => current.filter(trip => trip.job_id !== job_id));
+      const data = await response.json();
+      console.log('Delete response:', data); // Debug log
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete trip');
+      }
+
+      setSavedTrips(current => current.filter(trip => trip.job_id !== jobId));
       toast.success('Trip deleted successfully');
       
-      // Also remove from local storage
-      localStorage.removeItem(`saved_trip_${job_id}`);
+      // Remove from local storage
+      localStorage.removeItem(`saved_trip_${jobId}`);
     } catch (error) {
       console.error('Error deleting trip:', error);
       toast.error('Failed to delete trip');
     }
-  };
+};
+
+// Add this function here
+const navigateToTrip = (trip: SavedTrip) => {
+  router.push(`/agents1?job_id=${trip.job_id}`);
+};
 
   const routes = [
     {
