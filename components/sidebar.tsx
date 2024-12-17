@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 interface SavedTrip {
   _id: string;
-  job_id: string;
+  jobid: string;
   location: string;
   dateRange: string;
   interests: string;
@@ -80,7 +80,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
         throw new Error(data.error || 'Failed to delete trip');
       }
 
-      setSavedTrips(current => current.filter(trip => trip.job_id !== jobId));
+      setSavedTrips(current => current.filter(trip => trip.jobid !== jobId));
       toast.success('Trip deleted successfully');
       
       // Remove from local storage
@@ -93,7 +93,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
 // Add this function here
 const navigateToTrip = (trip: SavedTrip) => {
-  router.push(`/agents1?job_id=${trip.job_id}`);
+  router.push(`/agents1?job_id=${trip.jobid}`);
 };
 
   const routes = [
@@ -158,11 +158,11 @@ const navigateToTrip = (trip: SavedTrip) => {
                       <div className="text-[10px] text-muted-foreground">
                         {trip.dateRange}
                         <br />
-                        <span className="opacity-60">ID: {trip.job_id}</span>
+                        <span className="opacity-60">ID: {trip.jobid}</span>
                       </div>
                     </div>
                     <Button
-                      onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+                      onClick={(e) => handleDeleteTrip(e, trip.jobid)}
                       variant="ghost"
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
