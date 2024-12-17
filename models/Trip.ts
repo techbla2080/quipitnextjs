@@ -6,7 +6,7 @@ const TripSchema = new mongoose.Schema({
   cities: [String],
   dateRange: String,
   interests: [String],
-  job_Id: { 
+  jobId: { 
     type: String,
     required: true,
     unique: true
