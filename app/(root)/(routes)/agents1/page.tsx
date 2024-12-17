@@ -252,7 +252,7 @@ const handleSaveItinerary = async () => {
     toast.success('Trip saved successfully!');
 
     // Update URL with the actual jobId
-    router.push(`/trips/${jobId}`);
+    router.push(`/agents1?job_id=${jobId}`);
 
     // Add this line to trigger sidebar refresh
     const event = new CustomEvent('tripSaved');
