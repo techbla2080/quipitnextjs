@@ -3,46 +3,34 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 
-interface TripData {
-  location: string;
-  cities: string[];
-  dateRange: string;
-  interests: string[];
-  jobId: string;
-  tripResult: string;
-  createdAt: Date;
-}
-
 export default function TripView() {
-  const [trip, setTrip] = useState<TripData | null>(null);
+  const [tripData, setTripData] = useState(null);
   const params = useParams();
-  const jobId = params.jobId;
 
   useEffect(() => {
     const fetchTrip = async () => {
       try {
-        const response = await fetch(`/api/trips/${jobId}`);
+        // Using your existing trips endpoint
+        const response = await fetch(`/api/trips?job_id=${params.jobId}`);
         const data = await response.json();
         if (data.success) {
-          setTrip(data.trip);
+          setTripData(data.trip);
         }
       } catch (error) {
-        console.error('Error fetching trip:', error);
+        console.error('Failed to fetch trip:', error);
       }
     };
 
-    if (jobId) {
-      fetchTrip();
-    }
-  }, [jobId]);
+    fetchTrip();
+  }, [params.jobId]);
 
-  if (!trip) return <div>Loading...</div>;
+  if (!tripData) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">Trip Details</h1>
-      <pre className="bg-gray-100 p-4 rounded-lg overflow-auto">
-        {JSON.stringify(trip, null, 2)}
+      <h1 className="text-2xl font-bold mb-4">Saved Trip Data</h1>
+      <pre className="bg-gray-100 p-4 rounded">
+        {JSON.stringify(tripData, null, 2)}
       </pre>
     </div>
   );
