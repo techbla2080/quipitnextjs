@@ -39,6 +39,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
           const data = await response.json();
           
           if (data.success) {
+            console.log('Fetched trips:', data.trips); // Add this log
             setSavedTrips(data.trips || []);
           }
         } catch (error) {
