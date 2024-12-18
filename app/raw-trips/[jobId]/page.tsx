@@ -1,14 +1,12 @@
 "use client";
-
-import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-export default function RawTripData() {
-  const [tripData, setTripData] = useState(null);
+export default function TripDisplay() {
   const params = useParams();
+  const [tripData, setTripData] = useState(null);
 
   useEffect(() => {
-    // Fetch just this specific trip's data from MongoDB
     fetch(`/api/trips?job_id=${params.jobId}`)
       .then(res => res.json())
       .then(data => {
@@ -18,9 +16,8 @@ export default function RawTripData() {
       });
   }, [params.jobId]);
 
-  // Just show raw data, nothing else
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="p-8">
       <pre>{JSON.stringify(tripData, null, 2)}</pre>
     </div>
   );
