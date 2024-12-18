@@ -55,6 +55,8 @@ export default function TripPlanner() {
     const [addedLocation, setAddedLocation] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const [jobId, setJobId] = useState<string>("");
+    const [isViewingRawData, setIsViewingRawData] = useState(false);
+    const [rawTripData, setRawTripData] = useState<any>(null);
     // Add at the top with other state declarations
     const [isViewMode, setIsViewMode] = useState(false);
     const router = useRouter();
@@ -211,11 +213,11 @@ const handlePlanTrip = async () => {
     };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
-
   if (!jobId) {
     toast.error('No job ID available');
     return;
   }
+
   try {
     console.log('Data being sent:', {
       location: addedLocation,
@@ -226,6 +228,7 @@ const handleSaveItinerary = async () => {
       tripResult: tripResult
     });
 
+    // Step 1: Save data (your existing code)
     const response = await fetch('/api/trips/save', {
       method: 'POST',
       headers: {
@@ -251,12 +254,21 @@ const handleSaveItinerary = async () => {
 
     toast.success('Trip saved successfully!');
 
-    // Update URL with the actual jobId
+    // Step 2: Update URL and trigger fetch
     router.push(`/agents1?job_id=${jobId}`);
-
-    // Add this line to trigger sidebar refresh
     const event = new CustomEvent('tripSaved');
     window.dispatchEvent(event);
+
+    // Step 3: Fetch and display data
+    const fetchResponse = await fetch('/api/trips');
+    const fetchedData = await fetchResponse.json();
+    if (fetchedData.success) {
+      const savedTrip = fetchedData.trips.find((t: any) => t.jobid === jobId);
+      if (savedTrip) {
+        setRawTripData(savedTrip);
+        setIsViewingRawData(true);
+      }
+    }
 
   } catch (error) {
     console.error('Save error:', error);
@@ -286,33 +298,35 @@ const loadSavedTrip = async (jobId: string) => {
 
 // First useEffect - Handles loading saved trips
 useEffect(() => {
-  // Only run if we have a job_id in URL
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get('job_id');
 
   if (currentJobId) {
-    const savedTrip = localStorage.getItem(`saved_trip_${currentJobId}`);
-    if (savedTrip) {
+    const fetchTripData = async () => {
       try {
-        const parsedTrip = JSON.parse(savedTrip);
-        // Load saved trip data
-        setTripResult(parsedTrip.content);
-        setAddedLocation(parsedTrip.location);
-        setAddedDateRange(parsedTrip.dateRange);
-        setInterestsList(parsedTrip.interests || []);
-        setCitiesList(parsedTrip.cities || []);
-        setJobId(currentJobId);
-        setIsViewMode(true);  // Important: Set view mode for saved trips
+        const response = await fetch('/api/trips');
+        if (!response.ok) throw new Error('Failed to fetch trips');
+        
+        const data = await response.json();
+        if (data.success) {
+          // Find the specific trip from all trips
+          const trip = data.trips.find((t: any) => t.jobid === currentJobId);
+          if (trip) {
+            setRawTripData(trip);
+            setIsViewingRawData(true);
+          }
+        }
       } catch (error) {
-        console.error('Error loading saved trip:', error);
-        toast.error('Error loading saved trip');
+        console.error('Error:', error);
       }
-    }
+    };
+
+    fetchTripData();
   } else {
-    // Clear view mode if no job_id
-    setIsViewMode(false);
+    setIsViewingRawData(false);
+    setRawTripData(null);
   }
-}, [window.location.search]); // Only depends on URL search params
+}, [window.location.search]);
 
 // Second useEffect - Handles page state persistence
 useEffect(() => {
