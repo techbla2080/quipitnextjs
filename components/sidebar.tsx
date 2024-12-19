@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 interface SavedTrip {
   _id: string;
-  jobid: string;
+  job_id: string;
   location: string;
   dateRange: string;
   interests: string;
@@ -29,32 +29,6 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
 
-    // Add the useEffect HERE, after the state declarations
-    useEffect(() => {
-      // Only fetch if we have a save event
-      const handleTripSaved = async () => {
-        try {
-          console.log('Trip saved, fetching updated trips...');
-          const response = await fetch('/api/trips');
-          const data = await response.json();
-          
-          if (data.success) {
-            console.log('Fetched trips:', data.trips); // Add this log
-            setSavedTrips(data.trips || []);
-          }
-        } catch (error) {
-          console.log('No trips to fetch yet');
-        }
-      };
-    
-      // Listen for save events
-      window.addEventListener('tripSaved', handleTripSaved);
-    
-      return () => {
-        window.removeEventListener('tripSaved', handleTripSaved);
-      };
-    }, []);
-
   const onNavigate = (url: string, pro: boolean) => {
     if (pro && !isPro) {
       return proModal.onOpen();
@@ -62,39 +36,28 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     return router.push(url);
   };
 
-  const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, jobId: string) => {
+  const navigateToTrip = (trip: SavedTrip) => {
+    router.push(`/agents1?job_id=${trip.job_id}`);
+  };
+
+  const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
     e.stopPropagation();
     try {
-      console.log('Attempting to delete trip:', jobId); // Debug log
-      const response = await fetch(`/api/trips?job_id=${jobId}`, {
+      const response = await fetch(`/api/trips?job_id=${job_id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
 
-      const data = await response.json();
-      console.log('Delete response:', data); // Debug log
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete trip');
-      }
-
-      setSavedTrips(current => current.filter(trip => trip.jobid !== jobId));
+      if (!response.ok) throw new Error('Failed to delete trip');
+      setSavedTrips(current => current.filter(trip => trip.job_id !== job_id));
       toast.success('Trip deleted successfully');
       
-      // Remove from local storage
-      localStorage.removeItem(`saved_trip_${jobId}`);
+      // Also remove from local storage
+      localStorage.removeItem(`saved_trip_${job_id}`);
     } catch (error) {
       console.error('Error deleting trip:', error);
       toast.error('Failed to delete trip');
     }
-};
-
-// Add this function here
-const navigateToTrip = (trip: SavedTrip) => {
-  router.push(`/agents1?job_id=${trip.jobid}`);
-};
+  };
 
   const routes = [
     {
@@ -158,11 +121,11 @@ const navigateToTrip = (trip: SavedTrip) => {
                       <div className="text-[10px] text-muted-foreground">
                         {trip.dateRange}
                         <br />
-                        <span className="opacity-60">ID: {trip.jobid}</span>
+                        <span className="opacity-60">ID: {trip.job_id}</span>
                       </div>
                     </div>
                     <Button
-                      onClick={(e) => handleDeleteTrip(e, trip.jobid)}
+                      onClick={(e) => handleDeleteTrip(e, trip.job_id)}
                       variant="ghost"
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
