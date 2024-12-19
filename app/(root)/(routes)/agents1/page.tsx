@@ -224,9 +224,11 @@ const handleSaveItinerary = async () => {
       cities: citiesList,
       dateRange: addedDateRange,
       interests: interestsList,
-      jobId: jobId,
+      job_Id: jobId,
       tripResult: tripResult
     });
+
+    console.log('Saving trip with ID:', jobId);  // Debug log
 
     // Step 1: Save data (your existing code)
     const response = await fetch('/api/trips/save', {
