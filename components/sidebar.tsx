@@ -59,6 +59,27 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     }
   };
 
+  useEffect(() => {
+    const fetchSavedTrips = async () => {
+      try {
+        const response = await fetch('/api/trips');
+        const data = await response.json();
+        
+        if (data.success) {
+          setSavedTrips(data.trips);
+        }
+      } catch (error) {
+        console.error('Error fetching saved trips:', error);
+      }
+    };
+  
+    fetchSavedTrips();
+    
+    // Also listen for new saves
+    window.addEventListener('tripSaved', fetchSavedTrips);
+    return () => window.removeEventListener('tripSaved', fetchSavedTrips);
+  }, []);
+
   const routes = [
     {
       icon: Home,
