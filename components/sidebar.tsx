@@ -71,10 +71,12 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 useEffect(() => {
   const fetchSavedTrips = async () => {
     try {
+      console.log('Fetching saved trips...'); // Debug log
       const response = await fetch('/api/trips');
       const data = await response.json();
       
       if (data.success) {
+        console.log('Fetched trips:', data.trips); // Debug log
         setSavedTrips(data.trips);
       }
     } catch (error) {
@@ -85,16 +87,22 @@ useEffect(() => {
   // Initial fetch
   fetchSavedTrips();
   
-  // Set up polling every 30 seconds to keep data in sync
-  const interval = setInterval(fetchSavedTrips, 30000);
+  // Create a named function for the event listener
+  const handleTripSaved = () => {
+    console.log('Trip saved event triggered'); // Debug log
+    fetchSavedTrips();
+  };
   
-  // Listen for save/delete events
-  window.addEventListener('tripSaved', fetchSavedTrips);
+  // Add event listener
+  window.addEventListener('tripSaved', handleTripSaved);
+  
+  // Set up periodic refresh
+  const intervalId = setInterval(fetchSavedTrips, 5000);
   
   // Cleanup
   return () => {
-    clearInterval(interval);
-    window.removeEventListener('tripSaved', fetchSavedTrips);
+    window.removeEventListener('tripSaved', handleTripSaved);
+    clearInterval(intervalId);
   };
 }, []);
 
