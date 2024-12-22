@@ -8,14 +8,27 @@ import { useProModal } from "@/hooks/use-pro-modal";
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 
+// Interface for the API response
+interface TripApiResponse {
+  _id: string;
+  jobId: string;
+  location: string;
+  dateRange: string;
+  interests: string[];
+  cities: string[];
+  tripResult: string;
+  createdAt: string;
+}
+
+// Interface for the formatted trip data used in the sidebar
 interface SavedTrip {
   _id: string;
   job_id: string;
   location: string;
   dateRange: string;
-  interests: string;
-  cities: string;
-  content: any;
+  interests: string[];
+  cities: string[];
+  content: string;
   createdAt: Date;
 }
 
@@ -43,72 +56,76 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
     e.stopPropagation();
     try {
-      // First make the DELETE request to backend
       const response = await fetch(`/api/trips?job_id=${job_id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete trip');
       
-      // If backend delete was successful, then update frontend state
       setSavedTrips(current => current.filter(trip => trip.job_id !== job_id));
       toast.success('Trip deleted successfully');
 
-      // If we're currently viewing this trip, redirect to main page
       const urlParams = new URLSearchParams(window.location.search);
       const currentJobId = urlParams.get('job_id');
       
       if (currentJobId === job_id) {
         router.push('/agents1');
       }
-      
     } catch (error) {
       console.error('Error deleting trip:', error);
       toast.error('Failed to delete trip');
     }
-};
+  };
 
-useEffect(() => {
   const fetchSavedTrips = async () => {
     try {
       console.log('Starting to fetch saved trips...');
       const response = await fetch('/api/trips');
       
       if (!response.ok) {
-        console.error('Fetch failed:', response.status);
+        console.error('Fetch response not ok:', response.status);
         return;
       }
 
       const data = await response.json();
       console.log('Raw API response:', data);
-      
-      if (data.success) {
-        console.log('Setting savedTrips state with:', data.trips);
-        setSavedTrips(data.trips);
+
+      if (data.success && Array.isArray(data.trips)) {
+        const formattedTrips: SavedTrip[] = data.trips.map((trip: TripApiResponse) => ({
+          _id: trip._id,
+          job_id: trip.jobId,
+          location: trip.location,
+          dateRange: trip.dateRange,
+          interests: trip.interests,
+          cities: trip.cities,
+          content: trip.tripResult,
+          createdAt: new Date(trip.createdAt)
+        }));
+        
+        console.log('Formatted trips:', formattedTrips);
+        setSavedTrips(formattedTrips);
       }
     } catch (error) {
-      console.error('Error fetching trips:', error);
+      console.error('Error in fetchSavedTrips:', error);
     }
-  };   
-  
-  // Initial fetch
-  fetchSavedTrips();
-  
-  // Event listener for saved trips
-  const handleTripSaved = async () => {
-    console.log('Trip saved event received in sidebar');
-    await fetchSavedTrips();
   };
 
-  window.addEventListener('tripSaved', handleTripSaved);
+  useEffect(() => {
+    // Initial fetch
+    fetchSavedTrips();
 
-  // Debug: Log whenever savedTrips state changes
-  console.log('Current savedTrips state:', savedTrips);
+    // Event listener for saved trips
+    const handleTripSaved = async () => {
+      console.log('Trip saved event received in sidebar');
+      await fetchSavedTrips();
+    };
 
-  return () => {
-    window.removeEventListener('tripSaved', handleTripSaved);
-  };
-}, []);
+    window.addEventListener('tripSaved', handleTripSaved);
+    
+    return () => {
+      window.removeEventListener('tripSaved', handleTripSaved);
+    };
+  }, []);
 
   const routes = [
     {
