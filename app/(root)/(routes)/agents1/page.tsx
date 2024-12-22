@@ -211,57 +211,70 @@ if (isViewMode) {
   };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
- if (!jobId) {
-  toast.error('No job ID available');
-  return;
- }
+  if (!jobId) {
+    toast.error('No job ID available');
+    return;
+  }
 
-try {
-  console.log('Data being sent:', {
-    location: addedLocation,
-    cities: citiesList,
-    dateRange: addedDateRange,
-    interests: interestsList,
-    jobId: jobId,
-    tripResult: tripResult
-  });
-
-  const response = await fetch('/api/trips/save', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  try {
+    console.log('Data being sent:', {
       location: addedLocation,
       cities: citiesList,
       dateRange: addedDateRange,
       interests: interestsList,
       jobId: jobId,
       tripResult: tripResult
-    })
-  });
+    });
 
-  const data = await response.json();
-  console.log('Server response:', data);
+    const response = await fetch('/api/trips/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        location: addedLocation,
+        cities: citiesList,
+        dateRange: addedDateRange,
+        interests: interestsList,
+        jobId: jobId,
+        tripResult: tripResult
+      })
+    });
 
-  if (!response.ok) {
-    console.error('Server error details:', data);
-    throw new Error(data.error || 'Failed to save trip');
+    const data = await response.json();
+    console.log('Server response:', data);
+
+    if (!response.ok) {
+      console.error('Server error details:', data);
+      throw new Error(data.error || 'Failed to save trip');
+    }
+
+    // Create a custom event with the saved trip data
+    const tripSavedEvent = new CustomEvent('tripSaved', {
+      detail: {
+        location: addedLocation,
+        jobId: jobId,
+        dateRange: addedDateRange,
+        interests: interestsList,
+        cities: citiesList
+      }
+    });
+
+    // Dispatch the event
+    window.dispatchEvent(tripSavedEvent);
+    console.log('Trip saved event dispatched with data:', tripSavedEvent.detail);
+
+    toast.success('Trip saved successfully!');
+
+    // Small delay before navigation to ensure event is processed
+    setTimeout(() => {
+      router.push(`/agents1?job_id=${jobId}`);
+    }, 100);
+
+  } catch (error) {
+    console.error('Save error:', error);
+    toast.error('Failed to save trip');
   }
-
-  toast.success('Trip saved successfully!');
-
-  // Dispatch event to notify sidebar
-  window.dispatchEvent(new CustomEvent('tripSaved'));
-  console.log('Trip saved event dispatched'); // Debug log
-
-  // Navigate to the saved trip
-  router.push(`/agents1?job_id=${jobId}`);
-
-} catch (error) {
-  console.error('Save error:', error);
-  toast.error('Failed to save trip');
-}
 };
 
 const loadSavedTrip = async (jobId: string) => {

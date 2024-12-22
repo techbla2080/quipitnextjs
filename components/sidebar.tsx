@@ -71,35 +71,44 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 useEffect(() => {
   const fetchSavedTrips = async () => {
     try {
-      console.log('Fetching saved trips...'); // Debug log
+      console.log('Fetching saved trips...'); 
       const response = await fetch('/api/trips');
+      
+      if (!response.ok) {
+        console.error('Fetch failed:', response.status);
+        return;
+      }
+
       const data = await response.json();
+      console.log('Fetched trips data:', data);
       
       if (data.success) {
-        console.log('Fetched trips:', data.trips); // Debug log
         setSavedTrips(data.trips);
+        console.log('Updated savedTrips state:', data.trips);
       }
     } catch (error) {
-      console.error('Error fetching saved trips:', error);
+      console.error('Error fetching trips:', error);
     }
   };
 
+  // Handle trip saved event with data
+  const handleTripSaved = async (event: Event) => {
+    console.log('Trip saved event received');
+    if ((event as CustomEvent).detail) {
+      console.log('Event detail:', (event as CustomEvent).detail);
+    }
+    await fetchSavedTrips(); // Refetch all trips
+  };
+  
   // Initial fetch
   fetchSavedTrips();
-  
-  // Create a named function for the event listener
-  const handleTripSaved = () => {
-    console.log('Trip saved event triggered'); // Debug log
-    fetchSavedTrips();
-  };
   
   // Add event listener
   window.addEventListener('tripSaved', handleTripSaved);
   
-  // Set up periodic refresh
-  const intervalId = setInterval(fetchSavedTrips, 5000);
+  // Shorter interval for testing
+  const intervalId = setInterval(fetchSavedTrips, 3000);
   
-  // Cleanup
   return () => {
     window.removeEventListener('tripSaved', handleTripSaved);
     clearInterval(intervalId);
