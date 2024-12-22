@@ -211,11 +211,11 @@ if (isViewMode) {
   };
 // Add this function in your TripPlanner component
 const handleSaveItinerary = async () => {
-
-if (!jobId) {
+ if (!jobId) {
   toast.error('No job ID available');
   return;
-}
+ }
+
 try {
   console.log('Data being sent:', {
     location: addedLocation,
@@ -250,6 +250,14 @@ try {
   }
 
   toast.success('Trip saved successfully!');
+
+  // Dispatch event to notify sidebar
+  const event = new CustomEvent('tripSaved');
+  window.dispatchEvent(event);
+
+  // Navigate to the saved trip
+  router.push(`/agents1?job_id=${jobId}`);
+  
 } catch (error) {
   console.error('Save error:', error);
   toast.error('Failed to save trip');
