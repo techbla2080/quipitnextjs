@@ -71,6 +71,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 useEffect(() => {
   const fetchSavedTrips = async () => {
     try {
+      console.log('Starting to fetch saved trips...');
       const response = await fetch('/api/trips');
       
       if (!response.ok) {
@@ -79,36 +80,33 @@ useEffect(() => {
       }
 
       const data = await response.json();
+      console.log('Raw API response:', data);
       
       if (data.success) {
+        console.log('Setting savedTrips state with:', data.trips);
         setSavedTrips(data.trips);
       }
     } catch (error) {
       console.error('Error fetching trips:', error);
     }
-  };
-
-  // Handle trip saved event with data
-  const handleTripSaved = async (event: Event) => {
-    console.log('Trip saved event received');
-    if ((event as CustomEvent).detail) {
-      console.log('Event detail:', (event as CustomEvent).detail);
-    }
-    await fetchSavedTrips(); // Refetch all trips
-  };
+  };   
   
   // Initial fetch
   fetchSavedTrips();
   
-  // Add event listener
+  // Event listener for saved trips
+  const handleTripSaved = async () => {
+    console.log('Trip saved event received in sidebar');
+    await fetchSavedTrips();
+  };
+
   window.addEventListener('tripSaved', handleTripSaved);
-  
-  // Shorter interval for testing
-  const intervalId = setInterval(fetchSavedTrips, 3000);
-  
+
+  // Debug: Log whenever savedTrips state changes
+  console.log('Current savedTrips state:', savedTrips);
+
   return () => {
     window.removeEventListener('tripSaved', handleTripSaved);
-    clearInterval(intervalId);
   };
 }, []);
 
