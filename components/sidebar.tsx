@@ -71,7 +71,6 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 useEffect(() => {
   const fetchSavedTrips = async () => {
     try {
-      console.log('Fetching saved trips...'); 
       const response = await fetch('/api/trips');
       
       if (!response.ok) {
@@ -80,11 +79,9 @@ useEffect(() => {
       }
 
       const data = await response.json();
-      console.log('Fetched trips data:', data);
       
       if (data.success) {
         setSavedTrips(data.trips);
-        console.log('Updated savedTrips state:', data.trips);
       }
     } catch (error) {
       console.error('Error fetching trips:', error);
