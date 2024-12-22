@@ -155,8 +155,10 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   ];
 
   return (
+    // Make the main container take full height
     <div className="space-y-4 flex flex-col h-full text-primary bg-secondary">
-      <div className="p-3 flex-1 flex justify-center">
+      {/* Add overflow-y-auto to allow scrolling of entire sidebar content */}
+      <div className="p-3 flex-1 flex justify-center overflow-y-auto">
         <div className="space-y-2 w-full">
           {routes.map((route) => (
             <div
@@ -176,7 +178,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
           <div className="mt-6 border-t pt-4">
             <h2 className="px-3 text-xs font-semibold mb-2">SAVED TRIPS</h2>
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
               {savedTrips && savedTrips.length > 0 ? (
                 savedTrips.map((trip) => (
                   <div
