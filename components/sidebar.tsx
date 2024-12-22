@@ -43,42 +43,60 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
     e.stopPropagation();
     try {
+      // First make the DELETE request to backend
       const response = await fetch(`/api/trips?job_id=${job_id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) throw new Error('Failed to delete trip');
+      
+      // If backend delete was successful, then update frontend state
       setSavedTrips(current => current.filter(trip => trip.job_id !== job_id));
       toast.success('Trip deleted successfully');
+
+      // If we're currently viewing this trip, redirect to main page
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentJobId = urlParams.get('job_id');
       
-      // Also remove from local storage
-      localStorage.removeItem(`saved_trip_${job_id}`);
+      if (currentJobId === job_id) {
+        router.push('/agents1');
+      }
+      
     } catch (error) {
       console.error('Error deleting trip:', error);
       toast.error('Failed to delete trip');
     }
+};
+
+useEffect(() => {
+  const fetchSavedTrips = async () => {
+    try {
+      const response = await fetch('/api/trips');
+      const data = await response.json();
+      
+      if (data.success) {
+        setSavedTrips(data.trips);
+      }
+    } catch (error) {
+      console.error('Error fetching saved trips:', error);
+    }
   };
 
-  useEffect(() => {
-    const fetchSavedTrips = async () => {
-      try {
-        const response = await fetch('/api/trips');
-        const data = await response.json();
-        
-        if (data.success) {
-          setSavedTrips(data.trips);
-        }
-      } catch (error) {
-        console.error('Error fetching saved trips:', error);
-      }
-    };
+  // Initial fetch
+  fetchSavedTrips();
   
-    fetchSavedTrips();
-    
-    // Also listen for new saves
-    window.addEventListener('tripSaved', fetchSavedTrips);
-    return () => window.removeEventListener('tripSaved', fetchSavedTrips);
-  }, []);
+  // Set up polling every 30 seconds to keep data in sync
+  const interval = setInterval(fetchSavedTrips, 30000);
+  
+  // Listen for save/delete events
+  window.addEventListener('tripSaved', fetchSavedTrips);
+  
+  // Cleanup
+  return () => {
+    clearInterval(interval);
+    window.removeEventListener('tripSaved', fetchSavedTrips);
+  };
+}, []);
 
   const routes = [
     {
