@@ -54,16 +54,16 @@ export default function TripPlanner() {
     const [interestsList, setInterestsList] = useState<string[]>([]);
     const [addedLocation, setAddedLocation] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
+    const [savedTripData, setSavedTripData] = useState(null);
     const [jobId, setJobId] = useState<string>("");
     const [isViewingRawData, setIsViewingRawData] = useState(false);
     const [rawTripData, setRawTripData] = useState<any>(null);
     // Add at the top with other state declarations
     const [isViewMode, setIsViewMode] = useState(false);
     const router = useRouter();
-
     const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
-      // Add new persistence function
+    // Add new persistence function
   const persistItineraries = (itineraries: SavedItinerary[]) => {
     try {
       localStorage.setItem('itineraries', JSON.stringify(itineraries));
@@ -366,6 +366,28 @@ useEffect(() => {
       }
     }
   };
+
+  useEffect(() => {
+    const fetchSavedTrip = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const jobId = urlParams.get('job_id');
+
+      if (jobId) {
+        try {
+          const response = await fetch(`/api/trips/${jobId}`);
+          const data = await response.json();
+
+          if (data.success && data.trip) {
+            setSavedTripData(data.trip);
+          }
+        } catch (error) {
+          console.error('Error fetching saved trip:', error);
+        }
+      }
+    };
+
+    fetchSavedTrip();
+  }, [window.location.search]);
 
   // Load state on mount if we're not viewing a saved trip
   if (!window.location.search.includes('job_id')) {
