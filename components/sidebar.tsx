@@ -156,7 +156,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
   return (
     // Make the main container take full height
-    <div className="space-y-4 flex flex-col h-full text-primary bg-secondary w-64">
+    <div className="space-y-4 flex flex-col h-full text-primary bg-secondary w-32">
       {/* Add overflow-y-auto to allow scrolling of entire sidebar content */}
       <div className="p-3 flex-1 flex justify-center overflow-y-auto">
         <div className="space-y-2 w-full">
