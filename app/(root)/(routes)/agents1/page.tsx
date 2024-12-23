@@ -61,6 +61,56 @@ export default function TripPlanner() {
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
+  useEffect(() => {
+    const loadTripFromId = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentJobId = urlParams.get('job_id');
+  
+      if (currentJobId) {
+        try {
+          // First fetch the specific trip
+          const response = await fetch(`/api/trips/${currentJobId}`);
+          const data = await response.json();
+          console.log('Loaded trip data:', data); // Debug log
+  
+          if (data.success && data.trip) {
+            // Access the data with the correct structure
+            const trip = data.trip;
+            
+            setAddedLocation(trip.location);
+            // Handle cities array
+            const citiesArray = Array.isArray(trip.cities) ? trip.cities : trip.cities.split(',').map((c: string) => c.trim());
+            setCitiesList(citiesArray);
+            
+            setAddedDateRange(trip.dateRange);
+            
+            // Handle interests array
+            const interestsArray = Array.isArray(trip.interests) ? trip.interests : trip.interests.split(',').map((i: string) => i.trim());
+            setInterestsList(interestsArray);
+            
+            // Set the content/trip result
+            setTripResult(trip.content || trip.tripResult);
+            setJobId(trip.jobId || trip.job_id);
+            setIsViewMode(true);
+  
+            console.log('Set states with:', {
+              location: trip.location,
+              cities: citiesArray,
+              dateRange: trip.dateRange,
+              interests: interestsArray,
+              content: trip.content || trip.tripResult
+            });
+          }
+        } catch (error) {
+          console.error('Error loading trip:', error);
+          toast.error('Failed to load trip details');
+        }
+      }
+    };
+  
+    loadTripFromId();
+  }, [window.location.search]);
+
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
   try {
