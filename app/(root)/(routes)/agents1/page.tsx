@@ -68,38 +68,21 @@ export default function TripPlanner() {
   
       if (currentJobId) {
         try {
-          // First fetch the specific trip
+          // Keep your existing URL structure
           const response = await fetch(`/api/trips/${currentJobId}`);
+          
+          if (!response.ok) throw new Error('Failed to fetch trip');
           const data = await response.json();
-          console.log('Loaded trip data:', data); // Debug log
   
           if (data.success && data.trip) {
-            // Access the data with the correct structure
-            const trip = data.trip;
-            
-            setAddedLocation(trip.location);
-            // Handle cities array
-            const citiesArray = Array.isArray(trip.cities) ? trip.cities : trip.cities.split(',').map((c: string) => c.trim());
-            setCitiesList(citiesArray);
-            
-            setAddedDateRange(trip.dateRange);
-            
-            // Handle interests array
-            const interestsArray = Array.isArray(trip.interests) ? trip.interests : trip.interests.split(',').map((i: string) => i.trim());
-            setInterestsList(interestsArray);
-            
-            // Set the content/trip result
-            setTripResult(trip.content || trip.tripResult);
-            setJobId(trip.jobId || trip.job_id);
+            // Properly handle the saved data
+            setAddedLocation(data.trip.location);
+            setCitiesList(data.trip.cities);
+            setAddedDateRange(data.trip.dateRange);
+            setInterestsList(data.trip.interests);
+            setTripResult(data.trip.tripResult);
+            setJobId(currentJobId);
             setIsViewMode(true);
-  
-            console.log('Set states with:', {
-              location: trip.location,
-              cities: citiesArray,
-              dateRange: trip.dateRange,
-              interests: interestsArray,
-              content: trip.content || trip.tripResult
-            });
           }
         } catch (error) {
           console.error('Error loading trip:', error);
