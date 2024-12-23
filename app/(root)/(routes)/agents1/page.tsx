@@ -68,12 +68,16 @@ export default function TripPlanner() {
   
       if (currentJobId) {
         try {
-          // Keep your existing URL structure
-          const response = await fetch(`/api/trips/${currentJobId}`);
+          // Changed the URL structure to match your API
+          const response = await fetch('/api/trips', {
+            headers: {
+              'job-id': currentJobId
+            }
+          });
           
           if (!response.ok) throw new Error('Failed to fetch trip');
           const data = await response.json();
-  
+          
           if (data.success && data.trip) {
             // Properly handle the saved data
             setAddedLocation(data.trip.location);
@@ -93,7 +97,6 @@ export default function TripPlanner() {
   
     loadTripFromId();
   }, [window.location.search]);
-
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
   try {
