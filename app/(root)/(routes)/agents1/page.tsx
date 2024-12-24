@@ -68,35 +68,41 @@ export default function TripPlanner() {
   
       if (currentJobId) {
         try {
-          // Changed the URL structure to match your API
-          const response = await fetch('/api/trips', {
-            headers: {
-              'job-id': currentJobId
-            }
-          });
-          
-          if (!response.ok) throw new Error('Failed to fetch trip');
+          console.log('Loading trip with ID:', currentJobId);
+          const response = await fetch('/api/trips');
           const data = await response.json();
+          console.log('Fetched data:', data);
           
-          if (data.success && data.trip) {
-            // Properly handle the saved data
-            setAddedLocation(data.trip.location);
-            setCitiesList(data.trip.cities);
-            setAddedDateRange(data.trip.dateRange);
-            setInterestsList(data.trip.interests);
-            setTripResult(data.trip.tripResult);
-            setJobId(currentJobId);
-            setIsViewMode(true);
+          if (data.success) {
+            const trip = data.trips.find((t: any) => t.jobId === currentJobId);
+            console.log('Found trip:', trip);
+            
+            if (trip) {
+              setAddedLocation(trip.location);
+              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+              setAddedDateRange(trip.dateRange);
+              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+              setTripResult(trip.content || trip.tripResult);
+              setJobId(currentJobId);
+              setIsViewMode(true);
+              console.log('States set with:', {
+                location: trip.location,
+                cities: trip.cities,
+                dateRange: trip.dateRange,
+                interests: trip.interests,
+                content: trip.content || trip.tripResult
+              });
+            }
           }
         } catch (error) {
-          console.error('Error loading trip:', error);
-          toast.error('Failed to load trip details');
+          console.error('Error:', error);
         }
       }
     };
   
     loadTripFromId();
   }, [window.location.search]);
+
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
   try {
