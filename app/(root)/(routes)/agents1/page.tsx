@@ -233,7 +233,9 @@ if (isViewMode) {
     };
 
     setLoading(true);
-    const result = await planTrip(tripData);      
+    const result = await planTrip(tripData);
+    console.log('Full API Result:', result);
+          
     setLoading(false);
 
     if (result) {

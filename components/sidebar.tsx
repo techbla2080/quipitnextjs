@@ -56,8 +56,13 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
     e.stopPropagation();
     try {
-      const response = await fetch(`/api/trips?job_id=${job_id}`, {
+      // Change URL structure
+      const response = await fetch('/api/trips', {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ job_id }) // Send job_id in the request body
       });
 
       if (!response.ok) throw new Error('Failed to delete trip');
@@ -75,7 +80,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       console.error('Error deleting trip:', error);
       toast.error('Failed to delete trip');
     }
-  };
+};
 
   const fetchSavedTrips = async () => {
     try {
