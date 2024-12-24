@@ -21,3 +21,27 @@ export async function GET() {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { job_id } = await request.json();
+    
+    if (!job_id) {
+      return NextResponse.json(
+        { success: false, error: 'Job ID is required' },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+    await Trip.findOneAndDelete({ jobId: job_id });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting trip:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete trip' },
+      { status: 500 }
+    );
+  }
+}
