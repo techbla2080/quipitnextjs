@@ -68,7 +68,7 @@ export default function TripPlanner() {
       const currentJobId = urlParams.get('job_id');
       console.log('Current Job ID:', currentJobId);
   
-      // Reset states immediately when job_id changes
+      // Reset states immediately
       const resetStates = () => {
         console.log('Resetting all states');
         setTripResult(null);
@@ -82,7 +82,7 @@ export default function TripPlanner() {
   
       if (currentJobId) {
         try {
-          resetStates(); // Clear old data first
+          resetStates();
           console.log('Fetching data for job ID:', currentJobId);
           const response = await fetch('/api/trips');
           const data = await response.json();
@@ -93,16 +93,20 @@ export default function TripPlanner() {
             console.log('Found trip:', trip);
             
             if (trip) {
-              console.log('Setting new states with trip data');
-              // Set all new data at once
-              setJobId(currentJobId);
-              setAddedLocation(trip.location);
-              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-              setAddedDateRange(trip.dateRange);
-              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-              setTripResult(trip.content || trip.tripResult);
-              setIsViewMode(true);
-              console.log('All states updated with new trip data');
+              // Prevent any new navigation while setting states
+              await Promise.all([
+                new Promise(resolve => {
+                  setJobId(currentJobId);
+                  setAddedLocation(trip.location);
+                  setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+                  setAddedDateRange(trip.dateRange);
+                  setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+                  setTripResult(trip.content || trip.tripResult);
+                  setIsViewMode(true);
+                  resolve(true);
+                })
+              ]);
+              console.log('All states updated with new trip data for:', currentJobId);
             }
           }
         } catch (error) {
