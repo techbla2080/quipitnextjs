@@ -65,17 +65,27 @@ export default function TripPlanner() {
     const loadTripFromId = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const currentJobId = urlParams.get('job_id');
-  
+   
+      // Clear all states first
+      const clearStates = () => {
+        setAddedLocation('');
+        setCitiesList([]);
+        setAddedDateRange('');
+        setInterestsList([]);
+        setTripResult(null);
+        setJobId('');
+        setIsViewMode(false);
+      };
+   
       if (currentJobId) {
         try {
-          console.log('Loading trip with ID:', currentJobId);
+          clearStates(); // Clear before loading new data
+          
           const response = await fetch('/api/trips');
           const data = await response.json();
-          console.log('Fetched data:', data);
           
           if (data.success) {
             const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-            console.log('Found trip:', trip);
             
             if (trip) {
               setAddedLocation(trip.location);
@@ -85,23 +95,19 @@ export default function TripPlanner() {
               setTripResult(trip.content || trip.tripResult);
               setJobId(currentJobId);
               setIsViewMode(true);
-              console.log('States set with:', {
-                location: trip.location,
-                cities: trip.cities,
-                dateRange: trip.dateRange,
-                interests: trip.interests,
-                content: trip.content || trip.tripResult
-              });
             }
           }
         } catch (error) {
-          console.error('Error:', error);
+          console.error('Error loading trip:', error);
+          toast.error('Failed to load trip details');
         }
+      } else {
+        clearStates(); // Also clear when no job_id in URL
       }
     };
-  
+   
     loadTripFromId();
-  }, [window.location.search]);
+   }, [window.location.search]);
 
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
