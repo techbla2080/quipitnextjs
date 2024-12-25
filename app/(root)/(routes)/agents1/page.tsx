@@ -63,19 +63,25 @@ export default function TripPlanner() {
 
   useEffect(() => {
     const loadTripFromId = async () => {
+      // Clear all states first
+      setAddedLocation('');
+      setCitiesList([]);
+      setAddedDateRange('');
+      setInterestsList([]);
+      setTripResult(null);
+      setJobId('');
+      setIsViewMode(false);
+  
       const urlParams = new URLSearchParams(window.location.search);
       const currentJobId = urlParams.get('job_id');
   
       if (currentJobId) {
         try {
-          console.log('Loading trip with ID:', currentJobId);
           const response = await fetch('/api/trips');
           const data = await response.json();
-          console.log('Fetched data:', data);
           
           if (data.success) {
             const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-            console.log('Found trip:', trip);
             
             if (trip) {
               setAddedLocation(trip.location);
@@ -85,17 +91,11 @@ export default function TripPlanner() {
               setTripResult(trip.content || trip.tripResult);
               setJobId(currentJobId);
               setIsViewMode(true);
-              console.log('States set with:', {
-                location: trip.location,
-                cities: trip.cities,
-                dateRange: trip.dateRange,
-                interests: trip.interests,
-                content: trip.content || trip.tripResult
-              });
             }
           }
         } catch (error) {
-          console.error('Error:', error);
+          console.error('Error loading trip:', error);
+          toast.error('Failed to load trip details');
         }
       }
     };
