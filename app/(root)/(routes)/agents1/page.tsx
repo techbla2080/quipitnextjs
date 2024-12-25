@@ -62,51 +62,43 @@ export default function TripPlanner() {
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
   useEffect(() => {
+    let isMounted = true;  // Add a mount checker
+  
     const loadTripFromId = async () => {
       console.log('Effect triggered, window.location.search:', window.location.search);
       const urlParams = new URLSearchParams(window.location.search);
       const currentJobId = urlParams.get('job_id');
       console.log('Current Job ID:', currentJobId);
   
-      // Reset states immediately
-      const resetStates = () => {
-        console.log('Resetting all states');
-        setTripResult(null);
-        setAddedLocation('');
-        setCitiesList([]);
-        setAddedDateRange('');
-        setInterestsList([]);
-        setJobId('');
-        setIsViewMode(false);
-      };
-  
-      if (currentJobId) {
+      if (currentJobId && isMounted) {  // Check if still mounted
         try {
-          resetStates();
+          // Reset everything first
+          setTripResult(null);
+          setAddedLocation('');
+          setCitiesList([]);
+          setAddedDateRange('');
+          setInterestsList([]);
+          setJobId('');
+          setIsViewMode(false);
+  
           console.log('Fetching data for job ID:', currentJobId);
           const response = await fetch('/api/trips');
           const data = await response.json();
-          console.log('Fetched data:', data);
           
-          if (data.success) {
+          if (data.success && isMounted) {  // Check again before updating states
             const trip = data.trips.find((t: any) => t.jobId === currentJobId);
             console.log('Found trip:', trip);
             
             if (trip) {
-              // Prevent any new navigation while setting states
-              await Promise.all([
-                new Promise(resolve => {
-                  setJobId(currentJobId);
-                  setAddedLocation(trip.location);
-                  setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-                  setAddedDateRange(trip.dateRange);
-                  setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-                  setTripResult(trip.content || trip.tripResult);
-                  setIsViewMode(true);
-                  resolve(true);
-                })
-              ]);
-              console.log('All states updated with new trip data for:', currentJobId);
+              // Update all states in one go
+              setJobId(currentJobId);
+              setAddedLocation(trip.location || '');
+              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+              setAddedDateRange(trip.dateRange || '');
+              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+              setTripResult(trip.content || trip.tripResult);
+              setIsViewMode(true);
+              console.log('States updated for job_id:', currentJobId);
             }
           }
         } catch (error) {
@@ -116,6 +108,11 @@ export default function TripPlanner() {
     };
   
     loadTripFromId();
+  
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [window.location.search]);
 
     // Add new persistence function
