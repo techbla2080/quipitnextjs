@@ -49,8 +49,9 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     return router.push(url);
   };
 
-  const navigateToTrip = (trip: SavedTrip) => {
-    router.push(`/agents1?job_id=${trip.job_id}`);
+  const navigateToTrip = async (trip: SavedTrip) => {
+    await router.push(`/agents1?job_id=${trip.job_id}`);
+    window.location.reload();
   };
 
   const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
