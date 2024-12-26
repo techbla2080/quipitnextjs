@@ -49,6 +49,7 @@ export default function TripPlanner() {
   const [currentInterest, setCurrentInterest] = useState<string>("");
   const [addedDateRange, setAddedDateRange] = useState<string>("");
   const [interests, setInterests] = useState<string>("");
+  const [isLoadingTrip, setIsLoadingTrip] = useState<boolean>(false);
   const [tripResult, setTripResult] = useState<TripData | null>(null);
   const [citiesList, setCitiesList] = useState<string[]>([]);
   const [interestsList, setInterestsList] = useState<string[]>([]);
@@ -61,49 +62,84 @@ export default function TripPlanner() {
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
-  useEffect(() => {
-    const loadTripFromId = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const currentJobId = urlParams.get('job_id');
-      
-      if (currentJobId) {
-        setIsLoadingTrip(true);
-        // First clear all states
-        setTripResult(null);
-        setAddedLocation('');
-        setCitiesList([]);
-        setAddedDateRange('');
-        setInterestsList([]);
-        setJobId('');
-        setIsViewMode(false);
-  
-        try {
-          // Fetch new data
-          const response = await fetch('/api/trips');
-          const data = await response.json();
-          
-          if (data.success) {
-            const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-            if (trip) {
-              setJobId(currentJobId);
-              setAddedLocation(trip.location);
-              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-              setAddedDateRange(trip.dateRange);
-              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-              setTripResult(trip.content || trip.tripResult);
-              setIsViewMode(true);
-            }
-          }
-        } catch (error) {
-          console.error('Error:', error);
-        } finally {
-          setIsLoadingTrip(false);
-        }
+// Load trip function
+const loadTripFromId = async (currentJobId: string) => {
+  try {
+    const response = await fetch('/api/trips');
+    const data = await response.json();
+    
+    if (data.success) {
+      const trip = data.trips.find((t: any) => t.jobId === currentJobId);
+      if (trip) {
+        setJobId(currentJobId);
+        setAddedLocation(trip.location);
+        setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+        setAddedDateRange(trip.dateRange);
+        setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+        setTripResult(trip.content || trip.tripResult);
+        setIsViewMode(true);
       }
-    };
-  
-    loadTripFromId();
-  }, [window.location.search]);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    toast.error('Failed to load trip');
+  }
+};
+
+// First useEffect - Load saved trips
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentJobId = urlParams.get('job_id');
+
+  if (currentJobId) {
+    setIsLoadingTrip(true);
+    loadTripFromId(currentJobId).finally(() => setIsLoadingTrip(false));
+  } else {
+    setIsViewMode(false);
+    const savedState = sessionStorage.getItem('currentTripState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        setAddedLocation(parsedState.location);
+        setAddedDateRange(parsedState.dateRange);
+        setInterestsList(parsedState.interests);
+        setCitiesList(parsedState.cities);
+        setTripResult(parsedState.tripResult);
+        setJobId(parsedState.jobId);
+      } catch (error) {
+        console.error('Error loading saved state:', error);
+      }
+    }
+  }
+}, [window.location.search]);
+
+// Second useEffect - State persistence
+useEffect(() => {
+  const handleBeforeUnload = () => {
+    if (!isViewMode && tripResult) {
+      const currentState = {
+        location: addedLocation,
+        dateRange: addedDateRange,
+        interests: interestsList,
+        cities: citiesList,
+        tripResult,
+        jobId
+      };
+      sessionStorage.setItem('currentTripState', JSON.stringify(currentState));
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+}, [
+  isViewMode,
+  tripResult,
+  addedLocation,
+  addedDateRange,
+  interestsList,
+  citiesList,
+  jobId
+]);
 
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
