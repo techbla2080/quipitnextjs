@@ -67,44 +67,37 @@ export default function TripPlanner() {
       const currentJobId = urlParams.get('job_id');
       
       if (currentJobId) {
-        // Clear states before loading new data
-        const clearStates = () => {
-          console.log('Clearing states before loading new trip:', currentJobId);
-          setTripResult(null);
-          setAddedLocation('');
-          setCitiesList([]);
-          setAddedDateRange('');
-          setInterestsList([]);
-          setJobId('');
-          setIsViewMode(false);
-        };
-  
-        clearStates();
+        setIsLoadingTrip(true);
+        // First clear all states
+        setTripResult(null);
+        setAddedLocation('');
+        setCitiesList([]);
+        setAddedDateRange('');
+        setInterestsList([]);
+        setJobId('');
+        setIsViewMode(false);
   
         try {
+          // Fetch new data
           const response = await fetch('/api/trips');
           const data = await response.json();
           
           if (data.success) {
             const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-            
             if (trip) {
-              console.log('Loading new trip data:', currentJobId);
-              // Set all states synchronously
-              await Promise.all([
-                setJobId(currentJobId),
-                setAddedLocation(trip.location),
-                setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
-                setAddedDateRange(trip.dateRange),
-                setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
-                setTripResult(trip.content || trip.tripResult),
-                setIsViewMode(true)
-              ]);
-              console.log('Trip data loaded successfully:', currentJobId);
+              setJobId(currentJobId);
+              setAddedLocation(trip.location);
+              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+              setAddedDateRange(trip.dateRange);
+              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+              setTripResult(trip.content || trip.tripResult);
+              setIsViewMode(true);
             }
           }
         } catch (error) {
-          console.error('Error loading trip:', error);
+          console.error('Error:', error);
+        } finally {
+          setIsLoadingTrip(false);
         }
       }
     };
