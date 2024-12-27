@@ -66,35 +66,41 @@ export default function TripPlanner() {
       console.log('Loading trip with ID:', currentJobId);
       
       try {
-        // First log current trip data
-        console.log('Current job ID:', jobId);
-        
-        // Clear existing data
+        // Clear existing data first
         setTripResult(null);
         setAddedLocation('');
         setCitiesList([]);
         setAddedDateRange('');
         setInterestsList([]);
         
-        const response = await fetch(`/api/trips/${currentJobId}`);
+        // Use the correct endpoint - /api/trips instead of /api/trips/${currentJobId}
+        const response = await fetch('/api/trips');
         console.log('API Response received');
         
         const data = await response.json();
         console.log('Parsed data:', data);
         
-        if (data.success && data.trip) {
-          console.log('Found trip:', data.trip);
+        if (data.success) {
+          // Find the specific trip in the array
+          const trip = data.trips.find((t: any) => t.jobId === currentJobId);
           
-          // Update all states
-          setJobId(currentJobId);
-          setAddedLocation(data.trip.location);
-          setCitiesList(Array.isArray(data.trip.cities) ? data.trip.cities : [data.trip.cities]);
-          setAddedDateRange(data.trip.dateRange);
-          setInterestsList(Array.isArray(data.trip.interests) ? data.trip.interests : [data.trip.interests]);
-          setTripResult(data.trip.content || data.trip.tripResult);
-          setIsViewMode(true);
-          
-          console.log('States updated successfully');
+          if (trip) {
+            console.log('Found trip:', trip);
+            
+            // Update all states
+            setJobId(currentJobId);
+            setAddedLocation(trip.location || '');
+            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+            setAddedDateRange(trip.dateRange || '');
+            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+            setTripResult(trip.content || trip.tripResult);
+            setIsViewMode(true);
+            
+            console.log('States updated successfully');
+          } else {
+            console.error('Trip not found in response');
+            toast.error('Trip not found');
+          }
         }
       } catch (error) {
         console.error('Error loading trip:', error);
