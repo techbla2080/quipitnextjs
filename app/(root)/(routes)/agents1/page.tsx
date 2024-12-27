@@ -62,99 +62,97 @@ export default function TripPlanner() {
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
   useEffect(() => {
+    const [isLoading, setIsLoading] = useState(false);
+    let isLoadingTrip = false; // Use ref to prevent race conditions
+  
     const loadTripFromId = async (currentJobId: string) => {
-      console.log('=== PHASE 1: INITIALIZATION ===');
-      console.log('Starting load for trip ID:', currentJobId);
-      console.log('Current jobId in state:', jobId);
-      
+      // Prevent multiple simultaneous loads
+      if (isLoadingTrip) {
+        console.log('Already loading a trip, skipping...');
+        return;
+      }
+  
       try {
-        console.log('=== PHASE 2: CLEARING STATES ===');
-        // Clear existing data first
-        setTripResult(null);
-        setAddedLocation('');
-        setCitiesList([]);
-        setAddedDateRange('');
-        setInterestsList([]);
-        console.log('All states cleared successfully');
+        isLoadingTrip = true;
+        setIsLoading(true);
+        console.log('=== PHASE 1: INITIALIZATION ===');
         
-        console.log('=== PHASE 3: FETCHING DATA ===');
-        console.log('Making API request to /api/trips');
-        const response = await fetch('/api/trips');
-        console.log('API Response status:', response.status);
-        
-        const data = await response.json();
-        console.log('API Data received:', {
-          success: data.success,
-          tripCount: data.trips?.length || 0
+        // Clear existing data first - do this synchronously
+        const clearStates = new Promise(resolve => {
+          setTripResult(null);
+          setAddedLocation('');
+          setCitiesList([]);
+          setAddedDateRange('');
+          setInterestsList([]);
+          setJobId('');
+          resolve(null);
         });
+  
+        await clearStates;
+        console.log('States cleared');
+  
+        console.log('=== PHASE 2: FETCHING DATA ===');
+        const response = await fetch('/api/trips');
+        const data = await response.json();
         
         if (data.success && data.trips) {
-          console.log('=== PHASE 4: PROCESSING DATA ===');
           const trip = data.trips.find((t: any) => t.jobId === currentJobId);
           
           if (trip) {
-            console.log('Trip found:', {
-              location: trip.location,
-              dateRange: trip.dateRange,
-              citiesCount: Array.isArray(trip.cities) ? trip.cities.length : 1,
-              interestsCount: Array.isArray(trip.interests) ? trip.interests.length : 1
-            });
-            
-            console.log('=== PHASE 5: UPDATING STATES ===');
-            console.log('Starting state updates...');
-            
-            // Update basic information first
-            setJobId(currentJobId);
-            console.log('JobId updated');
-            
-            setAddedLocation(trip.location || '');
-            console.log('Location updated');
-            
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-            console.log('Cities updated');
-            
-            setAddedDateRange(trip.dateRange || '');
-            console.log('Date range updated');
-            
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-            console.log('Interests updated');
-            
-            setIsViewMode(true);
-            console.log('View mode updated');
+            console.log('=== PHASE 3: UPDATING STATES ===');
+            // Update all states in a single batch to prevent partial updates
+            await Promise.all([
+              new Promise(resolve => {
+                setJobId(currentJobId);
+                setAddedLocation(trip.location || '');
+                setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+                setAddedDateRange(trip.dateRange || '');
+                setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+                setIsViewMode(true);
+                resolve(null);
+              }),
+              new Promise(resolve => {
+                setTripResult(trip.content || trip.tripResult);
+                resolve(null);
+              })
+            ]);
   
-            // Update trip result last
-            console.log('=== PHASE 6: UPDATING TRIP CONTENT ===');
-            setTripResult(trip.content || trip.tripResult);
-            console.log('Trip content updated');
-  
-            console.log('=== PHASE 7: COMPLETION ===');
-            console.log('All states updated successfully');
+            console.log('=== PHASE 4: COMPLETION ===');
             toast.success('Trip loaded successfully');
-            
-            // Dispatch event for any listeners
-            window.dispatchEvent(new Event('trip-loaded'));
-            console.log('Trip loaded event dispatched');
           } else {
-            console.error('Trip not found in response');
             toast.error('Trip not found');
           }
         }
       } catch (error) {
-        console.error('=== ERROR ===');
-        console.error('Error details:', error);
-        toast.error('Failed to load trip data');
+        console.error('Error loading trip:', error);
+        toast.error('Failed to load trip');
+      } finally {
+        isLoadingTrip = false;
+        setIsLoading(false);
       }
+    };
+  
+    // Add debouncing to prevent rapid consecutive loads
+    let debounceTimer: NodeJS.Timeout;
+  
+    const debouncedLoadTrip = (jobId: string) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadTripFromId(jobId);
+      }, 300); // 300ms debounce
     };
   
     const urlParams = new URLSearchParams(window.location.search);
     const currentJobId = urlParams.get('job_id');
     
-    if (currentJobId && currentJobId !== jobId) {
-      console.log('=== NEW TRIP DETECTED ===');
-      console.log('URL jobId:', currentJobId);
-      console.log('Current state jobId:', jobId);
-      loadTripFromId(currentJobId);
+    if (currentJobId && currentJobId !== jobId && !isLoading) {
+      console.log('New trip detected:', currentJobId);
+      debouncedLoadTrip(currentJobId);
     }
+  
+    return () => {
+      clearTimeout(debounceTimer);
+    };
   }, [window.location.search, jobId]);
 
     // Add new persistence function
