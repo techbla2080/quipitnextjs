@@ -73,33 +73,41 @@ export default function TripPlanner() {
         setAddedDateRange('');
         setInterestsList([]);
         
-        // Use the correct endpoint - /api/trips instead of /api/trips/${currentJobId}
         const response = await fetch('/api/trips');
         console.log('API Response received');
         
         const data = await response.json();
         console.log('Parsed data:', data);
         
-        if (data.success) {
-          // Find the specific trip in the array
+        if (data.success && data.trips) {
           const trip = data.trips.find((t: any) => t.jobId === currentJobId);
           
           if (trip) {
             console.log('Found trip:', trip);
             
-            // Update all states
-            setJobId(currentJobId);
-            setAddedLocation(trip.location || '');
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-            setAddedDateRange(trip.dateRange || '');
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-            setTripResult(trip.content || trip.tripResult);
-            setIsViewMode(true);
+            // Force synchronous state updates
+            await Promise.all([
+              new Promise(resolve => {
+                setJobId(currentJobId);
+                setAddedLocation(trip.location || '');
+                setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+                setAddedDateRange(trip.dateRange || '');
+                setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+                setIsViewMode(true);
+                resolve(null);
+              }),
+              new Promise(resolve => {
+                // Update trip result last to ensure other states are set
+                setTripResult(trip.content || trip.tripResult);
+                resolve(null);
+              })
+            ]);
+  
+            // Force a re-render
+            window.dispatchEvent(new Event('trip-loaded'));
             
             console.log('States updated successfully');
-          } else {
-            console.error('Trip not found in response');
-            toast.error('Trip not found');
+            toast.success('Trip loaded successfully');
           }
         }
       } catch (error) {
@@ -116,6 +124,16 @@ export default function TripPlanner() {
       loadTripFromId(currentJobId);
     }
   }, [window.location.search, jobId]);
+  
+  // Additional effect to handle trip loaded event
+  useEffect(() => {
+    const handleTripLoaded = () => {
+      console.log('Trip loaded, forcing re-render');
+    };
+  
+    window.addEventListener('trip-loaded', handleTripLoaded);
+    return () => window.removeEventListener('trip-loaded', handleTripLoaded);
+  }, []);
 
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
