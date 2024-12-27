@@ -63,35 +63,53 @@ export default function TripPlanner() {
 
   useEffect(() => {
     const loadTripFromId = async (currentJobId: string) => {
+      console.log('Loading trip with ID:', currentJobId);
+      
       try {
-        const response = await fetch('/api/trips');
-        const data = await response.json();
+        // First log current trip data
+        console.log('Current job ID:', jobId);
         
-        if (data.success) {
-          const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-          if (trip) {
-            setTripResult(trip.tripResult);
-            setAddedLocation(trip.location);
-            setAddedDateRange(trip.dateRange);
-            setInterestsList(trip.interests);
-            setCitiesList(trip.cities);
-            setJobId(trip.jobId);
-            setIsViewMode(true);
-          }
+        // Clear existing data
+        setTripResult(null);
+        setAddedLocation('');
+        setCitiesList([]);
+        setAddedDateRange('');
+        setInterestsList([]);
+        
+        const response = await fetch(`/api/trips/${currentJobId}`);
+        console.log('API Response received');
+        
+        const data = await response.json();
+        console.log('Parsed data:', data);
+        
+        if (data.success && data.trip) {
+          console.log('Found trip:', data.trip);
+          
+          // Update all states
+          setJobId(currentJobId);
+          setAddedLocation(data.trip.location);
+          setCitiesList(Array.isArray(data.trip.cities) ? data.trip.cities : [data.trip.cities]);
+          setAddedDateRange(data.trip.dateRange);
+          setInterestsList(Array.isArray(data.trip.interests) ? data.trip.interests : [data.trip.interests]);
+          setTripResult(data.trip.content || data.trip.tripResult);
+          setIsViewMode(true);
+          
+          console.log('States updated successfully');
         }
       } catch (error) {
-        console.error('Error:', error);
-        toast.error('Failed to load trip');
+        console.error('Error loading trip:', error);
+        toast.error('Failed to load trip data');
       }
     };
   
     const urlParams = new URLSearchParams(window.location.search);
     const currentJobId = urlParams.get('job_id');
     
-    if (currentJobId) {
+    if (currentJobId && currentJobId !== jobId) {
+      console.log('New job ID detected:', currentJobId);
       loadTripFromId(currentJobId);
     }
-  }, [window.location.search]);
+  }, [window.location.search, jobId]);
 
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
