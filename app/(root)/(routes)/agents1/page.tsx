@@ -58,42 +58,59 @@ export default function TripPlanner() {
   // At component level (outside useEffect)
   const [isLoading, setIsLoading] = useState(false);
   // Add at the top with other state declarations
+  // At the top with your other state declarations, add:
+  const [isNavigating, setIsNavigating] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const router = useRouter();
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
   useEffect(() => {
+    let isLoadingTrip = false; // Local flag to prevent concurrent loads
+  
     const loadTripFromId = async (currentJobId: string) => {
+      if (isLoadingTrip) {
+        console.log('Already loading, skipping');
+        return;
+      }
+  
       console.log('=== PHASE 1: INITIALIZATION ===');
       console.log('Starting load for trip ID:', currentJobId);
       console.log('Current jobId in state:', jobId);
-      
+  
       try {
+        isLoadingTrip = true;
+        setIsNavigating(true);
+  
         console.log('=== PHASE 2: CLEARING STATES ===');
-        // Clear existing data first
+        // Clear all states first synchronously
         setTripResult(null);
         setAddedLocation('');
         setCitiesList([]);
         setAddedDateRange('');
         setInterestsList([]);
+        setJobId('');
+        setIsViewMode(false);
         console.log('All states cleared successfully');
-        
+  
+        // Wait a tick for states to clear
+        await new Promise(resolve => setTimeout(resolve, 0));
+  
         console.log('=== PHASE 3: FETCHING DATA ===');
         console.log('Making API request to /api/trips');
         const response = await fetch('/api/trips');
         console.log('API Response status:', response.status);
-        
+  
         const data = await response.json();
         console.log('API Data received:', {
           success: data.success,
           tripCount: data.trips?.length || 0
         });
-        
+  
         if (data.success && data.trips) {
           console.log('=== PHASE 4: PROCESSING DATA ===');
           const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-          
+  
           if (trip) {
             console.log('Trip found:', {
               location: trip.location,
@@ -101,39 +118,38 @@ export default function TripPlanner() {
               citiesCount: Array.isArray(trip.cities) ? trip.cities.length : 1,
               interestsCount: Array.isArray(trip.interests) ? trip.interests.length : 1
             });
-            
+  
             console.log('=== PHASE 5: UPDATING STATES ===');
             console.log('Starting state updates...');
-            
-            // Update basic information first
-            setJobId(currentJobId);
-            console.log('JobId updated');
-            
-            setAddedLocation(trip.location || '');
-            console.log('Location updated');
-            
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-            console.log('Cities updated');
-            
-            setAddedDateRange(trip.dateRange || '');
-            console.log('Date range updated');
-            
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-            console.log('Interests updated');
-            
-            setIsViewMode(true);
-            console.log('View mode updated');
   
-            // Update trip result last
-            console.log('=== PHASE 6: UPDATING TRIP CONTENT ===');
-            setTripResult(trip.content || trip.tripResult);
-            console.log('Trip content updated');
+            // Update states in order
+            await new Promise(resolve => {
+              setJobId(currentJobId);
+              console.log('JobId updated');
+              
+              setAddedLocation(trip.location || '');
+              console.log('Location updated');
+              
+              setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+              console.log('Cities updated');
+              
+              setAddedDateRange(trip.dateRange || '');
+              console.log('Date range updated');
+              
+              setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+              console.log('Interests updated');
+              
+              setTripResult(trip.content || trip.tripResult);
+              console.log('Trip content updated');
+              
+              setIsViewMode(true);
+              console.log('View mode updated');
+              resolve(null);
+            });
   
             console.log('=== PHASE 7: COMPLETION ===');
             console.log('All states updated successfully');
             toast.success('Trip loaded successfully');
-            
-            // Dispatch event for any listeners
             window.dispatchEvent(new Event('trip-loaded'));
             console.log('Trip loaded event dispatched');
           } else {
@@ -144,21 +160,24 @@ export default function TripPlanner() {
       } catch (error) {
         console.error('=== ERROR ===');
         console.error('Error details:', error);
-        toast.error('Failed to load trip data');
+        toast.error('Failed to load trip');
+      } finally {
+        isLoadingTrip = false;
+        setIsNavigating(false);
       }
     };
   
     const urlParams = new URLSearchParams(window.location.search);
     const currentJobId = urlParams.get('job_id');
-    
-    if (currentJobId && currentJobId !== jobId) {
+  
+    if (currentJobId && currentJobId !== jobId && !isNavigating) {
       console.log('=== NEW TRIP DETECTED ===');
       console.log('URL jobId:', currentJobId);
       console.log('Current state jobId:', jobId);
       loadTripFromId(currentJobId);
     }
-  }, [window.location.search, jobId]);
-
+  }, [window.location.search, jobId, isNavigating]);
+  
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
   try {
@@ -583,8 +602,8 @@ return (
 
       {/* Output Box for Loader and Result */}
       <div className="mt-4 border p-4 rounded">
-        {loading ? (
-          <div className="flex items-center">
+      {(loading || isNavigating) ? (
+          <div className="flex items-center justify-center">
             <div className="loader" style={{
               display: 'inline-block',
               width: '24px',
@@ -594,7 +613,7 @@ return (
               borderTop: '3px solid transparent',
               animation: 'spin 1s linear infinite'
             }} />
-            <span className="ml-2">Processing data...</span>
+            <span className="ml-2">{isNavigating ? 'Loading trip data...' : 'Processing data...'}</span>
           </div>
         ) : tripResult ? (
           <div>
