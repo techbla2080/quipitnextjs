@@ -71,6 +71,11 @@ export default function TripPlanner() {
     const loadTripFromId = async (currentJobId: string) => {
       if (isLoadingTrip) {
         console.log('Already loading, skipping');
+        console.log(`Click detected for trip: ${currentJobId}`);
+        console.log(`Time of click: ${new Date().toISOString()}`);
+
+        // Add timing information
+        const startTime = performance.now();
         return;
       }
   
