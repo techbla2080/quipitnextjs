@@ -68,15 +68,24 @@ export default function TripPlanner() {
 // Add this at the component level, outside any effects
 const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-// Then modify the useEffect
 useEffect(() => {
+  const loadingRef = useRef(false);  // Add loading ref to prevent duplicate loads
+  
   const loadTripFromId = async (currentJobId: string) => {
+    // Skip if already loading
+    if (loadingRef.current) {
+      console.log('Skip: Already loading');
+      return;
+    }
+
     const startTime = Date.now();
     console.log('=== PHASE 1: INITIALIZATION ===');
     console.log('Starting load for trip ID:', currentJobId);
     console.log('Current jobId in state:', jobId);
     
     try {
+      loadingRef.current = true;  // Set loading flag
+
       // Clear existing timeout if any
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -84,14 +93,15 @@ useEffect(() => {
       }
 
       console.log('=== PHASE 2: CLEARING STATES ===');
-      // Clear states synchronously
-      setTripResult(null);
-      setAddedLocation('');
-      setCitiesList([]);
-      setAddedDateRange('');
-      setInterestsList([]);
-      setJobId('');
-      setIsViewMode(false);
+      // Clear states synchronously in a batch
+      await Promise.all([
+        setTripResult(null),
+        setAddedLocation(''),
+        setCitiesList([]),
+        setAddedDateRange(''),
+        setInterestsList([]),
+        setIsViewMode(false)
+      ]);
       console.log('All states cleared successfully');
 
       // Force a state update cycle
@@ -125,27 +135,18 @@ useEffect(() => {
           console.log('=== PHASE 5: UPDATING STATES ===');
           console.log('Starting state updates...');
           
-          // Update states
-          setJobId(currentJobId);
-          console.log('JobId updated');
+          // Update all states together
+          await Promise.all([
+            setJobId(currentJobId),
+            setAddedLocation(trip.location || ''),
+            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
+            setAddedDateRange(trip.dateRange || ''),
+            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
+            setTripResult(trip.content || trip.tripResult),
+            setIsViewMode(true)
+          ]);
           
-          setAddedLocation(trip.location || '');
-          console.log('Location updated');
-          
-          setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
-          console.log('Cities updated');
-          
-          setAddedDateRange(trip.dateRange || '');
-          console.log('Date range updated');
-          
-          setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
-          console.log('Interests updated');
-          
-          setTripResult(trip.content || trip.tripResult);
-          console.log('Trip content updated');
-          
-          setIsViewMode(true);
-          console.log('View mode updated');
+          console.log('All states updated');
 
           const endTime = Date.now();
           console.log('=== PHASE 6: COMPLETION ===');
@@ -163,6 +164,8 @@ useEffect(() => {
       console.error('=== ERROR ===');
       console.error('Error details:', error);
       toast.error('Failed to load trip');
+    } finally {
+      loadingRef.current = false;  // Reset loading flag
     }
   };
 
