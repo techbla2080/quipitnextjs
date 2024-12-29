@@ -65,12 +65,12 @@ export default function TripPlanner() {
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
-// Add this at the component level, outside any effects
+// At component level, with other refs and states
 const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+const loadingRef = useRef<boolean>(false);
 
+//ok baba
 useEffect(() => {
-  const loadingRef = useRef(false);  // Add loading ref to prevent duplicate loads
-  
   const loadTripFromId = async (currentJobId: string) => {
     // Skip if already loading
     if (loadingRef.current) {
@@ -93,15 +93,14 @@ useEffect(() => {
       }
 
       console.log('=== PHASE 2: CLEARING STATES ===');
-      // Clear states synchronously in a batch
-      await Promise.all([
-        setTripResult(null),
-        setAddedLocation(''),
-        setCitiesList([]),
-        setAddedDateRange(''),
-        setInterestsList([]),
-        setIsViewMode(false)
-      ]);
+      // Clear states synchronously
+      setTripResult(null);
+      setAddedLocation('');
+      setCitiesList([]);
+      setAddedDateRange('');
+      setInterestsList([]);
+      setJobId('');
+      setIsViewMode(false);
       console.log('All states cleared successfully');
 
       // Force a state update cycle
@@ -135,18 +134,27 @@ useEffect(() => {
           console.log('=== PHASE 5: UPDATING STATES ===');
           console.log('Starting state updates...');
           
-          // Update all states together
-          await Promise.all([
-            setJobId(currentJobId),
-            setAddedLocation(trip.location || ''),
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
-            setAddedDateRange(trip.dateRange || ''),
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
-            setTripResult(trip.content || trip.tripResult),
-            setIsViewMode(true)
-          ]);
+          // Update all states
+          setJobId(currentJobId);
+          console.log('JobId updated');
           
-          console.log('All states updated');
+          setAddedLocation(trip.location || '');
+          console.log('Location updated');
+          
+          setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+          console.log('Cities updated');
+          
+          setAddedDateRange(trip.dateRange || '');
+          console.log('Date range updated');
+          
+          setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+          console.log('Interests updated');
+          
+          setTripResult(trip.content || trip.tripResult);
+          console.log('Trip content updated');
+          
+          setIsViewMode(true);
+          console.log('View mode updated');
 
           const endTime = Date.now();
           console.log('=== PHASE 6: COMPLETION ===');
