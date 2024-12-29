@@ -70,86 +70,133 @@ const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 const loadingRef = useRef<boolean>(false);
 const prevJobIdRef = useRef<string | null>(null); // Add this to track previous jobId
 
+//ok baba
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
-    // Skip if same trip is already loading
+    // Skip if already loading
     if (loadingRef.current || prevJobIdRef.current === currentJobId) {
-      console.log('Skip: Already loading or same trip');
+      console.log('Skip: Already loading');
       return;
     }
 
     const startTime = Date.now();
     console.log('=== PHASE 1: INITIALIZATION ===');
     console.log('Starting load for trip ID:', currentJobId);
+    console.log('Current jobId in state:', jobId);
     
     try {
-      loadingRef.current = true;
+      loadingRef.current = true;  // Set loading flag
       prevJobIdRef.current = currentJobId;  // Track current loading trip
 
-      // Clear states first
-      await Promise.all([
-        setTripResult(null),
-        setAddedLocation(''),
-        setCitiesList([]),
-        setAddedDateRange(''),
-        setInterestsList([]),
-        setJobId(''),
-        setIsViewMode(false)
-      ]);
+      // Clear existing timeout if any
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      console.log('=== PHASE 2: CLEARING STATES ===');
+      // Clear states synchronously
+      setTripResult(null);
+      setAddedLocation('');
+      setCitiesList([]);
+      setAddedDateRange('');
+      setInterestsList([]);
+      setJobId('');
+      setIsViewMode(false);
       console.log('All states cleared successfully');
 
-      // Fetch data immediately
+      // Force a state update cycle
+      await new Promise(resolve => {
+        timeoutRef.current = setTimeout(resolve, 0);
+      });
+
       console.log('=== PHASE 3: FETCHING DATA ===');
+      console.log('Making API request to /api/trips');
       const response = await fetch('/api/trips');
+      console.log('API Response status:', response.status);
+      
       const data = await response.json();
+      console.log('API Data received:', {
+        success: data.success,
+        tripCount: data.trips?.length || 0
+      });
       
       if (data.success && data.trips) {
+        console.log('=== PHASE 4: PROCESSING DATA ===');
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         
         if (trip) {
-          // Update all states at once
-          await Promise.all([
-            setJobId(currentJobId),
-            setAddedLocation(trip.location || ''),
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
-            setAddedDateRange(trip.dateRange || ''),
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
-            setTripResult(trip.content || trip.tripResult),
-            setIsViewMode(true)
-          ]);
+          console.log('Trip found:', {
+            location: trip.location,
+            dateRange: trip.dateRange,
+            citiesCount: Array.isArray(trip.cities) ? trip.cities.length : 1,
+            interestsCount: Array.isArray(trip.interests) ? trip.interests.length : 1
+          });
+          
+          console.log('=== PHASE 5: UPDATING STATES ===');
+          console.log('Starting state updates...');
+          
+          // Update all states
+          setJobId(currentJobId);
+          console.log('JobId updated');
+          
+          setAddedLocation(trip.location || '');
+          console.log('Location updated');
+          
+          setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+          console.log('Cities updated');
+          
+          setAddedDateRange(trip.dateRange || '');
+          console.log('Date range updated');
+          
+          setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+          console.log('Interests updated');
+          
+          setTripResult(trip.content || trip.tripResult);
+          console.log('Trip content updated');
+          
+          setIsViewMode(true);
+          console.log('View mode updated');
 
-          console.log('=== COMPLETION ===');
-          console.log(`Load completed in ${Date.now() - startTime}ms`);
+          const endTime = Date.now();
+          console.log('=== PHASE 6: COMPLETION ===');
+          console.log(`Load completed in ${endTime - startTime}ms`);
           toast.success('Trip loaded successfully');
+          
+          window.dispatchEvent(new Event('trip-loaded'));
+          console.log('Trip loaded event dispatched');
+        } else {
+          console.error('Trip not found in response');
+          toast.error('Trip not found');
         }
       }
     } catch (error) {
-      console.error('Loading error:', error);
+      console.error('=== ERROR ===');
+      console.error('Error details:', error);
       toast.error('Failed to load trip');
     } finally {
-      loadingRef.current = false;
-      // Only clear prevJobId if it's the current one
-      if (prevJobIdRef.current === currentJobId) {
-        prevJobIdRef.current = null;
-      }
+      loadingRef.current = false;  // Reset loading flag
     }
   };
 
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get('job_id');
   
-  if (currentJobId) {
+  if (currentJobId && currentJobId !== jobId) {
     console.log('=== NEW TRIP DETECTED ===');
+    console.log('URL jobId:', currentJobId);
+    console.log('Current state jobId:', jobId);
     loadTripFromId(currentJobId);
   }
 
+  // Cleanup
   return () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
   };
-}, [window.location.search]); // Remove jobId dependency
+}, [window.location.search, jobId]);
   
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
