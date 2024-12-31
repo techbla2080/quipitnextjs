@@ -66,81 +66,82 @@ export default function TripPlanner() {
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
   // Keep your existing refs
-const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-const loadingRef = useRef<boolean>(false);
+  const loadingRef = useRef<boolean>(false);
+  const lastLoadedId = useRef<string | null>(null);
 
 useEffect(() => {
-  // Add immediate log when effect runs
-  console.log('=== EFFECT START ===');
-  console.log('URL Search:', window.location.search);
-  console.log('Current JobId:', jobId);
-
   const loadTripFromId = async (currentJobId: string) => {
-    console.log('=== LOAD ATTEMPT ===');
-    console.log('Attempting to load:', currentJobId);
-    console.log('Current loadingRef state:', loadingRef.current);
-
-    if (loadingRef.current) {
-      console.log('BLOCKED: Already loading');
+    // Skip if already loading or same ID
+    if (loadingRef.current || lastLoadedId.current === currentJobId) {
+      console.log('Skip: Already loading or same trip');
       return;
     }
 
-    loadingRef.current = true;
-    console.log('Loading started');
-
     try {
-      // Log before state clear
-      console.log('=== CURRENT STATE ===');
-      console.log({
-        jobId,
-        location: addedLocation,
-        cities: citiesList
-      });
+      loadingRef.current = true;
+      console.log('=== LOADING STARTED ===');
+      console.log('Loading trip:', currentJobId);
 
-      // Clear states
-      setTripResult(null);
-      setAddedLocation('');
-      setCitiesList([]);
-      setAddedDateRange('');
-      setInterestsList([]);
-      setJobId('');
-      setIsViewMode(false);
-
+      // Clear states first
+      await Promise.all([
+        setTripResult(null),
+        setAddedLocation(''),
+        setCitiesList([]),
+        setAddedDateRange(''),
+        setInterestsList([]),
+        setJobId(''),
+        setIsViewMode(false)
+      ]);
       console.log('States cleared');
 
-      // Fetch and process
+      // Fetch data
       const response = await fetch('/api/trips');
-      console.log('API Response:', response.status);
-      
       const data = await response.json();
-      console.log('API Data received');
-
+      
+      if (data.success && data.trips) {
+        const trip = data.trips.find((t: any) => t.jobId === currentJobId);
+        
+        if (trip) {
+          // Update states with new data
+          await Promise.all([
+            setJobId(currentJobId),
+            setAddedLocation(trip.location || ''),
+            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
+            setAddedDateRange(trip.dateRange || ''),
+            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
+            setTripResult(trip.content || trip.tripResult),
+            setIsViewMode(true)
+          ]);
+          
+          // Mark this ID as loaded
+          lastLoadedId.current = currentJobId;
+          console.log('State updates complete');
+        }
+      }
     } catch (error) {
-      console.error('Load Error:', error);
+      console.error('Loading error:', error);
+      toast.error('Failed to load trip');
     } finally {
       loadingRef.current = false;
-      console.log('Loading flag reset');
+      console.log('Loading completed');
     }
   };
 
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get('job_id');
   
-  console.log('=== URL CHECK ===');
-  console.log('Current URL jobId:', currentJobId);
-  console.log('Current state jobId:', jobId);
-
-  if (currentJobId && currentJobId !== jobId) {
-    console.log('Load condition met - starting load');
+  if (currentJobId) {
+    console.log('=== NEW NAVIGATION ===');
+    console.log('URL JobId:', currentJobId);
+    console.log('Last loaded:', lastLoadedId.current);
     loadTripFromId(currentJobId);
-  } else {
-    console.log('Load condition not met - skipping');
   }
 
+  // Cleanup
   return () => {
-    console.log('Effect cleanup running');
+    console.log('Effect cleanup');
   };
-}, [window.location.search, jobId]);
+}, [window.location.search]); // Note: Removed jobId dependency
   
     // Add new persistence function
 const persistItineraries = (itineraries: SavedItinerary[]) => {
