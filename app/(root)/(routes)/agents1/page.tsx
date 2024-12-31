@@ -68,87 +68,73 @@ export default function TripPlanner() {
   // Keep your existing refs
 const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 const loadingRef = useRef<boolean>(false);
-const initialLoadRef = useRef<boolean>(false);  // Add this before using it
 
 useEffect(() => {
-  console.log('=== EFFECT TRIGGERED ===');
-  console.log('Current states:', {
-    jobId,
-    isLoading: loadingRef.current,
-    initialLoad: initialLoadRef.current
-  });
+  // Add immediate log when effect runs
+  console.log('=== EFFECT START ===');
+  console.log('URL Search:', window.location.search);
+  console.log('Current JobId:', jobId);
 
   const loadTripFromId = async (currentJobId: string) => {
-    console.log('loadTripFromId called with:', currentJobId);
-    console.log('Current loading state:', loadingRef.current);
-    console.log('Current jobId state:', jobId);
+    console.log('=== LOAD ATTEMPT ===');
+    console.log('Attempting to load:', currentJobId);
+    console.log('Current loadingRef state:', loadingRef.current);
 
     if (loadingRef.current) {
-      console.log('Loading blocked - already in progress');
+      console.log('BLOCKED: Already loading');
       return;
     }
 
-    try {
-      loadingRef.current = true;
-      console.log('Loading started for jobId:', currentJobId);
+    loadingRef.current = true;
+    console.log('Loading started');
 
-      // Log state clearing
-      console.log('Before state clear:', {
-        tripResult,
-        location: addedLocation,
-        cities: citiesList,
-        dateRange: addedDateRange,
-        interests: interestsList,
+    try {
+      // Log before state clear
+      console.log('=== CURRENT STATE ===');
+      console.log({
         jobId,
-        viewMode: isViewMode
+        location: addedLocation,
+        cities: citiesList
       });
 
       // Clear states
       setTripResult(null);
       setAddedLocation('');
-      // ... other state clears
+      setCitiesList([]);
+      setAddedDateRange('');
+      setInterestsList([]);
+      setJobId('');
+      setIsViewMode(false);
 
-      console.log('After state clear initiated');
+      console.log('States cleared');
 
-      // Log API call
-      console.log('Starting API call');
+      // Fetch and process
       const response = await fetch('/api/trips');
-      console.log('API Response received:', response.status);
+      console.log('API Response:', response.status);
       
       const data = await response.json();
-      console.log('API Data:', data);
+      console.log('API Data received');
 
-      if (data.success && data.trips) {
-        const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-        console.log('Found trip:', trip ? 'yes' : 'no');
-        
-        if (trip) {
-          console.log('Setting states with trip data');
-          // ... state updates
-        }
-      }
     } catch (error) {
-      console.error('Error in loadTripFromId:', error);
+      console.error('Load Error:', error);
     } finally {
-      console.log('Load completed, resetting loading flag');
       loadingRef.current = false;
+      console.log('Loading flag reset');
     }
   };
 
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get('job_id');
   
-  console.log('URL Check:', {
-    currentJobId,
-    jobIdFromState: jobId,
-    shouldLoad: currentJobId && currentJobId !== jobId
-  });
+  console.log('=== URL CHECK ===');
+  console.log('Current URL jobId:', currentJobId);
+  console.log('Current state jobId:', jobId);
 
   if (currentJobId && currentJobId !== jobId) {
-    console.log('Initiating load for jobId:', currentJobId);
+    console.log('Load condition met - starting load');
     loadTripFromId(currentJobId);
   } else {
-    console.log('Load skipped - conditions not met');
+    console.log('Load condition not met - skipping');
   }
 
   return () => {
