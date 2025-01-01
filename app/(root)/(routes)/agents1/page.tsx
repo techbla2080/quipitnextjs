@@ -651,7 +651,7 @@ return (
       </div>
 
       {/* Output Box for Loader and Result */}
-      // Update your loader section in the JSX
+      {/* Update your loader section in the JSX */}
 {/* Output Box for Loader and Result */}
 <div className="mt-4 border p-4 rounded">
   {isLoading ? (
