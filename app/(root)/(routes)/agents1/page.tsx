@@ -42,24 +42,23 @@ createdAt: Date;
 }
 
 export default function TripPlanner() {
+  // Core States
   const [location, setLocation] = useState<string>("");
   const [addedCities, setAddedCities] = useState<string>("");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [currentInterest, setCurrentInterest] = useState<string>("");
   const [addedDateRange, setAddedDateRange] = useState<string>("");
-  const [interests, setInterests] = useState<string>("");
   const [tripResult, setTripResult] = useState<TripData | null>(null);
   const [citiesList, setCitiesList] = useState<string[]>([]);
   const [interestsList, setInterestsList] = useState<string[]>([]);
   const [addedLocation, setAddedLocation] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [jobId, setJobId] = useState<string>("");
-  // At component level (outside useEffect)
-  const [isLoading, setIsLoading] = useState(false);
-  // Add at the top with other state declarations
-  // At the top with your other state declarations, add:
+  
+  // UI states
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const router = useRouter();
 
@@ -69,32 +68,104 @@ export default function TripPlanner() {
   const loadingRef = useRef<boolean>(false);
   const lastLoadedId = useRef<string | null>(null);
 
+  // Add this right after your state declarations
+const useLoadingControl = () => {
+  const loadingRef = useRef<boolean>(false);
+  const lastLoadedId = useRef<string | null>(null);
+
+  const startLoading = () => {
+    if (loadingRef.current) {
+      console.log('Already loading, skipping');
+      return false;
+    }
+    loadingRef.current = true;
+    setIsLoading(true);
+    return true;
+  };
+
+  const stopLoading = () => {
+    loadingRef.current = false;
+    setIsLoading(false);
+  };
+
+  const setLastLoadedId = (id: string) => {
+    lastLoadedId.current = id;
+  };
+
+  const shouldLoadTrip = (newId: string) => {
+    return !loadingRef.current && lastLoadedId.current !== newId;
+  };
+
+  return {
+    startLoading,
+    stopLoading,
+    setLastLoadedId,
+    shouldLoadTrip,
+    isLoading: loadingRef.current,
+    lastLoadedId: lastLoadedId.current
+  };
+};
+
+// Then in your component:
+const loadingControl = useLoadingControl();
+
+// Add this after your loading control
+const clearTripStates = async () => {
+  console.log('=== CLEARING STATES ===');
+  
+  // Clear all states in a batch
+  await Promise.all([
+    setTripResult(null),
+    setAddedLocation(''),
+    setCitiesList([]),
+    setAddedDateRange(''),
+    setInterestsList([]),
+    setJobId(''),
+    setIsViewMode(false)
+  ]);
+
+  // Clear session storage
+  sessionStorage.removeItem('currentTripState');
+  console.log('All states cleared');
+};
+
+// Add state restoration function
+const restoreTripStates = async (trip: any) => {
+  console.log('=== RESTORING STATES ===');
+  
+  await Promise.all([
+    setJobId(trip.jobId),
+    setAddedLocation(trip.location || ''),
+    setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
+    setAddedDateRange(trip.dateRange || ''),
+    setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
+    setTripResult(trip.content || trip.tripResult),
+    setIsViewMode(true)
+  ]);
+  
+  console.log('All states restored');
+};
+
+// Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
-    // Skip if already loading or same ID
-    if (loadingRef.current || lastLoadedId.current === currentJobId) {
-      console.log('Skip: Already loading or same trip');
+    console.log('=== NEW TRIP LOAD REQUESTED ===', currentJobId);
+
+    // Check if we should load
+    if (!loadingControl.shouldLoadTrip(currentJobId)) {
+      console.log('Skip loading - already in progress or same trip');
       return;
     }
 
     try {
-      loadingRef.current = true;
-      console.log('=== LOADING STARTED ===');
-      console.log('Loading trip:', currentJobId);
+      // Start loading
+      loadingControl.startLoading();
+      
+      // Clear existing states
+      await clearTripStates();
 
-      // Clear states first
-      await Promise.all([
-        setTripResult(null),
-        setAddedLocation(''),
-        setCitiesList([]),
-        setAddedDateRange(''),
-        setInterestsList([]),
-        setJobId(''),
-        setIsViewMode(false)
-      ]);
-      console.log('States cleared');
-
-      // Fetch data
+      // Fetch new data
+      console.log('Fetching trip data');
       const response = await fetch('/api/trips');
       const data = await response.json();
       
@@ -102,56 +173,76 @@ useEffect(() => {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         
         if (trip) {
-          // Update states with new data
-          await Promise.all([
-            setJobId(currentJobId),
-            setAddedLocation(trip.location || ''),
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
-            setAddedDateRange(trip.dateRange || ''),
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
-            setTripResult(trip.content || trip.tripResult),
-            setIsViewMode(true)
-          ]);
+          // Restore states with new data
+          await restoreTripStates(trip);
           
-          // Mark this ID as loaded
-          lastLoadedId.current = currentJobId;
-          console.log('State updates complete');
+          // Update loading control
+          loadingControl.setLastLoadedId(currentJobId);
+          toast.success('Trip loaded successfully');
+        } else {
+          console.error('Trip not found');
+          toast.error('Trip not found');
         }
       }
     } catch (error) {
       console.error('Loading error:', error);
       toast.error('Failed to load trip');
     } finally {
-      loadingRef.current = false;
-      console.log('Loading completed');
+      loadingControl.stopLoading();
     }
   };
 
   const urlParams = new URLSearchParams(window.location.search);
   const currentJobId = urlParams.get('job_id');
-  
+
   if (currentJobId) {
-    console.log('=== NEW NAVIGATION ===');
-    console.log('URL JobId:', currentJobId);
-    console.log('Last loaded:', lastLoadedId.current);
     loadTripFromId(currentJobId);
   }
 
-  // Cleanup
-  return () => {
-    console.log('Effect cleanup');
+}, [window.location.search]); // Only depend on URL changes
+
+// Remove the old effects for saved trips and state persistence
+// Replace with this single effect for persistence
+useEffect(() => {
+  // Handle state persistence
+  const handleBeforeUnload = () => {
+    if (!isViewMode && tripResult) {
+      const stateToSave = {
+        location: addedLocation,
+        dateRange: addedDateRange,
+        interests: interestsList,
+        cities: citiesList,
+        tripResult,
+        jobId
+      };
+      console.log('Saving state before unload:', stateToSave);
+      sessionStorage.setItem('currentTripState', JSON.stringify(stateToSave));
+    }
   };
-}, [window.location.search]); // Note: Removed jobId dependency
-  
-    // Add new persistence function
-const persistItineraries = (itineraries: SavedItinerary[]) => {
-  try {
-    localStorage.setItem('itineraries', JSON.stringify(itineraries));
-    sessionStorage.setItem('itineraries_backup', JSON.stringify(itineraries));
-  } catch (error) {
-    console.error('Error persisting itineraries:', error);
-  }
-};
+
+  // Load saved state on mount
+  const loadInitialState = () => {
+    if (!window.location.search.includes('job_id')) {
+      const savedState = sessionStorage.getItem('currentTripState');
+      if (savedState) {
+        try {
+          console.log('Loading saved state');
+          const parsedState = JSON.parse(savedState);
+          restoreTripStates(parsedState);
+        } catch (error) {
+          console.error('Error loading saved state:', error);
+        }
+      }
+    }
+  };
+
+  // Initial load
+  loadInitialState();
+
+  // Setup unload handler
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+}, []); // Only run on mount
 
     // Add these new utility functions
 const loadSavedItineraries = () => {
@@ -265,12 +356,19 @@ const handleAddInterest = () => {
   }
 };
 
+// Update handlePlanTrip
 const handlePlanTrip = async () => {
-if (isViewMode) {
-  toast("This is a saved trip - create a new trip to plan changes");
+  if (isViewMode) {
+    toast("This is a saved trip - create a new trip to plan changes");
     return;
   }
 
+  if (!loadingControl.startLoading()) {
+    console.log('Planning already in progress');
+    return;
+  }
+
+  try {
     const tripData: TripData = {
       location: addedLocation,
       cities: citiesList.join(", "),
@@ -278,86 +376,73 @@ if (isViewMode) {
       interests: interestsList.join(", "),
     };
 
-    setLoading(true);
+    console.log('Planning trip with data:', tripData);
     const result = await planTrip(tripData);
-    console.log('Full API Result:', result);
-          
-    setLoading(false);
 
     if (result) {
-      setTripResult(result.result as TripData );
-      setJobId(result.job_id);
-      console.log("Full result object:", result);
-      console.log("Job ID:", result.job_id);
+      await restoreTripStates({
+        ...result,
+        jobId: result.job_id,
+        content: result.result
+      });
+      console.log('Trip planned successfully');
     } else {
       toast.error("Failed to plan trip.");
     }
-  };
-// Add this function in your TripPlanner component
+  } catch (error) {
+    console.error('Plan error:', error);
+    toast.error("Failed to plan trip.");
+  } finally {
+    loadingControl.stopLoading();
+  }
+};
+
+// Update handleSaveItinerary
 const handleSaveItinerary = async () => {
   if (!jobId) {
     toast.error('No job ID available');
     return;
   }
 
+  if (!loadingControl.startLoading()) {
+    return;
+  }
+
   try {
-    console.log('Data being sent:', {
+    const tripData = {
       location: addedLocation,
       cities: citiesList,
       dateRange: addedDateRange,
       interests: interestsList,
       jobId: jobId,
       tripResult: tripResult
-    });
+    };
 
+    console.log('Saving trip:', tripData);
+    
     const response = await fetch('/api/trips/save', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        location: addedLocation,
-        cities: citiesList,
-        dateRange: addedDateRange,
-        interests: interestsList,
-        jobId: jobId,
-        tripResult: tripResult
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tripData)
     });
 
     const data = await response.json();
-    console.log('Server response:', data);
 
     if (!response.ok) {
-      console.error('Server error details:', data);
       throw new Error(data.error || 'Failed to save trip');
     }
 
-    // Create a custom event with the saved trip data
-    const tripSavedEvent = new CustomEvent('tripSaved', {
-      detail: {
-        location: addedLocation,
-        jobId: jobId,
-        dateRange: addedDateRange,
-        interests: interestsList,
-        cities: citiesList
-      }
-    });
-
-    // Dispatch the event
-    window.dispatchEvent(tripSavedEvent);
-    console.log('Trip saved event dispatched with data:', tripSavedEvent.detail);
-
     toast.success('Trip saved successfully!');
+    loadingControl.setLastLoadedId(jobId);
 
-    // Small delay before navigation to ensure event is processed
-    setTimeout(() => {
-      router.push(`/agents1?job_id=${jobId}`);
-    }, 100);
+    // Navigate after successful save
+    router.push(`/agents1?job_id=${jobId}`);
 
   } catch (error) {
     console.error('Save error:', error);
     toast.error('Failed to save trip');
+  } finally {
+    loadingControl.stopLoading();
   }
 };
 
@@ -566,35 +651,47 @@ return (
       </div>
 
       {/* Output Box for Loader and Result */}
-      <div className="mt-4 border p-4 rounded">
-      {(loading || isNavigating) ? (
-          <div className="flex items-center justify-center">
-            <div className="loader" style={{
-              display: 'inline-block',
-              width: '24px',
-              height: '24px',
-              border: '3px solid #3498db',
-              borderRadius: '50%',
-              borderTop: '3px solid transparent',
-              animation: 'spin 1s linear infinite'
-            }} />
-            <span className="ml-2">{isNavigating ? 'Loading trip data...' : 'Processing data...'}</span>
+      // Update your loader section in the JSX
+{/* Output Box for Loader and Result */}
+<div className="mt-4 border p-4 rounded">
+  {isLoading ? (
+    <div className="flex items-center justify-center p-4">
+      <div className="loader" style={{
+        display: 'inline-block',
+        width: '24px',
+        height: '24px',
+        border: '3px solid #3498db',
+        borderRadius: '50%',
+        borderTop: '3px solid transparent',
+        animation: 'spin 1s linear infinite'
+      }} />
+      <span className="ml-2">Loading trip data...</span>
+    </div>
+  ) : tripResult ? (
+    <div>
+      <h2 className="text-xl font-bold">Trip Result:</h2>
+      {jobId && (
+        <div className="my-2 flex items-center space-x-2">
+          <span className="font-medium text-gray-700">Job ID:</span>
+          <code className="bg-gray-100 px-2 py-1 rounded text-cyan-600">
+            {jobId}
+          </code>
+        </div>
+      )}
+      <div className="trip-result mt-4">
+        {/* Add a loading overlay during state updates */}
+        {loadingControl.isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+            <span>Updating...</span>
           </div>
-        ) : tripResult ? (
-          <div>
-            <h2 className="text-xl font-bold">Trip Result:</h2>
-            {jobId && ( // Add this section
-             <div className="my-2 flex items-center space-x-2">
-              <span className="font-medium text-gray-700">Job ID:</span>
-              <code className="bg-gray-100 px-2 py-1 rounded text-cyan-600">{jobId}</code>
-            </div>
-            )}
-            <p>{JSON.stringify( tripResult, null, 2)}</p>
-          </div>
-        ) : (
-          <p>Output will be displayed here.</p>
         )}
+        <p>{JSON.stringify(tripResult, null, 2)}</p>
       </div>
+    </div>
+  ) : (
+    <p>Output will be displayed here.</p>
+  )}
+</div>
     </CardContent>
   </Card>
 
