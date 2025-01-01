@@ -53,20 +53,14 @@ export default function TripPlanner() {
   const [citiesList, setCitiesList] = useState<string[]>([]);
   const [interestsList, setInterestsList] = useState<string[]>([]);
   const [addedLocation, setAddedLocation] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
   const [jobId, setJobId] = useState<string>("");
   
   // UI states
-  const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const router = useRouter();
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
-
-  // Keep your existing refs
-  const loadingRef = useRef<boolean>(false);
-  const lastLoadedId = useRef<string | null>(null);
 
   // Add this right after your state declarations
 const useLoadingControl = () => {
@@ -270,30 +264,6 @@ const verifySavedItinerary = (newItinerary: SavedItinerary) => {
   }
 };
 
-    // Step 1: Add the clearAllFields function
-    const clearAllFields = () => {
-      // Clear all state
-      setLocation("");
-      setAddedLocation("");
-      setAddedCities("");
-      setCitiesList([]);
-      setStartDate(null);
-      setEndDate(null);
-      setAddedDateRange("");
-      setCurrentInterest("");
-      setInterestsList([]);
-      setTripResult(null);
-      setJobId("");
-      setIsViewMode(false);
-      
-      // Clear only session storage
-      sessionStorage.removeItem('currentTripState');
-      sessionStorage.removeItem('isFirstLoad');
-
-      // Clear URL without affecting localStorage
-      window.history.replaceState({}, '', '/agents1');  
-    };
-
 const handleAddLocation = () => {
   if (isViewMode) {
     toast.custom("This is a saved trip - create a new trip to make changes");
@@ -445,56 +415,6 @@ const handleSaveItinerary = async () => {
     loadingControl.stopLoading();
   }
 };
-
-const loadSavedTrip = async (jobId: string) => {
-try {
-  const response = await fetch(`/api/trips/${jobId}`);
-  const data = await response.json();
-
-  if (data.success) {
-    setTripResult(data.trip.tripResult);
-    setAddedLocation(data.trip.location);
-    setAddedDateRange(data.trip.dateRange);
-    setInterestsList(data.trip.interests);
-    setCitiesList(data.trip.cities);
-    setJobId(data.trip.jobId);
-    setIsViewMode(true);
-  }
-} catch (error) {
-  console.error('Error loading saved trip:', error);
-  toast.error('Failed to load saved trip');
-}
-};
-
-// First useEffect - Handles loading saved trips
-useEffect(() => {
-// Only run if we have a job_id in URL
-const urlParams = new URLSearchParams(window.location.search);
-const currentJobId = urlParams.get('job_id');
-
-if (currentJobId) {
-  const savedTrip = localStorage.getItem(`saved_trip_${currentJobId}`);
-  if (savedTrip) {
-    try {
-      const parsedTrip = JSON.parse(savedTrip);
-      // Load saved trip data
-      setTripResult(parsedTrip.content);
-      setAddedLocation(parsedTrip.location);
-      setAddedDateRange(parsedTrip.dateRange);
-      setInterestsList(parsedTrip.interests || []);
-      setCitiesList(parsedTrip.cities || []);
-      setJobId(currentJobId);
-      setIsViewMode(true);  // Important: Set view mode for saved trips
-    } catch (error) {
-      console.error('Error loading saved trip:', error);
-      toast.error('Error loading saved trip');
-    }
-  }
-} else {
-  // Clear view mode if no job_id
-  setIsViewMode(false);
-}
-}, [window.location.search]); // Only depends on URL search params
 
 // Second useEffect - Handles page state persistence
 useEffect(() => {
