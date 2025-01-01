@@ -144,7 +144,7 @@ useEffect(() => {
     console.log('=== NEW TRIP LOAD REQUESTED ===', currentJobId);
 
     try {
-      // Start loading immediately without checks
+      // Remove the shouldLoadTrip check - just load it!
       loadingControl.startLoading();
       
       // Clear existing states
@@ -162,9 +162,6 @@ useEffect(() => {
           await restoreTripStates(trip);
           loadingControl.setLastLoadedId(currentJobId);
           toast.success('Trip loaded successfully');
-        } else {
-          console.error('Trip not found');
-          toast.error('Trip not found');
         }
       }
     } catch (error) {
@@ -175,15 +172,14 @@ useEffect(() => {
     }
   };
 
-  // Get currentJobId from URL
-  const currentJobId = new URLSearchParams(window.location.search).get('job_id');
-  
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentJobId = urlParams.get('job_id');
+
   if (currentJobId) {
-    // Reset loading control state before loading
-    loadingControl.stopLoading();
-    loadTripFromId(currentJobId);
+    loadTripFromId(currentJobId);  // Just load it directly!
   }
-}, [window.location.search]); // Only depend on URL changes
+
+}, [window.location.search]);
 
 // Remove the old effects for saved trips and state persistence
 // Replace with this single effect for persistence
