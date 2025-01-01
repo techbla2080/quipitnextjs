@@ -63,42 +63,40 @@ export default function TripPlanner() {
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
 
   // Add this right after your state declarations
-const useLoadingControl = () => {
-  const loadingRef = useRef<boolean>(false);
-  const lastLoadedId = useRef<string | null>(null);
-
-  const startLoading = () => {
-    if (loadingRef.current) {
-      console.log('Already loading, skipping');
-      return false;
-    }
-    loadingRef.current = true;
-    setIsLoading(true);
-    return true;
+  const useLoadingControl = () => {
+    const loadingRef = useRef<boolean>(false);
+    const lastLoadedId = useRef<string | null>(null);
+  
+    const startLoading = () => {
+      // Remove the early return that's preventing the first load
+      loadingRef.current = true;
+      setIsLoading(true);
+      return true;
+    };
+  
+    const stopLoading = () => {
+      loadingRef.current = false;
+      setIsLoading(false);
+    };
+  
+    const setLastLoadedId = (id: string) => {
+      lastLoadedId.current = id;
+    };
+  
+    const shouldLoadTrip = (newId: string) => {
+      // Modify this to allow first load
+      return lastLoadedId.current !== newId; // Remove the loadingRef.current check
+    };
+  
+    return {
+      startLoading,
+      stopLoading,
+      setLastLoadedId,
+      shouldLoadTrip,
+      isLoading: loadingRef.current,
+      lastLoadedId: lastLoadedId.current
+    };
   };
-
-  const stopLoading = () => {
-    loadingRef.current = false;
-    setIsLoading(false);
-  };
-
-  const setLastLoadedId = (id: string) => {
-    lastLoadedId.current = id;
-  };
-
-  const shouldLoadTrip = (newId: string) => {
-    return !loadingRef.current && lastLoadedId.current !== newId;
-  };
-
-  return {
-    startLoading,
-    stopLoading,
-    setLastLoadedId,
-    shouldLoadTrip,
-    isLoading: loadingRef.current,
-    lastLoadedId: lastLoadedId.current
-  };
-};
 
 // Then in your component:
 const loadingControl = useLoadingControl();
