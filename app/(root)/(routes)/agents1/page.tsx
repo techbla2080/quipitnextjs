@@ -143,14 +143,8 @@ useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
     console.log('=== NEW TRIP LOAD REQUESTED ===', currentJobId);
 
-    // Check if we should load
-    if (!loadingControl.shouldLoadTrip(currentJobId)) {
-      console.log('Skip loading - already in progress or same trip');
-      return;
-    }
-
     try {
-      // Start loading
+      // Start loading immediately without checks
       loadingControl.startLoading();
       
       // Clear existing states
@@ -165,10 +159,7 @@ useEffect(() => {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         
         if (trip) {
-          // Restore states with new data
           await restoreTripStates(trip);
-          
-          // Update loading control
           loadingControl.setLastLoadedId(currentJobId);
           toast.success('Trip loaded successfully');
         } else {
@@ -184,13 +175,14 @@ useEffect(() => {
     }
   };
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentJobId = urlParams.get('job_id');
-
+  // Get currentJobId from URL
+  const currentJobId = new URLSearchParams(window.location.search).get('job_id');
+  
   if (currentJobId) {
+    // Reset loading control state before loading
+    loadingControl.stopLoading();
     loadTripFromId(currentJobId);
   }
-
 }, [window.location.search]); // Only depend on URL changes
 
 // Remove the old effects for saved trips and state persistence
