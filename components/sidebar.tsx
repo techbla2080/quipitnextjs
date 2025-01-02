@@ -50,18 +50,8 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   };
 
   const navigateToTrip = async (trip: SavedTrip) => {
-    try {
-      const response = await fetch('/api/trips');
-      const data = await response.json();
-      if (data.success && data.trips) {
-        const tripData = data.trips.find((t: any) => t.jobId === trip.job_id);
-        if (tripData) {
-          sessionStorage.setItem('preloadedTrip', JSON.stringify(tripData));
-        }
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    }
+    console.log('Navigating to trip:', trip.job_id);
+    await router.replace('/agents1');
     router.push(`/agents1?job_id=${trip.job_id}`);
   };
 

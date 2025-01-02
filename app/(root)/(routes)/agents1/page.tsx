@@ -151,15 +151,9 @@ const loadFromSessionStorage = async () => {
 // Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
+    console.log('Loading trip:', currentJobId);
+    
     try {
-      setIsLoading(true);
-      
-      // Try loading from sessionStorage first
-      if (await loadFromSessionStorage()) {
-        return;
-      }
-
-      // Fallback to API fetch
       const response = await fetch('/api/trips');
       const data = await response.json();
       
@@ -171,8 +165,6 @@ useEffect(() => {
       }
     } catch (error) {
       console.error('Loading error:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
