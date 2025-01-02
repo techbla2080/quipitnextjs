@@ -141,17 +141,22 @@ const restoreTripStates = async (trip: any) => {
 // Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
-    console.log('Loading trip:', currentJobId);
-    
+    // Check sessionStorage first
+    const storedTrip = sessionStorage.getItem('currentTrip');
+    if (storedTrip) {
+      const tripData = JSON.parse(storedTrip);
+      await restoreTripStates(tripData);
+      sessionStorage.removeItem('currentTrip');
+      return;
+    }
+
+    // Fallback to API fetch
     try {
       const response = await fetch('/api/trips');
       const data = await response.json();
-      
       if (data.success && data.trips) {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
-        if (trip) {
-          await restoreTripStates(trip);
-        }
+        if (trip) await restoreTripStates(trip);
       }
     } catch (error) {
       console.error('Loading error:', error);
@@ -159,8 +164,8 @@ useEffect(() => {
   };
 
   const params = new URLSearchParams(window.location.search);
-  const currentJobId = params.get('job_id');
-  if (currentJobId) loadTripFromId(currentJobId);
+  const jobId = params.get('job_id');
+  if (jobId) loadTripFromId(jobId);
 }, [window.location.search]);
 
 useEffect(() => {
