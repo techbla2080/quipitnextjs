@@ -141,12 +141,8 @@ const restoreTripStates = async (trip: any) => {
 // Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
-    setIsLoading(true);
-    console.log('=== NEW TRIP LOAD REQUESTED ===', currentJobId);
-
     try {
-      await clearTripStates();
-      
+      setIsLoading(true);
       const response = await fetch('/api/trips');
       const data = await response.json();
       
@@ -154,26 +150,18 @@ useEffect(() => {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         if (trip) {
           await restoreTripStates(trip);
-          toast.success('Trip loaded successfully');
-        } else {
-          toast.error('Trip not found');
         }
       }
     } catch (error) {
       console.error('Loading error:', error);
-      toast.error('Failed to load trip');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentJobId = urlParams.get('job_id');
-
-  if (currentJobId) {
-    loadTripFromId(currentJobId);
-  }
-}, [window.location.search]);
+  const currentJobId = new URLSearchParams(window.location.search).get('job_id');
+  if (currentJobId) loadTripFromId(currentJobId);
+}, []);
 
 useEffect(() => {
   // Handle state persistence
