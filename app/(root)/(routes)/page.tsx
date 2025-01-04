@@ -49,6 +49,13 @@ const TravelPage = () => {
             </div>
           </Card>
 
+            {/* Marketing Tagline - Now more prominent */}
+            <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              Just Quipit!
+            </h2>
+          </div>
+
           <Button 
             size="lg" 
             className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 h-auto"
