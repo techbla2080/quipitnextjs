@@ -1,45 +1,45 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Plane } from "lucide-react";
 
 const TravelPage = () => {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Main Content */}
-      <main className="flex-grow">
-        <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-          {/* Plane Icon */}
-          <svg
-            className="w-16 h-16 mx-auto mb-8 text-blue-500"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M21.5 16c.6 0 1-.4 1-1s-.4-1-1-1h-2.3l-3.4-8H19c.6 0 1-.4 1-1s-.4-1-1-1h-3.8l-.7-1.7c-.2-.4-.6-.7-1.1-.7-.5 0-.9.3-1.1.7L11.8 4H8c-.6 0-1 .4-1 1s.4 1 1 1h3.2l-3.4 8H5.5c-.6 0-1 .4-1 1s.4 1 1 1h2.8l-.7 1.7c-.2.4-.2.9.1 1.3.3.4.7.6 1.2.6h6.4c.5 0 .9-.2 1.2-.6.3-.4.3-.9.1-1.3l-.7-1.7h2.8zM12 6.5l1.7 4H10.3l1.7-4zM9.3 19l1.7-4h2l1.7 4H9.3z" />
-          </svg>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Minimal Header */}
+      <header className="p-6">
+        <h1 className="text-2xl font-bold">Quipit</h1>
+      </header>
+
+      {/* Hero Section */}
+      <main className="container mx-auto px-4 py-12">
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="mb-6 flex justify-center">
+            <Plane className="w-16 h-16 text-blue-500" />
+          </div>
           
-          <h1 className="text-4xl font-bold text-gray-900 mb-6">
-            Your Dream Trip Planned Instantly
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-4">
+            Your Perfect Trip Planned in <span className="text-blue-600">One Click</span>
           </h1>
           
-          <p className="text-xl text-gray-600 mb-12">
-            Skip the endless research. Just tell us where you want to go, and get a 
-            perfect itinerary tailored to your interests.
+          <p className="text-xl text-gray-600 mb-8">
+            Tell us where you want to go, and our AI will create a personalized itinerary 
+            that matches your interests. No more hours of research needed.
           </p>
 
-          {/* Steps Card */}
-          <Card className="p-8 mb-12 bg-white shadow-lg">
-            <div className="space-y-8">
-              <div className="flex items-center space-x-6">
+          <Card className="p-8 mb-8 bg-white shadow-lg">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4 justify-center text-lg">
                 <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">1</span>
-                <span className="text-lg">Enter your destination</span>
+                <span>Enter your destination</span>
               </div>
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4 justify-center text-lg">
                 <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">2</span>
-                <span className="text-lg">Set your dates & interests</span>
+                <span>Set your dates & interests</span>
               </div>
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4 justify-center text-lg">
                 <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">3</span>
-                <span className="text-lg">Get your perfect itinerary instantly</span>
+                <span>Get your perfect itinerary instantly</span>
               </div>
             </div>
           </Card>
@@ -55,7 +55,7 @@ const TravelPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 py-12 text-gray-300">
+      <footer className="bg-gray-900 py-12 text-gray-300 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Follow Us */}
