@@ -151,8 +151,6 @@ const loadFromSessionStorage = async () => {
 // Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
-    console.log('Loading trip:', currentJobId);
-    
     try {
       const response = await fetch('/api/trips');
       const data = await response.json();
@@ -160,7 +158,8 @@ useEffect(() => {
       if (data.success && data.trips) {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         if (trip) {
-          await restoreTripStates(trip);
+          // Just set the raw tripResult
+          setTripResult(trip.content || trip.tripResult);
         }
       }
     } catch (error) {
@@ -779,3 +778,4 @@ return (
 </div>  
 );
 }
+

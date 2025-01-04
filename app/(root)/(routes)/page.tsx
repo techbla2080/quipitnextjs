@@ -1,71 +1,98 @@
-"use client";
+import React from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Plane } from "lucide-react";
 
-const agents = [
-  {
-    url: "https://quipitnextjs.vercel.app/agents1", // URL for the Travel Agent
-    name: "Travel Agent",
-    description: "Assists you in planning your trip",
-  },
-];
-
-const AgentsPage = () => {
+const TravelPage = () => {
   return (
-    <div className="h-full p-4 space-y-4 flex flex-col justify-between min-h-screen">
-      {/* Main content */}
-      <div>
-        <h1 className="text-2xl font-bold">Build AI Agents That Work For You</h1>
-        <p className="text-lg">
-          Explore our intelligent agents that can assist you in various tasks and make your life easier.
-          Whether you need a personal assistant, travel planner, or data expert, we have an agent for you!
-        </p>
-        <h2 className="text-xl font-semibold">Try Our Agents</h2>
-        <div className="grid grid-cols-3 gap-4">
-          {agents.map((agent) => (
-            <a
-              key={agent.name} // Use agent name for uniqueness
-              href={agent.url} // Directly link to the agent's URL
-              className="cursor-pointer border rounded-lg p-6 flex flex-col items-center bg-blue-500 text-white hover:bg-blue-600 transition"
-            >
-              <h2 className="text-lg font-semibold">{agent.name}</h2>
-              <p className="text-sm">{agent.description}</p>
-            </a>
-          ))}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex flex-col">
+      {/* Header with Tagline */}
+      <header className="p-6 border-b">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Quipit</h1>
+          <h2 className="text-xl font-semibold">
+            AI that <span className="text-blue-600">Works for You!</span>
+          </h2>
         </div>
-      </div>
+      </header>
 
-      {/* Footer Section */}
-      <footer className="bg-gray-900 py-8 text-gray-300">
-        <div className="container mx-auto px-4 grid grid-cols-3 gap-8 divide-x divide-gray-700">
-          {/* Follow Us Section */}
-          <div className="px-4">
-            <h3 className="font-bold text-lg text-white mb-2">Follow Us</h3>
-            <ul className="space-y-1">
-              <li>Facebook</li>
-              <li>Instagram</li>
-              <li>Twitter</li>
-              <li>Youtube</li>
-            </ul>
+      {/* Hero Section */}
+      <main className="container mx-auto px-4 py-12 flex-grow">
+        <div className="text-center max-w-2xl mx-auto">
+          <div className="mb-6 flex justify-center">
+            <Plane className="w-16 h-16 text-blue-500" />
           </div>
+          
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">
+            Your Dream Trip Planned Instantly
+          </h2>
+          
+          <p className="text-xl text-gray-600 mb-8">
+            Skip the endless research. Just tell us where you want to go, 
+            and get a perfect itinerary tailored to your interests.
+          </p>
 
-          {/* Legal Section */}
-          <div className="px-4">
-            <h3 className="font-bold text-lg text-white mb-2">Legal</h3>
-            <ul className="space-y-1">
-              <li>Privacy Policy</li>
-              <li>Terms and Conditions</li>
-              <li>Refund Policy</li>
-            </ul>
-          </div>
+          <Card className="p-8 mb-8 bg-white shadow-lg">
+            <div className="space-y-6">
+              <div className="flex items-center space-x-4 justify-center text-lg">
+                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">1</span>
+                <span>Enter your destination</span>
+              </div>
+              <div className="flex items-center space-x-4 justify-center text-lg">
+                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">2</span>
+                <span>Set your dates & interests</span>
+              </div>
+              <div className="flex items-center space-x-4 justify-center text-lg">
+                <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">3</span>
+                <span>Get your perfect itinerary instantly</span>
+              </div>
+            </div>
+          </Card>
 
-          {/* Call Us Section */}
-          <div className="px-4">
-            <h3 className="font-bold text-lg text-white mb-2">Call Us</h3>
-            <p>1800 1238 1238</p>
-            <p>Mon-Sat (9.30AM-6.30PM)</p>
-            <h3 className="font-bold text-lg text-white mt-4">Write to us at:</h3>
-            <p>customercare@quipit.com</p>
-            <p>95A Park Street, Kolkata</p>
-            <p>Kolkata 700016</p>
+          <Button 
+            size="lg" 
+            className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 h-auto"
+          >
+            Plan My Trip Now
+          </Button>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 py-12 text-gray-300">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Follow Us */}
+            <div>
+              <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
+              <ul className="space-y-2">
+                <li>Facebook</li>
+                <li>Instagram</li>
+                <li>Twitter</li>
+                <li>Youtube</li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
+              <ul className="space-y-2">
+                <li>Privacy Policy</li>
+                <li>Terms and Conditions</li>
+                <li>Refund Policy</li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
+              <p className="mb-2">1800 1238 1238</p>
+              <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
+              <h3 className="font-bold text-lg text-white mb-2">Write to us at:</h3>
+              <p className="mb-1">customercare@quipit.com</p>
+              <p className="mb-1">95A Park Street, Kolkata</p>
+              <p>Kolkata 700016</p>
+            </div>
           </div>
         </div>
       </footer>
@@ -73,4 +100,4 @@ const AgentsPage = () => {
   );
 };
 
-export default AgentsPage;
+export default TravelPage;
