@@ -66,6 +66,68 @@ const TravelPage = () => {
           {/* Promotional Preview */}
           <div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
             <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Here&apos;s What You&apos;ll Get</h3>
+              <p className="text-gray-600">A professionally crafted itinerary like this:</p>
+            </div>
+
+            {/* Sample Itinerary Preview */}
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              {/* Header */}
+              <div className="text-center mb-6 pb-4 border-b">
+                <div className="text-xl font-bold text-gray-800">London Adventure</div>
+                <div className="text-gray-600">June 15 - June 20, 2024</div>
+              </div>
+
+              {/* Sample Day */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
+                  <h4 className="text-xl font-bold text-gray-800">DAY 1</h4>
+                  <p className="text-sm text-gray-600">Thursday, June 15</p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg col-span-2">
+                  <p className="text-gray-800">
+                    Morning: Visit Tower of London<br/>
+                    Afternoon: Thames River Cruise<br/>
+                    Evening: West End Show
+                  </p>
+                </div>
+              </div>
+
+              {/* Blur Overlay */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50">
+                  <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
+                    <h4 className="text-xl font-bold text-gray-800">DAY 2</h4>
+                    <p className="text-sm text-gray-600">Friday, June 16</p>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg col-span-2">
+                    <p className="text-gray-800">Content blurred...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Features List */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4">
+                <div className="text-blue-600 font-bold mb-2">Daily Breakdown</div>
+                <p className="text-sm text-gray-600">Detailed day-by-day itinerary with timings</p>
+              </div>
+              <div className="text-center p-4">
+                <div className="text-blue-600 font-bold mb-2">Local Insights</div>
+                <p className="text-sm text-gray-600">Hidden gems and local recommendations</p>
+              </div>
+              <div className="text-center p-4">
+                <div className="text-blue-600 font-bold mb-2">Smart Planning</div>
+                <p className="text-sm text-gray-600">Optimized routes and timing</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Promotional Preview */}
+          <div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
+            <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Here's What You'll Get</h3>
               <p className="text-gray-600">A professionally crafted itinerary like this:</p>
             </div>
