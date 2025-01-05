@@ -175,54 +175,57 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               onClick={() => onNavigate(route.href, route.pro)}
               key={route.href}
               className={cn(
-                "text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-blue-600 rounded-lg transition",
-                pathname === route.href 
-                  ? "text-blue-600" 
-                  : "text-gray-500"
+                "text-blue-600 text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:bg-blue-50 rounded-lg transition",
+                pathname === route.href && "bg-blue-50"
               )}
             >
               <div className="flex flex-col gap-y-2 items-center flex-1">
-                <route.icon className={cn(
-                  "h-5 w-5",
-                  pathname === route.href 
-                    ? "text-blue-600" 
-                    : "text-gray-500"
-                )} />
+                <route.icon className="h-5 w-5 text-blue-600" />
                 {route.label}
               </div>
             </div>
           ))}
 
           <div className="mt-6 border-t pt-4">
-            <h2 className="px-3 text-xs font-semibold text-gray-500 mb-2">SAVED TRIPS</h2>
+            <h2 className="px-3 text-xs font-semibold text-blue-600 mb-2">SAVED TRIPS</h2>
             <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
               {savedTrips && savedTrips.length > 0 ? (
-                savedTrips.map((trip) => (
-                  <div
-                    key={trip._id}
-                    onClick={() => navigateToTrip(trip)}
-                    className="px-3 py-2 text-xs hover:text-blue-600 rounded-lg cursor-pointer relative group"
-                  >
-                    <div className="pr-8">
-                      <div className="font-medium text-gray-500">{trip.location}</div>
-                      <div className="text-[10px] text-gray-400">
-                        {trip.dateRange}
-                        <br />
-                        <span className="opacity-75">ID: {trip.job_id}</span>
-                      </div>
-                    </div>
-                    <Button
-                      onClick={(e) => handleDeleteTrip(e, trip.job_id)}
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                savedTrips.map((trip) => {
+                  // Get the current job_id from URL to check if this trip is active
+                  const urlParams = new URLSearchParams(window.location.search);
+                  const currentJobId = urlParams.get('job_id');
+                  const isActive = currentJobId === trip.job_id;
+
+                  return (
+                    <div
+                      key={trip._id}
+                      onClick={() => navigateToTrip(trip)}
+                      className={cn(
+                        "px-3 py-2 text-xs hover:bg-blue-50 rounded-lg cursor-pointer relative group",
+                        isActive && "bg-blue-50"
+                      )}
                     >
-                      <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                    </Button>
-                  </div>
-                ))
+                      <div className="pr-8">
+                        <div className="font-medium text-blue-600">{trip.location}</div>
+                        <div className="text-[10px] text-blue-600/70">
+                          {trip.dateRange}
+                          <br />
+                          <span className="opacity-75">ID: {trip.job_id}</span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash className="h-4 w-4 text-blue-600 hover:text-red-500" />
+                      </Button>
+                    </div>
+                  );
+                })
               ) : (
-                <p className="px-3 text-xs text-gray-400">
+                <p className="px-3 text-xs text-blue-600/70">
                   No saved trips yet
                 </p>
               )}
