@@ -27,8 +27,8 @@ const TravelPage = () => {
           </h1>
           
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-            Let Quipit's AI create your perfect itinerary. Just tell us your destination and interests – 
-            we'll handle all the research and planning for you.
+            Skip the endless research! Let Quipit's AI create your perfect itinerary. Just tell us where you want to go, 
+            and get a perfect itinerary tailored to your interests.
           </p>
 
           <Card className="p-4 sm:p-8 mb-8 bg-white dark:bg-gray-800 shadow-lg">
@@ -62,132 +62,49 @@ const TravelPage = () => {
           >
             Plan My Trip Now
           </Button>
-
-          {/* Promotional Preview */}
-          <div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Here&apos;s What You&apos;ll Get</h3>
-              <p className="text-gray-600">A professionally crafted itinerary like this:</p>
-            </div>
-
-            {/* Sample Itinerary Preview */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              {/* Header */}
-              <div className="text-center mb-6 pb-4 border-b">
-                <div className="text-xl font-bold text-gray-800">London Adventure</div>
-                <div className="text-gray-600">June 15 - June 20, 2024</div>
-              </div>
-
-              {/* Sample Day */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
-                  <h4 className="text-xl font-bold text-gray-800">DAY 1</h4>
-                  <p className="text-sm text-gray-600">Thursday, June 15</p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-lg col-span-2">
-                  <p className="text-gray-800">
-                    Morning: Visit Tower of London<br/>
-                    Afternoon: Thames River Cruise<br/>
-                    Evening: West End Show
-                  </p>
-                </div>
-              </div>
-
-              {/* Blur Overlay */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50">
-                  <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
-                    <h4 className="text-xl font-bold text-gray-800">DAY 2</h4>
-                    <p className="text-sm text-gray-600">Friday, June 16</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg col-span-2">
-                    <p className="text-gray-800">Content blurred...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Features List */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Daily Breakdown</div>
-                <p className="text-sm text-gray-600">Detailed day-by-day itinerary with timings</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Local Insights</div>
-                <p className="text-sm text-gray-600">Hidden gems and local recommendations</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Smart Planning</div>
-                <p className="text-sm text-gray-600">Optimized routes and timing</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Promotional Preview */}
-          <div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
-            <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Here's What You'll Get</h3>
-              <p className="text-gray-600">A professionally crafted itinerary like this:</p>
-            </div>
-
-            {/* Sample Itinerary Preview */}
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              {/* Header */}
-              <div className="text-center mb-6 pb-4 border-b">
-                <div className="text-xl font-bold text-gray-800">London Adventure</div>
-                <div className="text-gray-600">June 15 - June 20, 2024</div>
-              </div>
-
-              {/* Sample Day */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
-                  <h4 className="text-xl font-bold text-gray-800">DAY 1</h4>
-                  <p className="text-sm text-gray-600">Thursday, June 15</p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-lg col-span-2">
-                  <p className="text-gray-800">
-                    Morning: Visit Tower of London<br/>
-                    Afternoon: Thames River Cruise<br/>
-                    Evening: West End Show
-                  </p>
-                </div>
-              </div>
-
-              {/* Blur Overlay */}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50">
-                  <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center">
-                    <h4 className="text-xl font-bold text-gray-800">DAY 2</h4>
-                    <p className="text-sm text-gray-600">Friday, June 16</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg col-span-2">
-                    <p className="text-gray-800">Content blurred...</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Features List */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Daily Breakdown</div>
-                <p className="text-sm text-gray-600">Detailed day-by-day itinerary with timings</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Local Insights</div>
-                <p className="text-sm text-gray-600">Hidden gems and local recommendations</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="text-blue-600 font-bold mb-2">Smart Planning</div>
-                <p className="text-sm text-gray-600">Optimized routes and timing</p>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
+
+      {/* Promotional Preview */}
+<div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
+  <div className="text-center mb-6">
+    <h3 className="text-2xl font-bold text-gray-800 mb-2">Get Your Perfect Itinerary</h3>
+    <p className="text-gray-600">Preview of your customized travel plan:</p>
+  </div>
+
+  <div className="bg-white rounded-lg p-6 shadow-sm">
+    <div className="text-center mb-6 pb-4 border-b">
+      <div className="text-xl font-bold text-gray-800">Sample: Tokyo Expedition</div>
+      <div className="text-gray-600">5 Days of Adventure</div>
+    </div>
+
+    <div className="grid md:grid-cols-3 gap-4">
+      <div className="bg-blue-50 p-4 rounded-lg text-center">
+        <h4 className="text-lg font-bold text-gray-800">Highlights</h4>
+        <ul className="text-sm text-gray-600 mt-2">
+          <li>Curated Local Experiences</li>
+          <li>Day-by-Day Planning</li>
+          <li>Hidden Gems & Hotspots</li>
+        </ul>
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-lg text-center col-span-2">
+        <h4 className="text-lg font-bold text-gray-800">Sample Day</h4>
+        <div className="text-sm text-gray-600 mt-2">
+          <p>Morning: Traditional Market Tour</p>
+          <p>Afternoon: Cultural Workshop</p>
+          <p>Evening: Local Food Experience</p>
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-6 text-center">
+      <p className="text-blue-600 font-bold">+ Detailed Timings & Transport Info</p>
+      <p className="text-blue-600 font-bold">+ Local Tips & Recommendations</p>
+      <p className="text-blue-600 font-bold">+ Customized to Your Interests</p>
+    </div>
+  </div>
+</div>
 
       {/* Footer */}
       <footer className="bg-gray-900 py-12 text-gray-300 mt-auto">
