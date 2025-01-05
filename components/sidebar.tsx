@@ -167,9 +167,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   ];
 
   return (
-    // Make the main container take full height
-    <div className="space-y-4 flex flex-col h-full text-primary bg-gray-50 w-32 border-r">
-      {/* Add overflow-y-auto to allow scrolling of entire sidebar content */}
+    <div className="space-y-4 flex flex-col h-full bg-gray-50 w-32 border-r">
       <div className="p-3 flex-1 flex justify-center overflow-y-auto">
         <div className="space-y-2 w-full">
           {routes.map((route) => (
@@ -177,33 +175,40 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               onClick={() => onNavigate(route.href, route.pro)}
               key={route.href}
               className={cn(
-                "text-gray-600 text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:bg-gray-100 rounded-lg transition",
-                pathname === route.href && "bg-gray-100 text-blue-600"
+                "text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-blue-600 rounded-lg transition",
+                pathname === route.href 
+                  ? "text-blue-600" 
+                  : "text-gray-500"
               )}
             >
               <div className="flex flex-col gap-y-2 items-center flex-1">
-                <route.icon className="h-5 w-5" />
+                <route.icon className={cn(
+                  "h-5 w-5",
+                  pathname === route.href 
+                    ? "text-blue-600" 
+                    : "text-gray-500"
+                )} />
                 {route.label}
               </div>
             </div>
           ))}
 
           <div className="mt-6 border-t pt-4">
-            <h2 className="px-3 text-xs font-semibold text-gray-800 mb-2">SAVED TRIPS</h2>
+            <h2 className="px-3 text-xs font-semibold text-gray-500 mb-2">SAVED TRIPS</h2>
             <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
               {savedTrips && savedTrips.length > 0 ? (
                 savedTrips.map((trip) => (
                   <div
                     key={trip._id}
                     onClick={() => navigateToTrip(trip)}
-                    className="px-3 py-2 text-xs hover:bg-gray-100 rounded-lg cursor-pointer relative group"  
+                    className="px-3 py-2 text-xs hover:text-blue-600 rounded-lg cursor-pointer relative group"
                   >
                     <div className="pr-8">
-                      <div className="font-medium text-gray-800">{trip.location}</div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="font-medium text-gray-500">{trip.location}</div>
+                      <div className="text-[10px] text-gray-400">
                         {trip.dateRange}
                         <br />
-                        <span className="opacity-60">ID: {trip.job_id}</span>
+                        <span className="opacity-75">ID: {trip.job_id}</span>
                       </div>
                     </div>
                     <Button
@@ -212,12 +217,12 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       size="icon"
                       className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <Trash className="h-4 w-4 text-muted-foreground hover:text-red-500" />
+                      <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
                 ))
               ) : (
-                <p className="px-3 text-xs text-gray-500">
+                <p className="px-3 text-xs text-gray-400">
                   No saved trips yet
                 </p>
               )}
