@@ -7,13 +7,12 @@ import { Plane } from "lucide-react";
 
 const TravelPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
       <main className="container mx-auto px-4 py-12">
         {/* Logo Section */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-2">Quipit</h1>
-          <h2 className="text-xl">
+          <h1 className="text-4xl font-bold mb-2 text-gray-900 dark:text-white">Quipit</h1>
+          <h2 className="text-xl text-gray-800 dark:text-gray-200">
             AI that <span className="text-blue-600">Works for You!</span>
           </h2>
         </div>
@@ -23,35 +22,35 @@ const TravelPage = () => {
             <Plane className="w-16 h-16 text-blue-500" />
           </div>
           
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-4">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl mb-4">
             Your Dream Trip Planned Instantly
           </h1>
           
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
             Skip the endless research. Just tell us where you want to go, 
             and get a perfect itinerary tailored to your interests.
           </p>
 
-          <Card className="p-4 sm:p-8 mb-8 bg-white shadow-lg">
+          <Card className="p-4 sm:p-8 mb-8 bg-white dark:bg-gray-800 shadow-lg">
             <div className="space-y-6">
               <div className="flex items-center space-x-4 text-left">
-                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">1</span>
-                <span className="text-lg">Enter your destination</span>
+                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center font-semibold">1</span>
+                <span className="text-lg text-gray-900 dark:text-white">Enter your destination</span>
               </div>
               <div className="flex items-center space-x-4 text-left">
-                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">2</span>
-                <span className="text-lg">Set your dates & interests</span>
+                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center font-semibold">2</span>
+                <span className="text-lg text-gray-900 dark:text-white">Set your dates & interests</span>
               </div>
               <div className="flex items-center space-x-4 text-left">
-                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-semibold">3</span>
-                <span className="text-lg">Get your perfect itinerary instantly</span>
+                <span className="w-8 h-8 shrink-0 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 flex items-center justify-center font-semibold">3</span>
+                <span className="text-lg text-gray-900 dark:text-white">Get your perfect itinerary instantly</span>
               </div>
             </div>
           </Card>
 
-            {/* Marketing Tagline - Now more prominent */}
-            <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          {/* Marketing Tagline */}
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               Just Quipit!
             </h2>
           </div>
@@ -70,7 +69,6 @@ const TravelPage = () => {
       <footer className="bg-gray-900 py-12 text-gray-300 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Follow Us */}
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
               <ul className="space-y-2">
@@ -81,7 +79,6 @@ const TravelPage = () => {
               </ul>
             </div>
 
-            {/* Legal */}
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
               <ul className="space-y-2">
@@ -91,7 +88,6 @@ const TravelPage = () => {
               </ul>
             </div>
 
-            {/* Contact */}
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
               <p className="mb-2">1800 1238 1238</p>
