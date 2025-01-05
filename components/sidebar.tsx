@@ -168,7 +168,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
   return (
     // Make the main container take full height
-    <div className="space-y-4 flex flex-col h-full text-primary bg-secondary w-32">
+    <div className="space-y-4 flex flex-col h-full text-primary bg-gray-50 w-32 border-r">
       {/* Add overflow-y-auto to allow scrolling of entire sidebar content */}
       <div className="p-3 flex-1 flex justify-center overflow-y-auto">
         <div className="space-y-2 w-full">
@@ -177,8 +177,8 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               onClick={() => onNavigate(route.href, route.pro)}
               key={route.href}
               className={cn(
-                "text-muted-foreground text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-primary hover:bg-primary/10 rounded-lg transition",
-                pathname === route.href && "bg-primary/20 text-primary"
+                "text-gray-600 text-xs group flex p-3 w-full justify-start font-medium cursor-pointer hover:bg-gray-100 rounded-lg transition",
+                pathname === route.href && "bg-gray-100 text-blue-600"
               )}
             >
               <div className="flex flex-col gap-y-2 items-center flex-1">
@@ -189,18 +189,18 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
           ))}
 
           <div className="mt-6 border-t pt-4">
-            <h2 className="px-3 text-xs font-semibold mb-2">SAVED TRIPS</h2>
+            <h2 className="px-3 text-xs font-semibold text-gray-800 mb-2">SAVED TRIPS</h2>
             <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
               {savedTrips && savedTrips.length > 0 ? (
                 savedTrips.map((trip) => (
                   <div
                     key={trip._id}
                     onClick={() => navigateToTrip(trip)}
-                    className="px-3 py-2 text-xs hover:bg-primary/10 rounded-lg cursor-pointer relative group"
+                    className="px-3 py-2 text-xs hover:bg-gray-100 rounded-lg cursor-pointer relative group"  
                   >
                     <div className="pr-8">
-                      <div className="font-medium">{trip.location}</div>
-                      <div className="text-[10px] text-muted-foreground">
+                      <div className="font-medium text-gray-800">{trip.location}</div>
+                      <div className="text-[10px] text-gray-500">
                         {trip.dateRange}
                         <br />
                         <span className="opacity-60">ID: {trip.job_id}</span>
@@ -217,7 +217,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   </div>
                 ))
               ) : (
-                <p className="px-3 text-xs text-muted-foreground">
+                <p className="px-3 text-xs text-gray-500">
                   No saved trips yet
                 </p>
               )}
