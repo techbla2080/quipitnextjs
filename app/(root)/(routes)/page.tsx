@@ -72,28 +72,28 @@ const TravelPage = () => {
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
               <ul className="space-y-2">
-                <li>Facebook</li>
-                <li>Instagram</li>
-                <li>Twitter</li>
-                <li>Youtube</li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Facebook</a></li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Instagram</a></li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Twitter</a></li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Youtube</a></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
               <ul className="space-y-2">
-                <li>Privacy Policy</li>
-                <li>Terms and Conditions</li>
-                <li>Refund Policy</li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Privacy Policy</a></li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Terms and Conditions</a></li>
+                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Refund Policy</a></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
-              <p className="mb-2">1800 1238 1238</p>
+              <p className="mb-2"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">1800 1238 1238</a></p>
               <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
               <h3 className="font-bold text-lg text-white mb-2">Write to us at:</h3>
-              <p className="mb-1">customercare@quipit.com</p>
+              <p className="mb-1"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">customercare@quipit.com</a></p>
               <p className="mb-1">95A Park Street, Kolkata</p>
               <p>Kolkata 700016</p>
             </div>
