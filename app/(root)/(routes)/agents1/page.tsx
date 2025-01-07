@@ -616,8 +616,8 @@ return (
   </h2>
   <div className="mt-4 text-gray-600">
     <p>{addedDateRange || "Select travel dates"}</p>
-    <p className="mt-2 text-gray-600">{addedLocation} {citiesList.length > 0 && `→ ${citiesList.join(' → ')}`}</p>
-    <p className="mt-2 text-gray-600">{interestsList.length > 0 ? `Interests: ${interestsList.join(', ')}` : ''}</p>
+    <p className="mt-2 text-gray-600">{addedLocation} {citiesList.length > 0 && `→ ${citiesList.join(" → ")}`}</p>
+    <p className="mt-2 text-gray-600">{interestsList.length > 0 ? `Interests: ${interestsList.join(" → ")}` : ''}</p>
     <p className="mt-2 text-cyan-500">Job ID: {jobId}</p>
   </div>
 </div>
