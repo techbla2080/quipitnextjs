@@ -65,47 +65,6 @@ const TravelPage = () => {
         </div>
       </main>
 
-      {/* Promotional Preview */}
-<div className="mt-12 bg-blue-50 rounded-xl p-8 border-2 border-blue-100">
-  <div className="text-center mb-6">
-    <h3 className="text-2xl font-bold text-gray-800 mb-2">Get Your Perfect Itinerary</h3>
-    <p className="text-gray-600">Preview of your customized travel plan:</p>
-  </div>
-
-  <div className="bg-white rounded-lg p-6 shadow-sm">
-    <div className="text-center mb-6 pb-4 border-b">
-      <div className="text-xl font-bold text-gray-800">Sample: Tokyo Expedition</div>
-      <div className="text-gray-600">5 Days of Adventure</div>
-    </div>
-
-    <div className="grid md:grid-cols-3 gap-4">
-      <div className="bg-blue-50 p-4 rounded-lg text-center">
-        <h4 className="text-lg font-bold text-gray-800">Highlights</h4>
-        <ul className="text-sm text-gray-600 mt-2">
-          <li>Curated Local Experiences</li>
-          <li>Day-by-Day Planning</li>
-          <li>Hidden Gems & Hotspots</li>
-        </ul>
-      </div>
-
-      <div className="bg-blue-50 p-4 rounded-lg text-center col-span-2">
-        <h4 className="text-lg font-bold text-gray-800">Sample Day</h4>
-        <div className="text-sm text-gray-600 mt-2">
-          <p>Morning: Traditional Market Tour</p>
-          <p>Afternoon: Cultural Workshop</p>
-          <p>Evening: Local Food Experience</p>
-        </div>
-      </div>
-    </div>
-
-    <div className="mt-6 text-center">
-      <p className="text-blue-600 font-bold">+ Detailed Timings & Transport Info</p>
-      <p className="text-blue-600 font-bold">+ Local Tips & Recommendations</p>
-      <p className="text-blue-600 font-bold">+ Customized to Your Interests</p>
-    </div>
-  </div>
-</div>
-
       {/* Footer */}
       <footer className="bg-gray-900 py-12 text-gray-300 mt-auto">
         <div className="container mx-auto px-4">

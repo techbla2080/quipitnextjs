@@ -452,7 +452,7 @@ return (
     <CardContent>
       <div className="space-y-4">
         {/* Location */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="location">Location</Label>
           <div className="flex space-x-2">
             <Input
@@ -470,7 +470,7 @@ return (
         </div>
 
         {/* Cities */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="cities">Cities</Label>
           <div className="flex space-x-2">
             <Input
@@ -488,7 +488,7 @@ return (
         </div>
 
         {/* Date Range */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
           <Label>Trip Dates</Label>
           <div className="flex space-x-4">
             <div>
@@ -518,7 +518,7 @@ return (
         </div>
 
         {/* Interests */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="interests">Interests</Label>
           <div className="flex space-x-2">
             <Input
@@ -778,4 +778,3 @@ return (
 </div>  
 );
 }
-
