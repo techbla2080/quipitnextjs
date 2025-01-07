@@ -169,7 +169,7 @@ useEffect(() => {
 
   const params = new URLSearchParams(window.location.search);
   const currentJobId = params.get('job_id');
-  if (currentJobId) loadTripFromId(currentJobId);
+  if (currentJobId) loadTripFromId(currentJobId); 
 }, [window.location.search]);
 
 useEffect(() => {
