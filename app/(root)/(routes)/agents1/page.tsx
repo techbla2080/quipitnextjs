@@ -170,7 +170,7 @@ useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const currentJobId = params.get('job_id');
   if (currentJobId) loadTripFromId(currentJobId); 
-}, [window.location.search]);
+}, [window.location.search, setTripResult]); // Add setTripResult
 
 useEffect(() => {
   // Handle state persistence
@@ -211,7 +211,7 @@ useEffect(() => {
   // Setup unload handler
   window.addEventListener('beforeunload', handleBeforeUnload);
   return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-}, []); // Only run on mount
+}, [isViewMode, tripResult, addedLocation, addedDateRange, interestsList, citiesList, jobId]); // Only run on mount
 
     // Add these new utility functions
 const loadSavedItineraries = () => {
@@ -435,7 +435,7 @@ if (!window.location.search.includes('job_id')) {
 // Add unload handler
 window.addEventListener('beforeunload', handleBeforeUnload);
 return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-}, []); // Only runs on mount
+}, [isViewMode, tripResult, addedLocation, addedDateRange, interestsList, citiesList, jobId, setAddedLocation, setAddedDateRange, setInterestsList, setCitiesList, setTripResult, setJobId]); // Only runs on mount
 
 return (
 <div className="container mx-auto p-4">
@@ -452,7 +452,7 @@ return (
     <CardContent>
       <div className="space-y-4">
         {/* Location */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="location">Location</Label>
           <div className="flex space-x-2">
             <Input
@@ -470,7 +470,7 @@ return (
         </div>
 
         {/* Cities */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="cities">Cities</Label>
           <div className="flex space-x-2">
             <Input
@@ -488,7 +488,7 @@ return (
         </div>
 
         {/* Date Range */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
           <Label>Trip Dates</Label>
           <div className="flex space-x-4">
             <div>
@@ -518,7 +518,7 @@ return (
         </div>
 
         {/* Interests */}
-        <div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <Label htmlFor="interests">Interests</Label>
           <div className="flex space-x-2">
             <Input
@@ -616,8 +616,8 @@ return (
   </h2>
   <div className="mt-4 text-gray-600">
     <p>{addedDateRange || "Select travel dates"}</p>
-    <p className="mt-2 text-gray-600">{addedLocation} {citiesList.length > 0 && `→ ${citiesList.join(' → ')}`}</p>
-    <p className="mt-2 text-gray-600">{interestsList.length > 0 ? `Interests: ${interestsList.join(', ')}` : ''}</p>
+    <p className="mt-2 text-gray-600">{addedLocation} {citiesList.length > 0 && `→ ${citiesList.join(" → ")}`}</p>
+    <p className="mt-2 text-gray-600">{interestsList.length > 0 ? `Interests: ${interestsList.join(" → ")}` : ''}</p>
     <p className="mt-2 text-cyan-500">Job ID: {jobId}</p>
   </div>
 </div>
@@ -778,4 +778,3 @@ return (
 </div>  
 );
 }
-
