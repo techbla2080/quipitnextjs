@@ -438,84 +438,98 @@ return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 }, [isViewMode, tripResult, addedLocation, addedDateRange, interestsList, citiesList, jobId, setAddedLocation, setAddedDateRange, setInterestsList, setCitiesList, setTripResult, setJobId]); // Only runs on mount
 
 return (
-<div className="container mx-auto p-4">
-  <div className="flex justify-between items-center mb-6">
-    <h1 className="text-3xl font-bold">Trip Planner</h1>
-    <div className="flex gap-2">
+  <div className="container mx-auto px-4 max-w-full sm:max-w-3xl overflow-x-hidden">
+    <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0">Trip Planner</h1>
+      <div className="flex gap-2">
+      </div>
     </div>
-  </div>
 
-  <Card>
-    <CardHeader>
-      <CardTitle>Trip Details</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="space-y-4">
-        {/* Location */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-          <Label htmlFor="location">Location</Label>
-          <div className="flex space-x-2">
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Enter main location"
-            />
-            <Button onClick={handleAddLocation}>Add Location</Button>
-          </div>
-          <div className="mt-2">
-            <h3 className="font-semibold">Added Location:</h3>
-            <p>{addedLocation || "No location added yet."}</p>
-          </div>
-        </div>
-
-        {/* Cities */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-          <Label htmlFor="cities">Cities</Label>
-          <div className="flex space-x-2">
-            <Input
-              id="cities"
-              value={addedCities}
-              onChange={(e) => setAddedCities(e.target.value)}
-              placeholder="Enter cities"
-            />
-            <Button onClick={handleAddCity}>Add</Button>
-          </div>
-          <div className="mt-2">
-            <h3 className="font-semibold">Added Cities:</h3>
-            <p>{citiesList.join(", ") || "No cities added yet."}</p>
-          </div>
-        </div>
-
-        {/* Date Range */}
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-          <Label>Trip Dates</Label>
-          <div className="flex space-x-4">
-            <div>
-              <Label>Start Date</Label>
-              <DatePicker
-                selected={startDate}
-                onChange={(date: Date | null) => setStartDate(date)}
-                dateFormat="MM/dd/yyyy"
-                className="border p-2 rounded"
-              />
-            </div>
-            <div>
-              <Label>End Date</Label>
-              <DatePicker
-                selected={endDate}
-                onChange={(date: Date | null) => setEndDate(date)}
-                dateFormat="MM/dd/yyyy"
-                className="border p-2 rounded"
-              />
-              <Button onClick={handleAddDateRange}>Add Date Range</Button>
+    <Card className="w-full">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-xl sm:text-2xl">Trip Details</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-6">
+        <div className="space-y-6">
+          {/* Location */}
+          <div className="flex flex-col space-y-3">
+            <Label htmlFor="location" className="text-base sm:text-lg font-semibold">Location</Label>
+            <div className="flex flex-col space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Enter main location"
+                  className="w-full"
+                />
+                <Button onClick={handleAddLocation} className="w-full sm:w-auto">
+                  Add Location
+                </Button>
+              </div>
+              <div className="mt-2">
+                <h3 className="font-semibold text-sm">Added Location:</h3>
+                <p className="text-gray-700 break-words mt-1">
+                  {addedLocation || "No location added yet."}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="mt-2">
-            <h3 className="font-semibold">Added Date Range:</h3>
-            <p>{addedDateRange || "No date range added yet."}</p>
-          </div>
-        </div>
+
+{/* Cities */}
+<div className="flex flex-col space-y-3">
+ <Label htmlFor="cities" className="text-base sm:text-lg font-semibold">Cities</Label>
+ <div className="flex flex-col space-y-2">
+   <div className="flex flex-col sm:flex-row gap-2">
+     <Input
+       id="cities"
+       value={addedCities}
+       onChange={(e) => setAddedCities(e.target.value)}
+       placeholder="Enter cities"
+       className="w-full"
+     />
+     <Button onClick={handleAddCity} className="w-full sm:w-auto">Add</Button>
+   </div>
+   <div>
+     <h3 className="font-semibold text-sm">Added Cities:</h3>
+     <p className="text-gray-700 break-words mt-1">{citiesList.join(", ") || "No cities added yet."}</p>
+   </div>
+ </div>
+</div>
+
+{/* Date Range */}
+<div className="flex flex-col space-y-3">
+ <Label className="text-base sm:text-lg font-semibold">Trip Dates</Label>
+ <div className="flex flex-col space-y-4">
+   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+     <div className="space-y-2">
+       <Label className="text-sm">Start Date</Label>
+       <DatePicker
+         selected={startDate}
+         onChange={(date: Date | null) => setStartDate(date)}
+         dateFormat="MM/dd/yyyy"
+         className="w-full border p-2 rounded bg-white"
+       />
+     </div>
+     <div className="space-y-2">
+       <Label className="text-sm">End Date</Label>
+       <DatePicker
+         selected={endDate}
+         onChange={(date: Date | null) => setEndDate(date)}
+         dateFormat="MM/dd/yyyy"
+         className="w-full border p-2 rounded bg-white"
+       />
+     </div>
+   </div>
+   <Button onClick={handleAddDateRange} className="w-full sm:w-auto mt-2">
+     Add Date Range
+   </Button>
+   <div>
+     <h3 className="font-semibold text-sm">Added Date Range:</h3>
+     <p className="text-gray-700 break-words mt-1">{addedDateRange || "No date range added yet."}</p>
+   </div>
+ </div>
+</div>
 
         {/* Interests */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
@@ -545,9 +559,6 @@ return (
         </Button>
       </div>
 
-      {/* Output Box for Loader and Result */}
-      {/* Update your loader section in the JSX */}
-{/* Output Box for Loader and Result */}
 <div className="mt-4 border p-4 rounded">
   {isLoading ? (
     <div className="flex items-center justify-center p-4">
