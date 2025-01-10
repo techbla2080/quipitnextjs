@@ -671,87 +671,87 @@ return (
     })()}
 
 
-    {/* Day Boxes */}
-    {addedDateRange && (
-      <div className="space-y-6 mt-8">
-        {(() => {
-          try {
-            const [startStr, endStr] = addedDateRange.split(' to ');
-            
-            const parseDate = (dateStr: string) => {
-              const [month, day, year] = dateStr.split('/').map(num => parseInt(num, 10));
-              return new Date(year, month - 1, day);
-            };
+{/* Day Boxes */}
+{addedDateRange && (
+  <div className="space-y-6 mt-8">
+    {(() => {
+      try {
+        const [startStr, endStr] = addedDateRange.split(' to ');
+        
+        const parseDate = (dateStr: string) => {
+          const [month, day, year] = dateStr.split('/').map(num => parseInt(num, 10));
+          return new Date(year, month - 1, day);
+        };
 
-            const startDate = parseDate(startStr);
-            const endDate = parseDate(endStr);
-            
-            const diffTime = endDate.getTime() - startDate.getTime();
-            const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const startDate = parseDate(startStr);
+        const endDate = parseDate(endStr);
+        
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-            const getDayDate = (dayIndex: number) => {
-              const date = new Date(startDate);
-              date.setDate(date.getDate() + dayIndex);
-              return date.toLocaleDateString('en-US', { 
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric'
-              });
-            };
+        const getDayDate = (dayIndex: number) => {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + dayIndex);
+          return date.toLocaleDateString('en-US', { 
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+          });
+        };
 
-            let days: string[] = [];
-            const itineraryText = tripResult as unknown as string;
-            
-            if (typeof itineraryText === 'string') {
-              const mainContent = itineraryText.split(/Day 1:/)[1];
-              if (mainContent) {
-                days = ('Day 1:' + mainContent).split(/Day \d+:/);
-                days.shift();
-              }
-            }
-
-            return Array.from({ length: numberOfDays }).map((_, index) => {
-              const createBullets = (text: string) => {
-                const points = text
-                  .split('.')
-                  .map(point => point.trim())
-                  .filter(point => point.length > 0);
-
-                return (
-                  <ul className="list-disc pl-6 space-y-2">
-                    {points.map((point, i) => (
-                      <li key={i}>{point}</li>
-                    ))}
-                  </ul>
-                );
-              };
-
-              return (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-cyan-50 p-6 rounded-lg flex flex-col items-center justify-center">
-                    <h3 className="text-2xl font-bold text-gray-800">DAY {index + 1}</h3>
-                    <p className="text-sm text-gray-600 mt-2">{getDayDate(index)}</p>
-                  </div>
-                  <div className="bg-cyan-50 p-6 rounded-lg col-span-2">
-                    <h4 className="font-bold mb-4">Activities:</h4>
-                    <div className="space-y-2">
-                      {days[index] ? (
-                        createBullets(days[index])
-                      ) : (
-                        <p className="text-gray-500 italic">No activities planned for this day yet</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            });
-          } catch (error) {
-            console.error('Error details:', error);
-            return <div>Error generating itinerary boxes: {String(error)}</div>;
+        let days: string[] = [];
+        const itineraryText = tripResult as unknown as string;
+        
+        if (typeof itineraryText === 'string') {
+          const mainContent = itineraryText.split(/Day 1:/)[1];
+          if (mainContent) {
+            days = ('Day 1:' + mainContent).split(/Day \d+:/);
+            days.shift();
           }
-        })()}
-      </div>
-    )}
+        }
+
+        return Array.from({ length: numberOfDays }).map((_, index) => {
+          const createBullets = (text: string) => {
+            const points = text
+              .split('.')
+              .map(point => point.trim())
+              .filter(point => point.length > 0);
+
+            return (
+              <ul className="list-disc pl-6 space-y-2">
+                {points.map((point, i) => (
+                  <li key={i} className="break-words">{point}</li>
+                ))}
+              </ul>
+            );
+          };
+
+          return (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-cyan-50 p-6 rounded-lg flex flex-col items-center justify-center">
+                <h3 className="text-2xl font-bold text-gray-800">DAY {index + 1}</h3>
+                <p className="text-sm text-gray-600 mt-2">{getDayDate(index)}</p>
+              </div>
+              <div className="bg-cyan-50 p-6 rounded-lg col-span-2">
+                <h4 className="font-bold mb-4">Activities:</h4>
+                <div className="space-y-2">
+                  {days[index] ? (
+                    createBullets(days[index])
+                  ) : (
+                    <p className="text-gray-500 italic">No activities planned for this day yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        });
+      } catch (error) {
+        console.error('Error details:', error);
+        return <div>Error generating itinerary boxes: {String(error)}</div>;
+      }
+    })()}
+  </div>
+)}
     
 
     {/* Save Button */}
