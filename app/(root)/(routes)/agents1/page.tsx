@@ -779,13 +779,15 @@ return (
       </div>
     )}
 
-    {/* Footer */}
-    <div className="mt-8 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
-      <p>www.quipit.com</p>
-      <p>greenvalleymotor@gmail.com</p>
-      <p>+919830016577</p>
-    </div>
+{/* Footer */}
+<div className="mt-8 pt-4 border-t border-gray-200">
+  <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-600">
+    <p className="text-center sm:text-left">www.quipit.com</p>
+    <p className="text-center">greenvalleymotor@gmail.com</p>
+    <p className="text-center sm:text-right">+919830016577</p>
   </div>
-</div>  
+</div>
+</div> 
+</div>
 );
 }
