@@ -576,12 +576,17 @@ return (
         borderTop: '3px solid transparent',
         animation: 'spin 1s linear infinite'
       }} />
-      <span className="ml-2">Loading trip data...</span>
+      <span className="ml-2">Processing your itinerary...</span>
     </div>
   ) : tripResult ? (
     <div>
-      {jobId && (
-        <div className="flex items-center space-x-2 justify-center p-4">
+      {jobId && !loadingControl.isLoading && (
+        <div className="flex items-center justify-center p-4">
+          <p className="text-gray-600">Your itinerary is ready below</p>
+        </div>
+      )}
+      {loadingControl.isLoading && (
+        <div className="flex items-center justify-center p-4">
           <div className="loader" style={{
             display: 'inline-block',
             width: '24px',
@@ -591,18 +596,12 @@ return (
             borderTop: '3px solid transparent',
             animation: 'spin 1s linear infinite'
           }} />
-          <span className="ml-2">Processing your itinerary...</span>
-        </div>
-      )}
-      {/* Loading overlay during state updates */}
-      {loadingControl.isLoading && (
-        <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-          <span>Updating...</span>
+          <span className="ml-2">Updating...</span>
         </div>
       )}
     </div>
   ) : (
-    <p>Your itinerary will be displayed below once generated.</p>
+    <p className="text-center text-gray-600">Your itinerary will be displayed below once generated.</p>
   )}
 </div>
 
