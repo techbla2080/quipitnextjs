@@ -564,7 +564,7 @@ return (
         </Button>
       </div>
 
-<div className="mt-4 border p-4 rounded">
+      <div className="mt-4 border p-4 rounded">
   {isLoading ? (
     <div className="flex items-center justify-center p-4">
       <div className="loader" style={{
@@ -580,29 +580,32 @@ return (
     </div>
   ) : tripResult ? (
     <div>
-      <h2 className="text-xl font-bold">Trip Result:</h2>
       {jobId && (
-        <div className="my-2 flex items-center space-x-2">
-          <span className="font-medium text-gray-700">Job ID:</span>
-          <code className="bg-gray-100 px-2 py-1 rounded text-cyan-600">
-            {jobId}
-          </code>
+        <div className="flex items-center space-x-2 justify-center p-4">
+          <div className="loader" style={{
+            display: 'inline-block',
+            width: '24px',
+            height: '24px',
+            border: '3px solid #3498db',
+            borderRadius: '50%',
+            borderTop: '3px solid transparent',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <span className="ml-2">Processing your itinerary...</span>
         </div>
       )}
-      <div className="trip-result mt-4">
-        {/* Add a loading overlay during state updates */}
-        {loadingControl.isLoading && (
-          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-            <span>Updating...</span>
-          </div>
-        )}
-        <p>{JSON.stringify(tripResult, null, 2)}</p>
-      </div>
+      {/* Loading overlay during state updates */}
+      {loadingControl.isLoading && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+          <span>Updating...</span>
+        </div>
+      )}
     </div>
   ) : (
-    <p>Output will be displayed here.</p>
+    <p>Your itinerary will be displayed below once generated.</p>
   )}
 </div>
+
     </CardContent>
   </Card>
 
