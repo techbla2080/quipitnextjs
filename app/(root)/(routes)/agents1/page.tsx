@@ -158,8 +158,14 @@ useEffect(() => {
       if (data.success && data.trips) {
         const trip = data.trips.find((t: any) => t.jobId === currentJobId);
         if (trip) {
-          // Just set the raw tripResult
-          setTripResult(trip.content || trip.tripResult);
+          // Change this part
+          setTripResult(trip.tripResult || trip.result); // Use tripResult directly instead of content
+          setAddedLocation(trip.location || '');
+          setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+          setAddedDateRange(trip.dateRange || '');
+          setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+          setJobId(currentJobId);
+          setIsViewMode(true);
         }
       }
     } catch (error) {
@@ -170,7 +176,7 @@ useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const currentJobId = params.get('job_id');
   if (currentJobId) loadTripFromId(currentJobId); 
-}, [window.location.search, setTripResult]); // Add setTripResult
+}, [window.location.search, setTripResult]);
 
 useEffect(() => {
   // Handle state persistence
