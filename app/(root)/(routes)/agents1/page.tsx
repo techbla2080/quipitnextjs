@@ -325,12 +325,11 @@ const handlePlanTrip = async () => {
     const result = await planTrip(tripData);
 
     if (result) {
-      await restoreTripStates({
-        ...result,
-        jobId: result.job_id,
-        content: result.result
-      });
+      setTripResult(result.result);  // Direct set instead of through restoreTripStates
+      setJobId(result.job_id);
       console.log('Trip planned successfully');
+      console.log('Full result object:', result);
+      console.log('Job ID:', result.job_id);
     } else {
       toast.error("Failed to plan trip.");
     }
