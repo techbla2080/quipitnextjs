@@ -12,6 +12,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
+import UserInfo from "@/components/UserInfo";  // Add this import
 
 // Updated TripData type
 export type TripData = {  
@@ -449,6 +450,8 @@ return (
       <div className="flex gap-2">
       </div>
     </div>
+
+    <UserInfo />  {/* Add here */}
 
     <Card className="w-full">
       <CardHeader className="p-4 sm:p-6">
