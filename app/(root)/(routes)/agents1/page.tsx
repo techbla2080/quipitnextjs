@@ -13,6 +13,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
 import UserInfo from "@/components/UserInfo";  // Add this import
+import { useAuth } from "@clerk/nextjs";
 
 // Updated TripData type
 export type TripData = {  
@@ -21,6 +22,7 @@ cities: string;
 date_range: string;
 interests: string;
 job_id?: string;
+userId?: string;  // Add this line
 };
 
 // Add a new interface for saved itineraries
@@ -62,6 +64,7 @@ export default function TripPlanner() {
   const router = useRouter();
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
+  const { userId } = useAuth();  // Add this right after your state declarations
 
   // Add this right after your state declarations
   const useLoadingControl = () => {
@@ -152,15 +155,23 @@ const loadFromSessionStorage = async () => {
 // Replace your existing trip loading useEffect with this
 useEffect(() => {
   const loadTripFromId = async (currentJobId: string) => {
+    if (!userId) {  // Add this check
+      console.log('No userId available, skipping trip load');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/trips');
+      const response = await fetch(`/api/trips?userId=${userId}`);  // Add userId to query
       const data = await response.json();
       
       if (data.success && data.trips) {
-        const trip = data.trips.find((t: any) => t.jobId === currentJobId);
+        // Only get trips belonging to this user
+        const trip = data.trips.find((t: any) => 
+          t.jobId === currentJobId && t.userId === userId
+        );
+        
         if (trip) {
-          // Change this part
-          setTripResult(trip.tripResult || trip.result); // Use tripResult directly instead of content
+          setTripResult(trip.tripResult || trip.result);
           setAddedLocation(trip.location || '');
           setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
           setAddedDateRange(trip.dateRange || '');
@@ -176,8 +187,8 @@ useEffect(() => {
 
   const params = new URLSearchParams(window.location.search);
   const currentJobId = params.get('job_id');
-  if (currentJobId) loadTripFromId(currentJobId); 
-}, [window.location.search, setTripResult]);
+  if (currentJobId && userId) loadTripFromId(currentJobId);  // Add userId check
+}, [window.location.search, userId]);  // Add userId to dependencies
 
 useEffect(() => {
   // Handle state persistence
@@ -310,6 +321,11 @@ const handleAddInterest = () => {
 
 // Update handlePlanTrip
 const handlePlanTrip = async () => {
+  if (!userId) {  // Add this check
+    toast.error('Please login to plan trips');
+    return;
+  }
+
   if (isViewMode) {
     toast("This is a saved trip - create a new trip to plan changes");
     return;
@@ -326,6 +342,7 @@ const handlePlanTrip = async () => {
       cities: citiesList.join(", "),
       date_range: addedDateRange,
       interests: interestsList.join(", "),
+      userId: userId  // Add this line
     };
 
     console.log('Planning trip with data:', tripData);
@@ -355,6 +372,11 @@ const handleSaveItinerary = async () => {
     return;
   }
 
+  if (!userId) {  // Add this check
+    toast.error('Please login to save trips');
+    return;
+  }
+
   if (!loadingControl.startLoading()) {
     return;
   }
@@ -366,9 +388,11 @@ const handleSaveItinerary = async () => {
       dateRange: addedDateRange,
       interests: interestsList,
       jobId: jobId,
-      tripResult: tripResult
+      tripResult: tripResult,
+      userId: userId  // Add this line
     };
 
+    console.log('Saving trip with userId:', userId);
     console.log('Saving trip:', tripData);
     
     const response = await fetch('/api/trips/save', {
@@ -451,7 +475,7 @@ return (
       </div>
     </div>
 
-    <UserInfo />  {/* Add here */}
+    <UserInfo />  {/* Add here */}    
 
     <Card className="w-full">
       <CardHeader className="p-4 sm:p-6">

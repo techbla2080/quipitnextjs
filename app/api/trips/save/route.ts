@@ -1,20 +1,28 @@
 import { connectDB } from '@/lib/mongodb';
 import { Trip } from '@/models/Trip';
 import { NextResponse } from 'next/server';
+import { auth } from "@clerk/nextjs/server";
 
-// app/api/trips/save/route.ts
 export async function POST(request: Request) {
   try {
-    console.log('1. Starting connection attempt');
-    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI); // Will log true/false without exposing the string
+    const { userId } = auth();
     
+    if (!userId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized" 
+      }, { status: 401 });
+    }
+
+    console.log('1. Starting connection attempt');
     await connectDB();
     console.log('2. MongoDB connected successfully');
     
     const body = await request.json();
     console.log('3. Received body:', JSON.stringify(body, null, 2));
     
-    const trip = await Trip.create({  
+    const trip = await Trip.create({
+      userId,  // Add userId to the trip
       location: body.location,
       cities: body.cities,
       dateRange: body.dateRange,
@@ -23,11 +31,11 @@ export async function POST(request: Request) {
       tripResult: body.tripResult,
       createdAt: new Date()
     });
+    
     console.log('4. Trip created successfully:', trip);
-
+    
     return NextResponse.json({ success: true, trip });
   } catch (err) {
-    // Detailed error logging
     const error = err as Error;
     console.error('Detailed error:', {
       name: error.name,
@@ -35,10 +43,10 @@ export async function POST(request: Request) {
       stack: error.stack,
       mongoUriExists: !!process.env.MONGODB_URI
     });
-
+    
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error.message,
         details: error.stack
       },
@@ -46,4 +54,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

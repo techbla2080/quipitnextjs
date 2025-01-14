@@ -1,13 +1,24 @@
 import { connectDB } from '@/lib/mongodb';
 import { Trip } from '@/models/Trip';
 import { NextResponse } from 'next/server';
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET() {
   try {
-    await connectDB();
-    const trips = await Trip.find({}).sort({ createdAt: -1 });
+    const { userId } = auth();
     
-    console.log('Fetched trips count:', trips.length); // Debug log
+    if (!userId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized" 
+      }, { status: 401 });
+    }
+
+    await connectDB();
+    // Filter trips by userId
+    const trips = await Trip.find({ userId }).sort({ createdAt: -1 });
+    
+    console.log('Fetched trips count:', trips.length);
     
     return NextResponse.json({ 
       success: true, 
@@ -24,6 +35,15 @@ export async function GET() {
 
 export async function DELETE(request: Request) {
   try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized" 
+      }, { status: 401 });
+    }
+
     const { job_id } = await request.json();
     
     if (!job_id) {
@@ -34,7 +54,11 @@ export async function DELETE(request: Request) {
     }
 
     await connectDB();
-    await Trip.findOneAndDelete({ jobId: job_id });
+    // Only delete if the trip belongs to the user
+    await Trip.findOneAndDelete({ 
+      jobId: job_id,
+      userId: userId 
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

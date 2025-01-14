@@ -1,16 +1,17 @@
+// models/Trip.ts
 import mongoose from 'mongoose';
 
-// models/Trip.ts
-const TripSchema = new mongoose.Schema({
+const tripSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+    index: true
+  },
   location: String,
   cities: [String],
   dateRange: String,
   interests: [String],
-  jobId: { 
-    type: String,
-    required: true,
-    unique: true
-  },
+  jobId: String,
   tripResult: mongoose.Schema.Types.Mixed,
   createdAt: {
     type: Date,
@@ -18,4 +19,4 @@ const TripSchema = new mongoose.Schema({
   }
 });
 
-export const Trip = mongoose.models.Trip || mongoose.model('Trip', TripSchema);
+export const Trip = mongoose.models.Trip || mongoose.model('Trip', tripSchema);
