@@ -13,26 +13,29 @@ export async function POST(request: Request) {
 
     await connectDB();
     
-    // Check trip limit
+    // Add trip limit check
     const user = await User.findOne({ userId });
+    
+    // If new user, create their record
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    if (user.tripCount >= 2) {
-      return NextResponse.json({
-        success: false,
-        error: 'Free trip limit reached',
-        requiresSubscription: true
-      }, { status: 403 });
+      await User.create({ 
+        userId, 
+        tripCount: 0
+      });
+    } else {
+      // Check trip count for existing users
+      if (user.tripCount >= 2) {
+        return NextResponse.json({
+          success: false,
+          error: 'Free trip limit reached',
+          requiresSubscription: true
+        }, { status: 403 });
+      }
     }
 
     const body = await request.json();
     
-    // Save trip
+    // Your existing trip save code
     const trip = await Trip.create({
       userId,
       location: body.location,
@@ -43,7 +46,7 @@ export async function POST(request: Request) {
       tripResult: body.tripResult
     });
 
-    // Increment trip count
+    // Add this to increment trip count after successful save
     await User.findOneAndUpdate(
       { userId },
       { $inc: { tripCount: 1 } }

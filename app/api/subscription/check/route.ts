@@ -3,8 +3,6 @@ import { User } from '@/models/User';
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 
-const FREE_TRIP_LIMIT = 2;
-
 export async function GET(req: Request) {
   try {
     const { userId } = auth();
@@ -17,6 +15,7 @@ export async function GET(req: Request) {
     
     let user = await User.findOne({ userId });
     
+    // If no user found, create one
     if (!user) {
       user = await User.create({ 
         userId, 
@@ -24,14 +23,14 @@ export async function GET(req: Request) {
       });
     }
 
-    const canCreate = user.tripCount < FREE_TRIP_LIMIT;
-    const remainingTrips = FREE_TRIP_LIMIT - user.tripCount;
+    // Check if they can create more trips (limit is 2)
+    const canCreate = user.tripCount < 2;
 
     return NextResponse.json({
       success: true,
       canCreate,
-      remainingTrips,
-      tripCount: user.tripCount
+      tripCount: user.tripCount,
+      remainingTrips: 2 - user.tripCount
     });
 
   } catch (error) {
