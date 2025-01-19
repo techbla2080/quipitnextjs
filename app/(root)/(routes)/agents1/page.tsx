@@ -321,7 +321,7 @@ const handleAddInterest = () => {
 
 // Update handlePlanTrip
 const handlePlanTrip = async () => {
-  if (!userId) {  // Add this check
+  if (!userId) {
     toast.error('Please login to plan trips');
     return;
   }
@@ -337,12 +337,23 @@ const handlePlanTrip = async () => {
   }
 
   try {
+    // Add subscription check here
+    const checkResponse = await fetch(`/api/subscription/check?userId=${userId}`);
+    const checkData = await checkResponse.json();
+
+    if (!checkData.canCreate) {
+      toast.error(`You've reached your free trip limit`);
+      router.push('/settings');
+      loadingControl.stopLoading();
+      return;
+    }
+
     const tripData: TripData = {
       location: addedLocation,
       cities: citiesList.join(", "),
       date_range: addedDateRange,
       interests: interestsList.join(", "),
-      userId: userId  // Add this line
+      userId: userId
     };
 
     console.log('Planning trip with data:', tripData);
@@ -372,7 +383,7 @@ const handleSaveItinerary = async () => {
     return;
   }
 
-  if (!userId) {  // Add this check
+  if (!userId) {  
     toast.error('Please login to save trips');
     return;
   }
@@ -382,6 +393,17 @@ const handleSaveItinerary = async () => {
   }
 
   try {
+    // Add subscription check here
+    const subscriptionCheck = await fetch(`/api/subscription/check?userId=${userId}`);
+    const subscriptionData = await subscriptionCheck.json();
+    
+    if (!subscriptionData.canCreate) {
+      toast.error('Please subscribe to create more trips');
+      router.push('/settings');
+      return;
+    }
+
+    // Your existing trip data construction
     const tripData = {
       location: addedLocation,
       cities: citiesList,
@@ -389,7 +411,7 @@ const handleSaveItinerary = async () => {
       interests: interestsList,
       jobId: jobId,
       tripResult: tripResult,
-      userId: userId  // Add this line
+      userId: userId
     };
 
     console.log('Saving trip with userId:', userId);
@@ -419,7 +441,7 @@ const handleSaveItinerary = async () => {
   } finally {
     loadingControl.stopLoading();
   }
-};
+}; // Make sure this closing brace matches with the opening of the function
 
 // Second useEffect - Handles page state persistence
 useEffect(() => {

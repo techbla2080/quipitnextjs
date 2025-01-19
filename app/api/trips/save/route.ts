@@ -1,55 +1,59 @@
 import { connectDB } from '@/lib/mongodb';
 import { Trip } from '@/models/Trip';
+import { User } from '@/models/User';
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(request: Request) {
   try {
     const { userId } = auth();
-    
     if (!userId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized" 
-      }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    console.log('1. Starting connection attempt');
     await connectDB();
-    console.log('2. MongoDB connected successfully');
     
+    // Check trip limit
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (user.tripCount >= 2) {
+      return NextResponse.json({
+        success: false,
+        error: 'Free trip limit reached',
+        requiresSubscription: true
+      }, { status: 403 });
+    }
+
     const body = await request.json();
-    console.log('3. Received body:', JSON.stringify(body, null, 2));
     
+    // Save trip
     const trip = await Trip.create({
-      userId,  // Add userId to the trip
+      userId,
       location: body.location,
       cities: body.cities,
       dateRange: body.dateRange,
       interests: body.interests,
       jobId: body.jobId,
-      tripResult: body.tripResult,
-      createdAt: new Date()
+      tripResult: body.tripResult
     });
-    
-    console.log('4. Trip created successfully:', trip);
-    
+
+    // Increment trip count
+    await User.findOneAndUpdate(
+      { userId },
+      { $inc: { tripCount: 1 } }
+    );
+
     return NextResponse.json({ success: true, trip });
-  } catch (err) {
-    const error = err as Error;
-    console.error('Detailed error:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      mongoUriExists: !!process.env.MONGODB_URI
-    });
-    
+  } catch (error) {
+    console.error('Save error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-        details: error.stack
-      },
+      { success: false, error: 'Failed to save trip' },
       { status: 500 }
     );
   }
