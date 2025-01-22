@@ -19,34 +19,31 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: Request) {
-  // Add CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-
   try {
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const order = await razorpay.orders.create({
-      amount: 1,
+      amount: 99900,  // Amount in paise (₹999)
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
-      notes: { userId }
+      notes: { userId },
+      payment_capture: true
     });
 
     return NextResponse.json({
       success: true,
       key: process.env.RAZORPAY_KEY_ID,
-      amount: 1,
+      amount: 999,  // Display amount in rupees
       order_id: order.id
-    }, { headers });
+    });
 
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500, headers });
+  } catch (error: any) {
+    console.error('Create order error:', error);
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create order'
+    }, { status: 500 });
   }
 }
