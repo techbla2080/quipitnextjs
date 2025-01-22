@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     });
 
     const order = await razorpay.orders.create({
-      amount: 1,  // ₹999 in paise
+      amount: 999,  // ₹999 in paise
       currency: "INR",
       receipt: `order_rcptid_${Date.now()}`,
       payment_capture: true
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       key: process.env.RAZORPAY_KEY_ID,
-      amount: 1,
+      amount: 999,
       order_id: order.id
     });
 
