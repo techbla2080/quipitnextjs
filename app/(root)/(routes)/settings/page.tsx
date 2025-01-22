@@ -33,6 +33,7 @@ export default function SettingsPage() {
   }, [userId]);
 
   const handleSubscribe = async () => {
+    console.log("Button clicked");
     try {
       // Create Razorpay order
       const response = await fetch('/api/subscription/create-order', {
@@ -40,7 +41,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
       });
-
+      console.log("Response:", response);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
 
