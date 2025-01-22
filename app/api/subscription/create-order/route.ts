@@ -25,25 +25,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("Creating order with Razorpay keys:", {
+      keyId: process.env.RAZORPAY_KEY_ID?.slice(0,5),  // Log first 5 chars only
+    });
+
     const order = await razorpay.orders.create({
-      amount: 99900,  // Amount in paise (₹999)
+      amount: 99900,  // ₹999 in paise
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-      notes: { userId },
+      receipt: `order_rcptid_${Date.now()}`,
       payment_capture: true
     });
+
+    console.log("Order created:", order.id);
 
     return NextResponse.json({
       success: true,
       key: process.env.RAZORPAY_KEY_ID,
-      amount: 999,  // Display amount in rupees
+      amount: 999,
       order_id: order.id
     });
 
   } catch (error: any) {
-    console.error('Create order error:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to create order'
-    }, { status: 500 });
+    console.error('Full error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
