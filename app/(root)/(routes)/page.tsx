@@ -82,9 +82,9 @@ const TravelPage = () => {
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
               <ul className="space-y-2">
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Privacy Policy</a></li>
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Terms and Conditions</a></li>
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Refund Policy</a></li>
+                <li><a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Privacy Policy</a></li>
+                <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Terms and Conditions</a></li>
+                <li><a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Refund Policy</a></li>
               </ul>
             </div>
 
