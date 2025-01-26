@@ -232,27 +232,64 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       </div>
  
       <div className="border-t border-gray-100 pt-4">
-        <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
-          SAVED TRIPS
-        </h2>
-        {savedTrips.length > 0 ? (
-          savedTrips.map((trip) => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const isActive = urlParams.get('job_id') === trip.job_id;
-            return (
-              <SavedTripItem
-                key={trip._id}
-                trip={trip}
-                isActive={isActive}
-                onClick={() => navigateToTrip(trip)}
-                onDelete={handleDeleteTrip}
-              />
-            );
-          })
-        ) : (
-          <p className="px-4 text-sm text-gray-500">No saved trips</p>
-        )}
-      </div>
+  <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
+    SAVED TRIPS
+  </h2>
+  {savedTrips.length > 0 ? (
+    savedTrips.map((trip) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isActive = urlParams.get('job_id') === trip.job_id;
+      return (
+        <div
+          key={trip._id}
+          className={`
+            px-4 py-3 
+            hover:bg-blue-50/50 rounded-lg 
+            cursor-pointer group transition-all
+            ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
+          `}
+        >
+          {/* Location and Delete Button */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-semibold text-gray-800 truncate">
+              {trip.location}
+            </span>
+            <Button
+              onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+            </Button>
+          </div>
+
+          {/* Date Range and City */}
+          <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <div className="flex items-center">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span className="truncate">{trip.dateRange}</span>
+            </div>
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-2" />
+              <span className="truncate">{trip.cities[0]}</span>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              className="bg-blue-500 h-1.5 rounded-full transition-all"
+              style={{ width: isActive ? '100%' : '75%' }}
+            />
+          </div>
+        </div>
+      );
+    })
+  ) : (
+    <p className="px-4 text-sm text-gray-500">No saved trips</p>
+  )}
+</div>
     </div>
   </div>
  );
