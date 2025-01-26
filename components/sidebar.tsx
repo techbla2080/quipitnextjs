@@ -210,9 +210,9 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
  return (
-   <div className="space-y-4 flex flex-col h-full bg-white w-32 border-r">
-     <div className="p-3 flex-1 flex justify-center overflow-y-auto">
-       <div className="space-y-2 w-full">
+   <div className="space-y-4 flex flex-col h-screen bg-white w-32 border-r overflow-hidden">
+     <div className="p-3 flex-1 flex justify-center">
+       <div className="space-y-2 w-full overflow-y-auto">
          {routes.map((route) => (
            <div
              onClick={() => onNavigate(route.href, route.pro)}
