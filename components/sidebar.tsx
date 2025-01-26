@@ -211,7 +211,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
  return (
   <div className="flex flex-col h-screen bg-white w-64 border-r">
-    <div className="overflow-y-auto">
+    <div className="overflow-y-auto px-4 py-3"> {/* Add padding */}
       <div className="p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
         <div className="space-y-2">
