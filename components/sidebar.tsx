@@ -210,43 +210,45 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
 return (
-  <div className="flex flex-col h-screen bg-white w-32 border-r">
-    {routes.map((route) => (
-      <div
-        onClick={() => onNavigate(route.href, route.pro)}
-        key={route.href}
-        className={cn(
-          "flex flex-col items-center p-4 hover:bg-gray-50 transition-all duration-300",
-          pathname === route.href && "bg-gray-100"
-        )}
-      >
-        <route.icon className="h-5 w-5 text-gray-700" />
-        <span className="text-xs mt-2 font-medium text-gray-600">{route.label}</span>
-      </div>
-    ))}
+ <div className="flex flex-col h-screen bg-white w-32 border-r">
+   <div className="overflow-y-auto">
+     {routes.map((route) => (
+       <div
+         onClick={() => onNavigate(route.href, route.pro)}
+         key={route.href}
+         className={cn(
+           "flex flex-col items-center p-4 hover:bg-gray-50 transition-all duration-300",
+           pathname === route.href && "bg-gray-100"
+         )}
+       >
+         <route.icon className="h-5 w-5 text-gray-700" />
+         <span className="text-xs mt-2 font-medium text-gray-600">{route.label}</span>
+       </div>
+     ))}
 
-    <div className="border-t border-gray-100 pt-3">
-      <h2 className="px-3 py-2 text-xs font-semibold text-gray-800 tracking-wide">
-        SAVED TRIPS
-      </h2>
-      {savedTrips.length > 0 ? (
-        savedTrips.map((trip) => {
-          const urlParams = new URLSearchParams(window.location.search);
-          const isActive = urlParams.get('job_id') === trip.job_id;
-          return (
-            <SavedTripItem
-              key={trip._id}
-              trip={trip}
-              isActive={isActive}
-              onClick={() => navigateToTrip(trip)}
-              onDelete={handleDeleteTrip}
-            />
-          );
-        })
-      ) : (
-        <p className="px-3 text-xs text-gray-500">No saved trips</p>
-      )}
-    </div>
-  </div>
+     <div className="border-t border-gray-100 pt-3">
+       <h2 className="px-3 py-2 text-xs font-semibold text-gray-800 tracking-wide">
+         SAVED TRIPS
+       </h2>
+       {savedTrips.length > 0 ? (
+         savedTrips.map((trip) => {
+           const urlParams = new URLSearchParams(window.location.search);
+           const isActive = urlParams.get('job_id') === trip.job_id;
+           return (
+             <SavedTripItem
+               key={trip._id}
+               trip={trip}
+               isActive={isActive}
+               onClick={() => navigateToTrip(trip)}
+               onDelete={handleDeleteTrip}
+             />
+           );
+         })
+       ) : (
+         <p className="px-3 text-xs text-gray-500">No saved trips</p>
+       )}
+     </div>
+   </div>
+ </div>
 );
 };
