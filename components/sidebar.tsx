@@ -212,19 +212,24 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  return (
   <div className="flex flex-col h-screen bg-white w-64 border-r">
     <div className="overflow-y-auto">
-      {routes.map((route) => (
-        <div
-          onClick={() => onNavigate(route.href, route.pro)}
-          key={route.href}
-          className={cn(
-            "flex flex-col items-center p-4 hover:bg-gray-50 transition-all duration-300",
-            pathname === route.href && "bg-gray-100"
-          )}
-        >
-          <route.icon className="h-6 w-6 text-gray-700" />
-          <span className="text-sm mt-2 font-medium text-gray-600">{route.label}</span>
+      <div className="p-4">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
+        <div className="space-y-2">
+          {routes.map((route) => (
+            <div
+              onClick={() => onNavigate(route.href, route.pro)}
+              key={route.href}
+              className={cn(
+                "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
+                pathname === route.href && "bg-gray-100"
+              )}
+            >
+              <route.icon className="h-5 w-5 text-gray-700 mr-3" />
+              <span className="text-sm font-medium text-gray-600">{route.label}</span>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
  
       <div className="border-t border-gray-100 pt-4">
         <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
@@ -251,4 +256,4 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     </div>
   </div>
  );
- };
+};
