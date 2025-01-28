@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster';
 import { ProModal } from '@/components/pro-modal';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 import './globals.css'
 
@@ -29,6 +30,7 @@ export default function RootLayout({
            src="https://checkout.razorpay.com/v1/checkout.js"
            strategy="beforeInteractive"
          />
+         <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID!} />
        </head>
        <body className={cn("bg-secondary", inter.className)}>
          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
@@ -40,4 +42,4 @@ export default function RootLayout({
      </html>
    </ClerkProvider>
  )
-} 
+}
