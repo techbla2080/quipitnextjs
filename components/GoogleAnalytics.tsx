@@ -2,6 +2,14 @@
 
 import Script from 'next/script';
 
+// Add this type declaration
+declare global {
+  interface Window {
+    gtag: (command: string, ...args: any[]) => void;
+    dataLayer: any[];
+  }
+}
+
 export default function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_ID: string }) {
   return (
     <>
@@ -17,7 +25,10 @@ export default function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
+            gtag('config', '${GA_MEASUREMENT_ID}', {
+              page_path: window.location.pathname,
+              debug_mode: true
+            });
           `,
         }}
       />
