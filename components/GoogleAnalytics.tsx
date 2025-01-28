@@ -2,33 +2,22 @@
 
 import Script from 'next/script';
 
-// Add this type declaration
-declare global {
-  interface Window {
-    gtag: (command: string, ...args: any[]) => void;
-    dataLayer: any[];
-  }
-}
-
-export default function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_ID: string }) {
+export default function GoogleAnalytics() {
   return (
     <>
-      <Script
-        strategy="afterInteractive"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+      {/* Google tag (gtag.js) */}
+      <Script 
+        async 
+        src="https://www.googletagmanager.com/gtag/js?id=G-29827YJ860"
       />
       <Script
         id="google-analytics"
-        strategy="afterInteractive"
         dangerouslySetInnerHTML={{
           __html: `
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}', {
-              page_path: window.location.pathname,
-              debug_mode: true
-            });
+            gtag('config', 'G-29827YJ860');
           `,
         }}
       />

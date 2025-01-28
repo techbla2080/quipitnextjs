@@ -30,7 +30,7 @@ export default function RootLayout({
            src="https://checkout.razorpay.com/v1/checkout.js"
            strategy="beforeInteractive"
          />
-         <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID!} />
+         <GoogleAnalytics />
        </head>
        <body className={cn("bg-secondary", inter.className)}>
          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
