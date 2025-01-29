@@ -212,19 +212,20 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
  return (
   <>
-    {/* Toggle Button */}
+    {/* Desktop Menu Button (hidden on mobile) */}
     <button
-      onClick={() => setIsOpen(!isOpen)}
-      className="fixed top-4 left-4 z-50 p-2 rounded-md hover:bg-gray-100"
+      onMouseEnter={() => setIsOpen(true)}
+      className="fixed top-4 left-4 z-50 p-2 rounded-md hover:bg-gray-100 hidden md:block"
     >
       <Menu className="h-6 w-6" />
     </button>
-
+ 
     {/* Sidebar */}
     <div 
       className={`fixed top-0 left-0 h-screen bg-white border-r transform transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       } w-64 shadow-lg z-40`}
+      onMouseLeave={() => setIsOpen(false)}
     >
       <div className="overflow-y-auto h-full px-4 py-3">
         <div className="p-4">
@@ -234,7 +235,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          {/* Your existing routes section */}
+          {/* Routes section */}
           <div className="space-y-2">
             {routes.map((route) => (
               <div
@@ -254,8 +255,8 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
             ))}
           </div>
         </div>
-
-        {/* Your existing saved trips section */}
+ 
+        {/* Saved trips section */}
         <div className="border-t border-gray-100 pt-4">
           <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
             SAVED TRIPS
@@ -292,7 +293,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
-
+ 
                   {/* Date Range and City */}
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center">
@@ -304,7 +305,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       <span className="truncate">{trip.cities[0]}</span>
                     </div>
                   </div>
-
+ 
                   {/* Progress Bar */}
                   <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
                     <div
@@ -322,5 +323,5 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       </div>
     </div>
   </>
-);
+ );
 }
