@@ -211,58 +211,34 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
  return (
-  <>
-    {/* Desktop Menu Button (hidden on mobile) */}
-    <button
-      onMouseEnter={() => setIsOpen(true)}
-      className="fixed top-4 left-4 z-50 p-2 rounded-md hover:bg-gray-100 hidden md:block"
-    >
-      <Menu className="h-6 w-6" />
-    </button>
- 
-    {/* Sidebar */}
-    <div 
-      className={`fixed top-0 left-0 h-screen bg-white border-r transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } w-64 shadow-lg z-40`}
-      onMouseLeave={() => setIsOpen(false)}
-    >
-      <div className="overflow-y-auto h-full px-4 py-3">
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Start New Chat</h2>
-            <button onClick={() => setIsOpen(false)}>
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          {/* Routes section */}
-          <div className="space-y-2">
-            {routes.map((route) => (
-              <div
-                onClick={() => {
-                  onNavigate(route.href, route.pro);
-                  setIsOpen(false);
-                }}
-                key={route.href}
-                className={cn(
-                  "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
-                  pathname === route.href && "bg-gray-100"
-                )}
-              >
-                <route.icon className="h-5 w-5 text-gray-700 mr-3" />
-                <span className="text-sm font-medium text-gray-600">{route.label}</span>
-              </div>
-            ))}
-          </div>
+  <div className="flex flex-col h-screen bg-white w-64 border-r fixed left-0 top-0">
+    <div className="overflow-y-auto flex-1 px-4 py-3">
+      <div className="p-4">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
+        <div className="space-y-2">
+          {routes.map((route) => (
+            <div
+              onClick={() => onNavigate(route.href, route.pro)}
+              key={route.href}
+              className={cn(
+                "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
+                pathname === route.href && "bg-gray-100"
+              )}
+            >
+              <route.icon className="h-5 w-5 text-gray-700 mr-3" />
+              <span className="text-sm font-medium text-gray-600">{route.label}</span>
+            </div>
+          ))}
         </div>
- 
-        {/* Saved trips section */}
-        <div className="border-t border-gray-100 pt-4">
-          <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
-            SAVED TRIPS
-          </h2>
-          {savedTrips.length > 0 ? (
-            savedTrips.map((trip) => {
+      </div>
+
+      <div className="border-t border-gray-100 pt-4 mt-4">
+        <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
+          SAVED TRIPS
+        </h2>
+        {savedTrips.length > 0 ? (
+          <div className="space-y-2">
+            {savedTrips.map((trip) => {
               const urlParams = new URLSearchParams(window.location.search);
               const isActive = urlParams.get('job_id') === trip.job_id;
               return (
@@ -274,12 +250,9 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                     cursor-pointer group transition-all
                     ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
                   `}
-                  onClick={() => {
-                    navigateToTrip(trip);
-                    setIsOpen(false);
-                  }}
+                  onClick={() => navigateToTrip(trip)}
                 >
-                  {/* Location and Delete Button */}
+                  {/* Rest of your trip card content */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-semibold text-gray-800 truncate">
                       {trip.location}
@@ -293,8 +266,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
                     </Button>
                   </div>
- 
-                  {/* Date Range and City */}
+
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2" />
@@ -305,8 +277,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       <span className="truncate">{trip.cities[0]}</span>
                     </div>
                   </div>
- 
-                  {/* Progress Bar */}
+
                   <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
                     <div
                       className="bg-blue-500 h-1.5 rounded-full transition-all"
@@ -315,13 +286,13 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   </div>
                 </div>
               );
-            })
-          ) : (
-            <p className="px-4 text-sm text-gray-500">No saved trips</p>
-          )}
-        </div>
+            })}
+          </div>
+        ) : (
+          <p className="px-4 text-sm text-gray-500">No saved trips</p>
+        )}
       </div>
     </div>
-  </>
- );
+  </div>
+);
 }
