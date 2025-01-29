@@ -211,7 +211,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
  return (
-  <div className="flex flex-col h-screen bg-white w-64 border-r fixed left-0 top-0">
+  <div className="fixed top-0 left-0 h-screen bg-white w-64 border-r z-40">
     <div className="overflow-y-auto flex-1 px-4 py-3">
       <div className="p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
