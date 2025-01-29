@@ -34,14 +34,9 @@ export default function RootLayout({
        </head>
        <body className={cn("bg-secondary", inter.className)}>
          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-           <div className="flex">
-             {/* Main content with margin-left */}
-             <main className="flex-1 ml-64">
-               <ProModal />
-               {children}
-               <Toaster />
-             </main>
-           </div>
+           <ProModal />
+           {children}
+           <Toaster />
          </ThemeProvider>
        </body>
      </html>
