@@ -17,7 +17,7 @@ export default function RefundPolicy() {
    
           <section>
             <h2 className="text-xl font-semibold mb-4">Non-Refundable Items</h2>
-            <p className="text-gray-600">Nulla facilisi. Donec euismod, nisl eget ultricies ultrices, nunc elit ultricies nunc.</p>
+            <p className="text-gray-600">Nulla facilisi.oorreeebabab Donec euismod, nisl eget ultricies ultrices, nunc elit ultricies nunc.</p>
           </section>
         </div>
       </div>

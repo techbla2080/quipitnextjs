@@ -14,6 +14,7 @@ import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
 import UserInfo from "@/components/UserInfo";  // Add this import
 import { useAuth } from "@clerk/nextjs";
+//ok got it
 
 // Updated TripData type
 export type TripData = {  
@@ -319,7 +320,6 @@ const handleAddInterest = () => {
   }
 };
 
-// Update handlePlanTrip
 const handlePlanTrip = async () => {
   if (!userId) {
     toast.error('Please login to plan trips');
@@ -337,12 +337,13 @@ const handlePlanTrip = async () => {
   }
 
   try {
-    // Add subscription check here
+    // Check trip count
     const checkResponse = await fetch(`/api/subscription/check?userId=${userId}`);
     const checkData = await checkResponse.json();
 
+    // If user has made 2 or more trips, redirect to settings
     if (!checkData.canCreate) {
-      toast.error(`You've reached your free trip limit`);
+      toast.error('You have used your free trips. Please subscribe to continue.');
       router.push('/settings');
       loadingControl.stopLoading();
       return;
@@ -360,7 +361,7 @@ const handlePlanTrip = async () => {
     const result = await planTrip(tripData);
 
     if (result) {
-      setTripResult(result.result);  // Direct set instead of through restoreTripStates
+      setTripResult(result.result);
       setJobId(result.job_id);
       console.log('Trip planned successfully');
       console.log('Full result object:', result);
