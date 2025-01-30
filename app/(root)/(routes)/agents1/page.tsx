@@ -14,7 +14,7 @@ import ReactMarkdown from "react-markdown";
 import { useRouter } from "next/navigation";
 import UserInfo from "@/components/UserInfo";  // Add this import
 import { useAuth } from "@clerk/nextjs";
-//ok got it
+import DebugButton from '@/components/DebugButton';
 
 // Updated TripData type
 export type TripData = {  
@@ -503,6 +503,7 @@ return (
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0">Trip Planner</h1>
       <div className="flex gap-2">
+        <DebugButton />
       </div>
     </div>
 
