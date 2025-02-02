@@ -13,45 +13,47 @@ export async function POST(request: Request) {
 
     await connectDB();
     
-    // Start a session for transaction
     const session = await User.startSession();
     session.startTransaction();
 
     try {
-      // Get user with session
-      let user = await User.findOne({ userId }).session(session);
+      // Find or create user document with strict userId matching
+      let user = await User.findOne({ userId: userId }).session(session);
       
       if (!user) {
         user = await User.create([{ 
-          userId, 
+          userId: userId, 
           tripCount: 0
         }], { session });
-        user = user[0]; // Create returns an array
+        user = user[0];
       }
 
-      // Verify trip count
-      const existingTrips = await Trip.countDocuments({ userId }).session(session);
+      // Count only THIS user's trips
+      const existingTrips = await Trip.countDocuments({ userId: userId }).session(session);
+      
+      console.log(`User ${userId} has ${existingTrips} existing trips`);
+      
       if (existingTrips !== user.tripCount) {
-        // Fix the count if it's wrong
         user.tripCount = existingTrips;
         await user.save({ session });
+        console.log(`Fixed trip count for user ${userId} to ${existingTrips}`);
       }
 
-      // Check if under limit
       if (user.tripCount >= 2) {
         await session.abortTransaction();
         return NextResponse.json({
           success: false,
           error: 'Free trip limit reached',
-          requiresSubscription: true
+          requiresSubscription: true,
+          userTrips: user.tripCount
         }, { status: 403 });
       }
 
       const body = await request.json();
     
-      // Save trip within transaction
+      // Save trip with explicit userId
       const trip = await Trip.create([{
-        userId,
+        userId: userId,  // Explicit userId assignment
         location: body.location,
         cities: body.cities,
         dateRange: body.dateRange,
@@ -60,24 +62,24 @@ export async function POST(request: Request) {
         tripResult: body.tripResult
       }], { session });
 
-      // Update trip count atomically
-      await User.findOneAndUpdate(
-        { userId },
+      // Update count only for this specific user
+      user = await User.findOneAndUpdate(
+        { userId: userId },  // Explicit userId match
         { $inc: { tripCount: 1 } },
         { session, new: true }
       );
 
-      // Commit the transaction
       await session.commitTransaction();
+      
+      console.log(`Successfully saved trip for user ${userId}. New trip count: ${user.tripCount}`);
 
       return NextResponse.json({ 
         success: true, 
         trip: trip[0],
-        newTripCount: user.tripCount + 1
+        userTrips: user.tripCount
       });
 
     } catch (error) {
-      // If anything fails, roll back all changes
       await session.abortTransaction();
       throw error;
     } finally {
