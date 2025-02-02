@@ -337,23 +337,18 @@ const handlePlanTrip = async () => {
   }
 
   try {
-    // Add subscription check here
+    // Check trip count
     const checkResponse = await fetch(`/api/subscription/check?userId=${userId}`);
     const checkData = await checkResponse.json();
 
-    // Only redirect if the response explicitly says the user cannot create AND specifies they need to subscribe
-    if (!checkData.canCreate && checkData.requiresSubscription) {
-      toast.error('Please subscribe to create more trips');
-      router.push('/settings');
-      loadingControl.stopLoading();
-      return;
-    }
-
-    // If the user just can't create more trips but doesn't need to subscribe,
-    // show the limit message but don't redirect
+    // If user has reached limit, show toast and redirect to settings
     if (!checkData.canCreate) {
-      toast.error(`You've reached your free trip limit`);
+      toast.error("You've reached your free trip limit");
       loadingControl.stopLoading();
+      // Add slight delay before redirect to ensure toast is visible
+      setTimeout(() => {
+        router.push('/settings');
+      }, 1500);
       return;
     }
 
@@ -372,8 +367,6 @@ const handlePlanTrip = async () => {
       setTripResult(result.result);
       setJobId(result.job_id);
       console.log('Trip planned successfully');
-      console.log('Full result object:', result);
-      console.log('Job ID:', result.job_id);
     } else {
       toast.error("Failed to plan trip.");
     }
