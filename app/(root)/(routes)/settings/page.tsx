@@ -48,7 +48,7 @@ export default function SettingsPage() {
       // Initialize Razorpay
       const options = {
         key: data.key,
-        amount: data.amount * 100, // amount in paise
+        amount: data.amount * 100,
         currency: "INR",
         name: "Trip Planner Pro",
         description: "Subscription Payment",
@@ -70,12 +70,27 @@ export default function SettingsPage() {
             const verifyData = await verifyResponse.json();
 
             if (verifyData.success) {
+              // Update subscription status
+              const updateResponse = await fetch('/api/subscription/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  status: 'pro',
+                  userId 
+                })
+              });
+
+              if (!updateResponse.ok) {
+                throw new Error('Failed to update subscription status');
+              }
+
               toast.success('Successfully subscribed!');
               setSubscriptionStatus(prev => ({ ...prev, isSubscribed: true }));
             } else {
               throw new Error('Payment verification failed');
             }
           } catch (error) {
+            console.error('Verification error:', error);
             toast.error('Payment verification failed');
           }
         },
