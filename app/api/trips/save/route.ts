@@ -23,12 +23,33 @@ export async function POST(request: Request) {
       if (!user) {
         user = await User.create([{ 
           userId: userId, 
-          tripCount: 0
+          tripCount: 0,
+          subscriptionStatus: 'free'
         }], { session });
         user = user[0];
       }
 
-      // Count only THIS user's trips
+      // Check if user is pro
+      if (user.subscriptionStatus === 'pro') {
+        const body = await request.json();
+        const trip = await Trip.create([{
+          userId: userId,
+          location: body.location,
+          cities: body.cities,
+          dateRange: body.dateRange,
+          interests: body.interests,
+          jobId: body.jobId,
+          tripResult: body.tripResult
+        }], { session });
+
+        await session.commitTransaction();
+        return NextResponse.json({ 
+          success: true, 
+          trip: trip[0]
+        });
+      }
+
+      // For free users, continue with trip count check
       const existingTrips = await Trip.countDocuments({ userId: userId }).session(session);
       
       console.log(`User ${userId} has ${existingTrips} existing trips`);
@@ -53,7 +74,7 @@ export async function POST(request: Request) {
     
       // Save trip with explicit userId
       const trip = await Trip.create([{
-        userId: userId,  // Explicit userId assignment
+        userId: userId,
         location: body.location,
         cities: body.cities,
         dateRange: body.dateRange,
@@ -64,7 +85,7 @@ export async function POST(request: Request) {
 
       // Update count only for this specific user
       user = await User.findOneAndUpdate(
-        { userId: userId },  // Explicit userId match
+        { userId: userId },
         { $inc: { tripCount: 1 } },
         { session, new: true }
       );
