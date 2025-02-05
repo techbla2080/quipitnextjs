@@ -136,7 +136,7 @@ export default function SettingsPage() {
               </p>
               <div className="mt-4 p-4 border rounded-lg">
                 <h3 className="text-xl font-bold mb-2">Pro Subscription</h3>
-                <p className="text-2xl font-bold text-cyan-600">₹999/month</p>
+                <p className="text-2xl font-bold text-cyan-600">$9.99/month</p>
                 <ul className="mt-4 space-y-2">
                   <li>✓ Unlimited trips</li>
                   <li>✓ Premium features</li>

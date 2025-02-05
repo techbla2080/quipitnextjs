@@ -1,4 +1,3 @@
-// app/api/subscription/create-order/route.ts
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 import Razorpay from 'razorpay';
@@ -26,11 +25,16 @@ export async function POST(req: Request) {
     }
 
     console.log("Creating order with Razorpay keys:", {
-      keyId: process.env.RAZORPAY_KEY_ID?.slice(0,5),  // Log first 5 chars only
+      keyId: process.env.RAZORPAY_KEY_ID?.slice(0,5),
     });
 
+    // Calculate amount in INR (1 USD = 83 INR approximately)
+    const amountInUSD = 9.99;
+    const conversionRate = 86;
+    const amountInINR = Math.round(amountInUSD * conversionRate * 100);  // Convert to paise
+
     const order = await razorpay.orders.create({
-      amount: 999,  // ₹999 in paise
+      amount: amountInINR,  // Amount in paise
       currency: "INR",
       receipt: `order_rcptid_${Date.now()}`,
       payment_capture: true
@@ -41,7 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       key: process.env.RAZORPAY_KEY_ID,
-      amount: 999,
+      amount: amountInUSD,
       order_id: order.id
     });
 
