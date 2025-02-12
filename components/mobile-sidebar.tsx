@@ -12,8 +12,11 @@ export const MobileSidebar = ({
       <SheetTrigger className="md:hidden pr-4">
         <Menu />
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-screen max-w-[300px] overflow-y-auto">
-        <div className="h-full">
+      <SheetContent 
+        side="left" 
+        className="p-0 w-[280px] overflow-y-auto overflow-x-hidden" // Fixed width and hide horizontal scroll
+      >
+        <div className="flex flex-col h-full w-full">
           <Sidebar isPro={isPro} />
         </div>
       </SheetContent>
