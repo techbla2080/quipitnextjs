@@ -1,8 +1,9 @@
-import { connectDB } from '@/lib/mongodb';
-import { User } from '@/models/User';
 import { NextResponse } from 'next/server';
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import crypto from 'crypto';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -11,10 +12,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
-      razorpay_signature 
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
     } = await req.json();
 
     // Verify payment signature
@@ -25,25 +26,28 @@ export async function POST(req: Request) {
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid payment signature' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Invalid payment signature' }, { status: 400 });
     }
 
-    await connectDB();
+    // Send confirmation email
+    const clerkUser = await clerkClient.users.getUser(userId);
+    const userEmail = clerkUser.emailAddresses[0].emailAddress;
 
-    // Update user's subscription status
-    await User.findOneAndUpdate(
-      { userId },
-      { 
-        $set: { 
-          isSubscribed: true,
-          tripCount: 0  // Reset trip count when they subscribe
-        }
-      },
-      { upsert: true }
-    );
+    if (userEmail) {
+      await resend.emails.send({
+        from: 'Quipit <notifications@your-domain.com>',
+        to: [userEmail],
+        subject: 'Welcome to Quipit Pro!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1>Welcome to Quipit Pro!</h1>
+            <p>Your subscription has been successfully activated.</p>
+            <p>You now have access to unlimited trip planning.</p>
+            <p>Happy traveling!</p>
+          </div>
+        `
+      });
+    }
 
     return NextResponse.json({
       success: true,
@@ -52,11 +56,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Payment verification error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Payment verification failed' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Payment verification failed' }, { status: 500 });
   }
 }
-
-//
