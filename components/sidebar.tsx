@@ -211,7 +211,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
  return (
-  <div className="fixed top-0 left-0 h-screen bg-white w-64 border-r z-40">
+  <div className="fixed top-0 left-0 h-screen bg-white w-64 border-r z-40 overflow-x-hidden">
     <div className="overflow-y-auto flex-1 px-4 py-3">
       <div className="p-4">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
@@ -238,56 +238,55 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
         </h2>
         {savedTrips.length > 0 ? (
           <div className="space-y-2">
-            {savedTrips.map((trip) => {
-              const urlParams = new URLSearchParams(window.location.search);
-              const isActive = urlParams.get('job_id') === trip.job_id;
-              return (
-                <div
-                  key={trip._id}
-                  className={`
-                    px-4 py-3 
-                    hover:bg-blue-50/50 rounded-lg 
-                    cursor-pointer group transition-all
-                    ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
-                  `}
-                  onClick={() => navigateToTrip(trip)}
-                >
-                  {/* Rest of your trip card content */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-gray-800 truncate">
-                      {trip.location}
-                    </span>
-                    <Button
-                      onClick={(e) => handleDeleteTrip(e, trip.job_id)}
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-all"
-                    >
-                      <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                    </Button>
-                  </div>
+  {savedTrips.map((trip) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isActive = urlParams.get('job_id') === trip.job_id;
+    return (
+      <div
+        key={trip._id}
+        className={`
+          px-2 py-3 w-full
+          hover:bg-blue-50/50 rounded-lg 
+          cursor-pointer group transition-all
+          ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
+        `}
+        onClick={() => navigateToTrip(trip)}
+      >
+        <div className="flex items-center justify-between mb-2 w-full">
+          <span className="font-semibold text-gray-800 truncate max-w-[160px]">
+            {trip.location}
+          </span>
+          <Button
+            onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
+          >
+            <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+          </Button>
+        </div>
 
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span className="truncate">{trip.dateRange}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      <span className="truncate">{trip.cities[0]}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
-                    <div
-                      className="bg-blue-500 h-1.5 rounded-full transition-all"
-                      style={{ width: isActive ? '100%' : '75%' }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+        <div className="flex flex-col space-y-2 text-sm text-gray-600">
+          <div className="flex items-center">
+            <Calendar className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">{trip.dateRange}</span>
           </div>
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">{trip.cities[0]}</span>
+          </div>
+        </div>
+
+        <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+          <div
+            className="bg-blue-500 h-1.5 rounded-full transition-all"
+            style={{ width: isActive ? '100%' : '75%' }}
+          />
+        </div>
+      </div>
+    );
+  })}
+</div>
         ) : (
           <p className="px-4 text-sm text-gray-500">No saved trips</p>
         )}
