@@ -90,7 +90,7 @@ const TravelPage = () => {
 
             <div>
               <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
-              <p className="mb-2"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">1800 1238 1238</a></p>
+              <p className="mb-2"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">+919830016577</a></p>
               <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
               <h3 className="font-bold text-lg text-white mb-2">Write to us at:</h3>
               <p className="mb-1"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">customercare@quipit.com</a></p>
