@@ -84,7 +84,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
 );
 
 export const Sidebar = ({ isPro }: SidebarProps) => {
- const [isNavigating, setIsNavigating] = useState(false);  // Add this state at the top with other states
+ const [isNavigating, setIsNavigating] = useState(false);
  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
  const proModal = useProModal();
  const router = useRouter();
@@ -105,15 +105,15 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     setIsNavigating(true);
     console.log('Starting navigation to:', trip.job_id);
     
-    // First update URL
     const url = `/agents1?job_id=${trip.job_id}`;
     window.history.pushState({}, '', url);
     
-    // Then force a page reload
+    // Small delay to show loading
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     window.location.reload();
   } catch (error) {
     console.error('Navigation error:', error);
-  } finally {
     setIsNavigating(false);
   }
 };
@@ -226,87 +226,100 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  ];
 
  return (
-  <div className="fixed top-0 left-0 h-screen bg-white w-64 border-r z-40 overflow-x-hidden">
-    <div className="overflow-y-auto flex-1 px-4 py-3">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
-        <div className="space-y-2">
-          {routes.map((route) => (
-            <div
-              onClick={() => onNavigate(route.href, route.pro)}
-              key={route.href}
-              className={cn(
-                "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
-                pathname === route.href && "bg-gray-100"
-              )}
-            >
-              <route.icon className="h-5 w-5 text-gray-700 mr-3" />
-              <span className="text-sm font-medium text-gray-600">{route.label}</span>
-            </div>
-          ))}
+   <div>
+    {/* Loading Overlay */}
+    {isNavigating && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div className="bg-white p-6 rounded-lg shadow-lg flex items-center space-x-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+          <p className="text-lg">Loading your trip...</p>
         </div>
       </div>
+    )}
 
-      <div className="border-t border-gray-100 pt-4 mt-4">
-        <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
-          SAVED TRIPS
-        </h2>
-        {savedTrips.length > 0 ? (
+    {/* Main Sidebar */}
+    <div className="fixed top-0 left-0 h-screen bg-white w-64 border-r z-40 overflow-x-hidden">
+      <div className="overflow-y-auto flex-1 px-4 py-3">
+        <div className="p-4">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Start New Chat</h2>
           <div className="space-y-2">
-  {savedTrips.map((trip) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isActive = urlParams.get('job_id') === trip.job_id;
-    return (
-      <div
-        key={trip._id}
-        className={`
-          px-2 py-3 w-full
-          hover:bg-blue-50/50 rounded-lg 
-          cursor-pointer group transition-all
-          ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
-        `}
-        onClick={() => navigateToTrip(trip)}
-      >
-        <div className="flex items-center justify-between mb-2 w-full">
-          <span className="font-semibold text-gray-800 truncate max-w-[160px]">
-            {trip.location}
-          </span>
-          <Button
-            onClick={(e) => handleDeleteTrip(e, trip.job_id)}
-            variant="ghost"
-            size="icon"
-            className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
-          >
-            <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
-          </Button>
-        </div>
-
-        <div className="flex flex-col space-y-2 text-sm text-gray-600">
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">{trip.dateRange}</span>
-          </div>
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-2 shrink-0" />
-            <span className="truncate">{trip.cities[0]}</span>
+            {routes.map((route) => (
+              <div
+                onClick={() => onNavigate(route.href, route.pro)}
+                key={route.href}
+                className={cn(
+                  "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
+                  pathname === route.href && "bg-gray-100"
+                )}
+              >
+                <route.icon className="h-5 w-5 text-gray-700 mr-3" />
+                <span className="text-sm font-medium text-gray-600">{route.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
-          <div
-            className="bg-blue-500 h-1.5 rounded-full transition-all"
-            style={{ width: isActive ? '100%' : '75%' }}
-          />
+        <div className="border-t border-gray-100 pt-4 mt-4">
+          <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
+            SAVED TRIPS
+          </h2>
+          {savedTrips.length > 0 ? (
+            <div className="space-y-2">
+              {savedTrips.map((trip) => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const isActive = urlParams.get('job_id') === trip.job_id;
+                return (
+                  <div
+                    key={trip._id}
+                    className={`
+                      px-2 py-3 w-full
+                      hover:bg-blue-50/50 rounded-lg 
+                      cursor-pointer group transition-all
+                      ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
+                    `}
+                    onClick={() => navigateToTrip(trip)}
+                  >
+                    <div className="flex items-center justify-between mb-2 w-full">
+                      <span className="font-semibold text-gray-800 truncate max-w-[160px]">
+                        {trip.location}
+                      </span>
+                      <Button
+                        onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                      >
+                        <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col space-y-2 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 shrink-0" />
+                        <span className="truncate">{trip.dateRange}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                        <span className="truncate">{trip.cities[0]}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-blue-500 h-1.5 rounded-full transition-all"
+                        style={{ width: isActive ? '100%' : '75%' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="px-4 text-sm text-gray-500">No saved trips</p>
+          )}
         </div>
-      </div>
-    );
-  })}
-</div>
-        ) : (
-          <p className="px-4 text-sm text-gray-500">No saved trips</p>
-        )}
       </div>
     </div>
-  </div>
-);
-}
+   </div>
+ );
+};
