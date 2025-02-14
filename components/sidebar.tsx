@@ -84,6 +84,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
 );
 
 export const Sidebar = ({ isPro }: SidebarProps) => {
+ const [isNavigating, setIsNavigating] = useState(false);  // Add this state at the top with other states
  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
  const proModal = useProModal();
  const router = useRouter();
@@ -98,10 +99,18 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  };
 
  const navigateToTrip = async (trip: SavedTrip) => {
-   console.log('Navigating to trip:', trip.job_id);
-   await router.replace('/agents1');
-   router.push(`/agents1?job_id=${trip.job_id}`);
- };
+  if (isNavigating) return;  // Prevent multiple clicks
+  
+  try {
+    setIsNavigating(true);
+    console.log('Navigating to trip:', trip.job_id);
+    await router.push(`/agents1?job_id=${trip.job_id}`);
+  } catch (error) {
+    console.error('Navigation error:', error);
+  } finally {
+    setIsNavigating(false);
+  }
+};
 
  const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
    e.stopPropagation();
