@@ -99,12 +99,18 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
  };
 
  const navigateToTrip = async (trip: SavedTrip) => {
-  if (isNavigating) return;  // Prevent multiple clicks
+  if (isNavigating) return;
   
   try {
     setIsNavigating(true);
-    console.log('Navigating to trip:', trip.job_id);
-    await router.push(`/agents1?job_id=${trip.job_id}`);
+    console.log('Starting navigation to:', trip.job_id);
+    
+    // First update URL
+    const url = `/agents1?job_id=${trip.job_id}`;
+    window.history.pushState({}, '', url);
+    
+    // Then force a page reload
+    window.location.reload();
   } catch (error) {
     console.error('Navigation error:', error);
   } finally {
