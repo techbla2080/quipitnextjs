@@ -15,6 +15,9 @@ import { useRouter } from "next/navigation";
 import UserInfo from "@/components/UserInfo";  // Add this import
 import { useAuth } from "@clerk/nextjs";
 import DebugButton from '@/components/DebugButton';
+import ReactConfetti from 'react-confetti';
+import { useWindowSize } from 'react-use';
+
 
 // Updated TripData type
 export type TripData = {  
@@ -58,6 +61,8 @@ export default function TripPlanner() {
   const [interestsList, setInterestsList] = useState<string[]>([]);
   const [addedLocation, setAddedLocation] = useState<string>("");
   const [jobId, setJobId] = useState<string>("");
+  const [showCelebration, setShowCelebration] = useState(false);
+  const { width, height } = useWindowSize();
   
   // UI states
   const [isLoading, setIsLoading] = useState(false);
@@ -366,6 +371,8 @@ const handlePlanTrip = async () => {
     if (result) {
       setTripResult(result.result);
       setJobId(result.job_id);
+      setShowCelebration(true);  // Start celebration
+      setTimeout(() => setShowCelebration(false), 3000);  // End after 5 seconds
       console.log('Trip planned successfully');
     } else {
       toast.error("Failed to plan trip.");
@@ -493,6 +500,24 @@ return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 
 return (
   <div className="container mx-auto px-4 max-w-full sm:max-w-3xl overflow-x-hidden">
+        {/* Add celebration overlay here */}
+        {showCelebration && (
+      <>
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={500} />
+        </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl transform scale-100 animate-bounce">
+            <h2 className="text-4xl font-bold text-center text-cyan-600 mb-4">
+              🎉 Your Trip is Ready! 🎉
+            </h2>
+            <p className="text-xl text-gray-700 text-center">
+              Get ready for an amazing adventure!
+            </p>
+          </div>
+        </div>
+      </>
+    )}
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
       <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0">Trip Planner</h1>
       <div className="flex gap-2">
