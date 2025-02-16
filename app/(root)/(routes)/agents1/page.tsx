@@ -401,12 +401,16 @@ const handleSaveItinerary = async () => {
     return;
   }
 
+  // Show loading toast when saving starts
+  const loadingToast = toast.loading('Saving your trip...');
+
   try {
     // Add subscription check here
     const subscriptionCheck = await fetch(`/api/subscription/check?userId=${userId}`);
     const subscriptionData = await subscriptionCheck.json();
     
     if (!subscriptionData.canCreate) {
+      toast.dismiss(loadingToast);
       toast.error('Please subscribe to create more trips');
       router.push('/settings');
       return;
