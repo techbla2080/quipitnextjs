@@ -67,11 +67,11 @@ const TravelPage = () => {
 
       {/* Footer */}
 {/* Footer */}
-<footer className="bg-gray-900 py-12 text-gray-300 mt-12 w-full">
-  <div className="container mx-auto px-4">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {/* Follow Us Column - Added visibility classes */}
-      <div className="block md:block"> {/* This ensures visibility in both mobile and desktop */}
+<footer className="bg-gray-900 py-12 text-gray-300 mt-12">
+  <div className="w-full max-w-screen-xl mx-auto px-4"> {/* Changed container class */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full"> {/* Added w-full */}
+      {/* Follow Us Column */}
+      <div className="w-full"> {/* Added w-full */}
         <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
         <ul className="space-y-2">
           <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Facebook</a></li>
@@ -81,8 +81,8 @@ const TravelPage = () => {
         </ul>
       </div>
 
-      {/* Rest of your footer stays the same */}
-      <div>
+      {/* Rest of your footer content */}
+      <div className="w-full">
         <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
         <ul className="space-y-2">
           <li><a href="/privacy-policy" className="hover:text-blue-400">Privacy Policy</a></li>
@@ -91,7 +91,7 @@ const TravelPage = () => {
         </ul>
       </div>
 
-      <div>
+      <div className="w-full">
         <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
         <p className="mb-2">+919830016577</p>
         <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
