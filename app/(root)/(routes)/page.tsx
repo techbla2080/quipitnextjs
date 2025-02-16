@@ -66,40 +66,43 @@ const TravelPage = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 py-12 text-gray-300 mt-auto">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
-              <ul className="space-y-2">
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Facebook</a></li>
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Instagram</a></li>
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Twitter</a></li>
-                <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Youtube</a></li>
-              </ul>
-            </div>
+{/* Footer */}
+<footer className="bg-gray-900 py-12 text-gray-300 mt-12 w-full">
+  <div className="container mx-auto px-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Follow Us Column - Added visibility classes */}
+      <div className="block md:block"> {/* This ensures visibility in both mobile and desktop */}
+        <h3 className="font-bold text-lg text-white mb-4">Follow Us</h3>
+        <ul className="space-y-2">
+          <li><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Facebook</a></li>
+          <li><a href="https://www.instagram.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Instagram</a></li>
+          <li><a href="https://www.twitter.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Twitter</a></li>
+          <li><a href="https://www.youtube.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Youtube</a></li>
+        </ul>
+      </div>
 
-            <div>
-              <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
-              <ul className="space-y-2">
-                <li><a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Privacy Policy</a></li>
-                <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Terms and Conditions</a></li>
-                <li><a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">Refund Policy</a></li>
-              </ul>
-            </div>
+      {/* Rest of your footer stays the same */}
+      <div>
+        <h3 className="font-bold text-lg text-white mb-4">Legal</h3>
+        <ul className="space-y-2">
+          <li><a href="/privacy-policy" className="hover:text-blue-400">Privacy Policy</a></li>
+          <li><a href="/terms" className="hover:text-blue-400">Terms and Conditions</a></li>
+          <li><a href="/refund-policy" className="hover:text-blue-400">Refund Policy</a></li>
+        </ul>
+      </div>
 
-            <div>
-              <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
-              <p className="mb-2"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">+919830016577</a></p>
-              <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
-              <h3 className="font-bold text-lg text-white mb-2">Write to us at:</h3>
-              <p className="mb-1"><a href="https://www.facebook.com/Ai.Quipit" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">customercare@quipit.com</a></p>
-              <p className="mb-1">95A Park Street, Kolkata</p>
-              <p>Kolkata 700016</p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <div>
+        <h3 className="font-bold text-lg text-white mb-4">Call Us</h3>
+        <p className="mb-2">+919830016577</p>
+        <p className="mb-4">Mon-Sat (9.30AM-6.30PM)</p>
+        <h3 className="font-bold text-lg text-white mb-2">Write to us at:</h3>
+        <p className="mb-1">customercare@quipit.com</p>
+        <p className="mb-1">95A Park Street, Kolkata</p>
+        <p>Kolkata 700016</p>
+      </div>
+    </div>
+  </div>
+</footer>
     </div>
   );
 };
