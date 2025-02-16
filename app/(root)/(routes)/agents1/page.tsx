@@ -410,7 +410,7 @@ const handleSaveItinerary = async () => {
     const subscriptionData = await subscriptionCheck.json();
     
     if (!subscriptionData.canCreate) {
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToast); // Dismiss loading toast
       toast.error('Please subscribe to create more trips');
       router.push('/settings');
       return;
@@ -427,9 +427,6 @@ const handleSaveItinerary = async () => {
       userId: userId
     };
 
-    console.log('Saving trip with userId:', userId);
-    console.log('Saving trip:', tripData);
-    
     const response = await fetch('/api/trips/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -442,6 +439,8 @@ const handleSaveItinerary = async () => {
       throw new Error(data.error || 'Failed to save trip');
     }
 
+    // Dismiss loading toast before showing success
+    toast.dismiss(loadingToast);
     toast.success('Trip saved successfully!');
     loadingControl.setLastLoadedId(jobId);
 
@@ -450,11 +449,13 @@ const handleSaveItinerary = async () => {
 
   } catch (error) {
     console.error('Save error:', error);
+    // Dismiss loading toast before showing error
+    toast.dismiss(loadingToast);
     toast.error('Failed to save trip');
   } finally {
     loadingControl.stopLoading();
   }
-}; // Make sure this closing brace matches with the opening of the function
+};
 
 // Second useEffect - Handles page state persistence
 useEffect(() => {
