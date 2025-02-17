@@ -700,7 +700,7 @@ return (
   `}</style>
 
   {/* Itinerary Display Section */}
-  <div className="mt-8 p-6 bg-white rounded-lg shadow-lg">
+  <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
 {/* Header with Logo */}
 <div className="text-center mb-8">
   <div className="mb-4">
@@ -710,8 +710,8 @@ return (
       </svg>
     </div>
   </div>
-  <h2 className="text-3xl font-bold">
-    <span className="text-black">TRAVELOGUE</span>
+  <h2 className="mt-4 text-gray-600 dark:text-gray-300">
+    <span className="text-black dark:text-white">TRAVELOGUE</span>
     <span className="text-cyan-500"> ITINERARY</span>
   </h2>
   <div className="mt-4 text-gray-600">
@@ -750,9 +750,9 @@ return (
       };
       
       return intro ? (
-        <div className="mb-8 bg-cyan-50 p-6 rounded-lg">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4">Trip Overview</h3>
-          <div className="space-y-2">
+        <div className="mb-8 bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trip Overview</h3>
+          <div className="space-y-2 text-gray-700 dark:text-gray-300">
             {createBullets(intro)}
           </div>
         </div>
@@ -817,13 +817,13 @@ return (
 
           return (
             <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-cyan-50 p-6 rounded-lg flex flex-col items-center justify-center">
-                <h3 className="text-2xl font-bold text-gray-800">DAY {index + 1}</h3>
-                <p className="text-sm text-gray-600 mt-2">{getDayDate(index)}</p>
+              <div className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg flex flex-col items-center justify-center">
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">DAY {index + 1}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">{getDayDate(index)}</p>
               </div>
-              <div className="bg-cyan-50 p-6 rounded-lg col-span-2">
-                <h4 className="font-bold mb-4">Activities:</h4>
-                <div className="space-y-2">
+              <div className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg col-span-2">
+                <h4 className="font-bold mb-4 text-gray-800 dark:text-white">Activities:</h4>
+                <div className="space-y-2 text-gray-700 dark:text-gray-300">
                   {days[index] ? (
                     createBullets(days[index])
                   ) : (
@@ -869,8 +869,8 @@ return (
     )}
 
 {/* Footer */}
-<div className="mt-8 pt-4 border-t border-gray-200">
-  <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-600">
+<div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+  <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
     <p className="text-center sm:text-left">www.quipit.com</p>
     <p className="text-center">greenvalleymotor@gmail.com</p>
     <p className="text-center sm:text-right">+919830016577</p>
