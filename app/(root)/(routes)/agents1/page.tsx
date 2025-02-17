@@ -504,7 +504,7 @@ return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 }, [isViewMode, tripResult, addedLocation, addedDateRange, interestsList, citiesList, jobId, setAddedLocation, setAddedDateRange, setInterestsList, setCitiesList, setTripResult, setJobId]); // Only runs on mount
 
 return (
-  <div className="container mx-auto px-4 max-w-full sm:max-w-3xl overflow-x-hidden">
+  <div className="container mx-auto px-4 max-w-full sm:max-w-3xl overflow-x-hidden dark:bg-gray-900">
         {/* Add celebration overlay here */}
         {showCelebration && (
       <>
@@ -524,7 +524,7 @@ return (
       </>
     )}
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0">Trip Planner</h1>
+    <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0 dark:text-white">Trip Planner</h1>
       <div className="flex gap-2">
         <DebugButton />
       </div>
@@ -532,15 +532,15 @@ return (
 
     <UserInfo />  {/* Add here */}    
 
-    <Card className="w-full">
+    <Card className="w-full dark:bg-gray-800">
       <CardHeader className="p-4 sm:p-6">
-        <CardTitle className="text-xl sm:text-2xl">Trip Details</CardTitle>
+      <CardTitle className="text-xl sm:text-2xl dark:text-white">Trip Details</CardTitle>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         <div className="space-y-6">
           {/* Location */}
           <div className="flex flex-col space-y-3">
-            <Label htmlFor="location" className="text-base sm:text-lg font-semibold">Location</Label>
+          <Label htmlFor="location" className="text-base sm:text-lg font-semibold dark:text-white">Location</Label>
             <div className="flex flex-col space-y-2">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
@@ -548,15 +548,15 @@ return (
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Enter main location"
-                  className="w-full"
+                  className="w-full dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 />
                 <Button onClick={handleAddLocation} className="w-full sm:w-auto">
                   Add Location
                 </Button>
               </div>
               <div className="mt-2">
-                <h3 className="font-semibold text-sm">Added Location:</h3>
-                <p className="text-gray-700 break-words mt-1">
+              <h3 className="font-semibold text-sm dark:text-white">Added Location:</h3>
+              <p className="text-gray-700 dark:text-gray-300 break-words mt-1">
                   {addedLocation || "No location added yet."}
                 </p>
               </div>
@@ -595,7 +595,7 @@ return (
          selected={startDate}
          onChange={(date: Date | null) => setStartDate(date)}
          dateFormat="MM/dd/yyyy"
-         className="w-full border p-2 rounded bg-white"
+         className="w-full border p-2 rounded bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
        />
      </div>
      <div className="space-y-2">
@@ -646,7 +646,7 @@ return (
         </Button>
       </div>
 
-      <div className="mt-4 border p-4 rounded">
+      <div className="mt-4 border dark:border-gray-700 p-4 rounded dark:bg-gray-800">
   {isLoading ? (
     <div className="flex items-center justify-center p-4">
       <div className="loader" style={{
@@ -658,7 +658,7 @@ return (
         borderTop: '3px solid transparent',
         animation: 'spin 1s linear infinite'
       }} />
-      <span className="ml-2">Processing your itinerary...</span>
+      <span className="ml-2 dark:text-gray-300">Processing your itinerary...</span>
     </div>
   ) : tripResult ? (
     <div>
