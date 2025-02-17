@@ -117,28 +117,28 @@ export default function SettingsPage() {
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="lazyOnload"
       />
-      <div className="md:ml-64 p-4 md:p-8">
+      <div className="md:ml-64 p-4 md:p-8 dark:bg-gray-900">
         <div className="max-w-full md:max-w-3xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">Settings</h1>
+          <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h1>
           
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <h2 className="text-xl font-semibold mb-4">Subscription Status</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Subscription Status</h2>
             
             {subscriptionStatus.isSubscribed ? (
               <div className="mb-4">
-                <p className="text-green-600 font-semibold">
+                <p className="text-green-600 dark:text-green-400 font-semibold">
                   You are currently on a Pro plan
                 </p>
               </div>
             ) : (
               <div className="mb-4">
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Free Plan: {subscriptionStatus.remainingTrips} trips remaining
                 </p>
-                <div className="mt-4 p-4 border rounded-lg">
-                  <h3 className="text-lg font-bold mb-2">Pro Subscription</h3>
-                  <p className="text-xl font-bold text-cyan-600">$9.99/month</p>
-                  <ul className="mt-4 space-y-2">
+                <div className="mt-4 p-4 border dark:border-gray-700 rounded-lg dark:bg-gray-800/50">
+                  <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-white">Pro Subscription</h3>
+                  <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">$9.99/month</p>
+                  <ul className="mt-4 space-y-2 text-gray-700 dark:text-gray-300">
                     <li>✓ Unlimited trips</li>
                     <li>✓ Premium features</li>
                     <li>✓ Priority support</li>
@@ -146,10 +146,10 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-
+  
             <Button 
               onClick={handleSubscribe}
-              className="mt-4 w-full sm:w-auto"
+              className="mt-4 w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-700 text-white"
             >
               {subscriptionStatus.isSubscribed 
                 ? 'Manage Subscription' 
