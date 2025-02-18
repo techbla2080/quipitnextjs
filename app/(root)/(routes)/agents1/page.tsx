@@ -507,6 +507,7 @@ return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 return (
   <div className="container mx-auto px-4 max-w-full sm:max-w-3xl overflow-x-hidden dark:bg-gray-900">
     {isViewMode || window.location.search.includes('job_id') ? (
+      // Professional view for saved trips
       <ProfessionalTripView 
         tripData={{
           location: addedLocation || '',
@@ -518,35 +519,34 @@ return (
         }}
       />
     ) : (
+      // Regular trip planner view
       <>
+        {showCelebration && (
+          <>
+            <div className="fixed inset-0 z-50 pointer-events-none">
+              <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={500} />
+            </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="bg-white p-8 rounded-2xl shadow-2xl transform scale-100 animate-bounce">
+                <h2 className="text-4xl font-bold text-center text-cyan-600 mb-4">
+                  🎉 Your Trip is Ready! 🎉
+                </h2>
+                <p className="text-xl text-gray-700 text-center">
+                  Get ready for an amazing adventure!
+                </p>
+              </div>
+            </div>
+          </>
+        )}
 
-// Fix for the celebration section - proper fragment and div nesting
-{showCelebration && (
-  <>
-    <div className="fixed inset-0 z-50 pointer-events-none">
-      <ReactConfetti width={width} height={height} recycle={false} numberOfPieces={500} />
-    </div>
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl transform scale-100 animate-bounce">
-        <h2 className="text-4xl font-bold text-center text-cyan-600 mb-4">
-          🎉 Your Trip is Ready! 🎉
-        </h2>
-        <p className="text-xl text-gray-700 text-center">
-          Get ready for an amazing adventure!
-        </p>
-      </div>
-    </div>
-  </>
-)}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0 dark:text-white">Trip Planner</h1>
+          <div className="flex gap-2">
+            <DebugButton />
+          </div>
+        </div>
 
-    <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-    <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-0 dark:text-white">Trip Planner</h1>
-      <div className="flex gap-2">
-        <DebugButton />
-      </div>
-    </div>
-
-    <UserInfo />  {/* Add here */}    
+        <UserInfo />
 
     <Card className="w-full dark:bg-gray-800">
       <CardHeader className="p-4 sm:p-6">
@@ -828,4 +828,4 @@ return (
 )}
 </div>
 );
-}
+} 
