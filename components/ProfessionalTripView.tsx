@@ -22,7 +22,6 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     }
   }, [tripData]);
 
-  // Parse the trip result to get overview and daily activities
   const parseContent = (content: string) => {
     if (!content) return { overview: [], days: [] };
 
@@ -60,8 +59,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto">
-      {/* Hero Header Section */}
-      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-8 rounded-t-lg relative overflow-hidden">
+      {/* Hero Header Section - Added padding bottom */}
+      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-8 pb-16 rounded-t-lg relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
           <div className="flex justify-center mb-6">
@@ -79,8 +78,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Trip Summary Cards */}
-      <div className="px-8 -mt-8">
+      {/* Trip Summary Cards - Adjusted margins */}
+      <div className="px-8 -mt-8 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
             <div className="text-cyan-500 mb-2">
@@ -115,8 +114,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Trip Overview */}
-      <div className="p-8">
+      {/* Trip Overview - Added margin top */}
+      <div className="p-8 mt-4">
         <h2 className="text-2xl font-bold mb-6 dark:text-white">Trip Overview</h2>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
           <ul className="space-y-4 text-gray-600 dark:text-gray-300">
@@ -130,8 +129,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Daily Itinerary */}
-      <div className="p-8 border-t dark:border-gray-700">
+      {/* Daily Itinerary - Added spacing */}
+      <div className="p-8 mt-4 border-t dark:border-gray-700">
         <h2 className="text-2xl font-bold mb-6 dark:text-white">Daily Itinerary</h2>
         <div className="space-y-6">
           {days.map((day, index) => (
@@ -155,7 +154,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       </div>
 
       {/* Reference Footer */}
-      <div className="border-t dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
+      <div className="border-t dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800 rounded-b-lg mt-8">
         <div className="text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Reference Number</p>
           <p className="font-mono text-lg text-cyan-600 dark:text-cyan-400">{tripData.jobId}</p>
