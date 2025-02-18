@@ -59,24 +59,24 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto">
-      {/* Hero Header Section - Added padding bottom */}
-      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-8 pb-16 rounded-t-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative z-10">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-              <svg className="w-12 h-12 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-          <div className="text-center text-white">
-            <h1 className="text-4xl font-bold mb-2">Travel Itinerary</h1>
-            <div className="text-xl opacity-90 mb-2">{tripData.location} → {tripData.cities.join(" → ")}</div>
-            <div className="text-lg opacity-75">{tripData.dateRange}</div>
-          </div>
-        </div>
+{/* Hero Header Section - Reduced font weight and padding */}
+<div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-6 pb-16 rounded-t-lg relative overflow-hidden">
+  <div className="absolute inset-0 bg-black/10"></div>
+  <div className="relative z-10">
+    <div className="flex justify-center mb-4">
+      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+        <svg className="w-10 h-10 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
       </div>
+    </div>
+    <div className="text-center text-white">
+      <h1 className="text-3xl font-medium mb-2">Travel Itinerary</h1>
+      <div className="text-lg opacity-90 mb-2">{tripData.location} → {tripData.cities.join(" → ")}</div>
+      <div className="text-base opacity-75">{tripData.dateRange}</div>
+    </div>
+  </div>
+</div>
 
       {/* Trip Summary Cards - Adjusted margins */}
       <div className="px-8 -mt-8 mb-8">
