@@ -739,59 +739,124 @@ return (
       </div>
 
       {/* Your existing Intro Box code - no changes needed */}
-      // Replace this section in your code
-{(() => {
-  const introText = tripResult && (tripResult as unknown as string);
-  let intro = '';
-  
-  if (typeof introText === 'string' && introText) {
-    const parts = introText.split(/Day \d+:/);
-    intro = parts[0]?.trim() || '';
-  }
+      {(() => {
+        const introText = tripResult && (tripResult as unknown as string);
+        let intro = '';
+        
+        if (typeof introText === 'string' && introText) {
+          const parts = introText.split(/Day \d+:/);
+          intro = parts[0]?.trim() || '';
+        }
 
-  const createBullets = (text: string) => {
-    if (!text) return null;
-    
-    const points = text
-      .split('.')
-      .map(point => point?.trim())
-      .filter(point => point && point.length > 0);
+        const createBullets = (text: string) => {
+          if (!text) return null;
+          
+          const points = text
+            .split('.')
+            .map(point => point?.trim())
+            .filter(point => point && point.length > 0);
 
-    return points.length > 0 ? (
-      <ul className="list-disc pl-6 space-y-2">
-        {points.map((point, i) => (
-          <li key={i}>{point}</li>
-        ))}
-      </ul>
-    ) : null;
-  };
-  
-  return intro ? (
-    <div className="mb-8 bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-      <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trip Overview</h3>
-      <div className="space-y-2 text-gray-700 dark:text-gray-300">
-        {createBullets(intro)}
-      </div>
-    </div>
-  ) : null;
-})()}
+          return points.length > 0 ? (
+            <ul className="list-disc pl-6 space-y-2">
+              {points.map((point, i) => (
+                <li key={i}>{point}</li>
+              ))}
+            </ul>
+          ) : null;
+        };
+        
+        return intro ? (
+          <div className="mb-8 bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trip Overview</h3>
+            <div className="space-y-2 text-gray-700 dark:text-gray-300">
+              {createBullets(intro)}
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       {/* Your existing Day Boxes code - no changes needed */}
-      {addedDateRange && (
-        <div className="space-y-6 mt-8">
-          {/* Your existing day boxes code */}
-          {(() => {
-            try {
-              // Your existing day boxes logic
-              // ... (keep all the existing code)
-            } catch (error) {
-              console.error('Error details:', error);
-              return <div>Error generating itinerary boxes: {String(error)}</div>;
-            }
-          })()}
-        </div>
-      )}
+{/* Day Boxes */}
+{addedDateRange && (
+  <div className="space-y-6 mt-8">
+    {(() => {
+      try {
+        const [startStr, endStr] = addedDateRange.split(' to ');
+        
+        const parseDate = (dateStr: string) => {
+          const [month, day, year] = dateStr.split('/').map(num => parseInt(num, 10));
+          return new Date(year, month - 1, day);
+        };
 
+        const startDate = parseDate(startStr);
+        const endDate = parseDate(endStr);
+        
+        const diffTime = endDate.getTime() - startDate.getTime();
+        const numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        const getDayDate = (dayIndex: number) => {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + dayIndex);
+          return date.toLocaleDateString('en-US', { 
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+          });
+        };
+
+        let days: string[] = [];
+        const itineraryText = tripResult as unknown as string;
+        
+        if (typeof itineraryText === 'string') {
+          const mainContent = itineraryText.split(/Day 1:/)[1];
+          if (mainContent) {
+            days = ('Day 1:' + mainContent).split(/Day \d+:/);
+            days.shift();
+          }
+        }
+
+        return Array.from({ length: numberOfDays }).map((_, index) => {
+          const createBullets = (text: string) => {
+            const points = text
+              .split('.')
+              .map(point => point.trim())
+              .filter(point => point.length > 0);
+
+            return (
+              <ul className="list-disc pl-6 space-y-2">
+                {points.map((point, i) => (
+                  <li key={i} className="break-words">{point}</li>
+                ))}
+              </ul>
+            );
+          };
+
+          return (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-cyan-50 p-6 rounded-lg flex flex-col items-center justify-center">
+                <h3 className="text-2xl font-bold text-gray-800">DAY {index + 1}</h3>
+                <p className="text-sm text-gray-600 mt-2">{getDayDate(index)}</p>
+              </div>
+              <div className="bg-cyan-50 p-6 rounded-lg col-span-2">
+                <h4 className="font-bold mb-4">Activities:</h4>
+                <div className="space-y-2">
+                  {days[index] ? (
+                    createBullets(days[index])
+                  ) : (
+                    <p className="text-gray-500 italic">No activities planned for this day yet</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        });
+      } catch (error) {
+        console.error('Error details:', error);
+        return <div>Error generating itinerary boxes: {String(error)}</div>;
+      }
+    })()}
+  </div>
+)}
       {/* Save Button */}
       <div className="flex justify-end mt-6 mb-4">
         <Button 
