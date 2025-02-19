@@ -739,41 +739,42 @@ return (
       </div>
 
       {/* Your existing Intro Box code - no changes needed */}
-      {(() => {
-        const introText = tripResult && (tripResult as unknown as string);
-        let intro = '';
-        
-        if (typeof introText === 'string' && introText) {
-          const parts = introText.split(/Day \d+:/);
-          intro = parts[0]?.trim() || '';
-        }
+      // Replace this section in your code
+{(() => {
+  const introText = tripResult && (tripResult as unknown as string);
+  let intro = '';
+  
+  if (typeof introText === 'string' && introText) {
+    const parts = introText.split(/Day \d+:/);
+    intro = parts[0]?.trim() || '';
+  }
 
-        const createBullets = (text: string) => {
-          if (!text) return null;
-          
-          const points = text
-            .split('.')
-            .map(point => point?.trim())
-            .filter(point => point && point.length > 0);
+  const createBullets = (text: string) => {
+    if (!text) return null;
+    
+    const points = text
+      .split('.')
+      .map(point => point?.trim())
+      .filter(point => point && point.length > 0);
 
-          return points.length > 0 ? (
-            <ul className="list-disc pl-6 space-y-2">
-              {points.map((point, i) => (
-                <li key={i}>{point}</li>
-              ))}
-            </ul>
-          ) : null;
-        };
-        
-        return intro ? (
-          <div className="mb-8 bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trip Overview</h3>
-            <div className="space-y-2 text-gray-700 dark:text-gray-300">
-              {createBullets(intro)}
-            </div>
-          </div>
-        ) : null;
-      })()}
+    return points.length > 0 ? (
+      <ul className="list-disc pl-6 space-y-2">
+        {points.map((point, i) => (
+          <li key={i}>{point}</li>
+        ))}
+      </ul>
+    ) : null;
+  };
+  
+  return intro ? (
+    <div className="mb-8 bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+      <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Trip Overview</h3>
+      <div className="space-y-2 text-gray-700 dark:text-gray-300">
+        {createBullets(intro)}
+      </div>
+    </div>
+  ) : null;
+})()}
 
       {/* Your existing Day Boxes code - no changes needed */}
       {addedDateRange && (
