@@ -58,7 +58,7 @@ const TravelPage = () => {
           <Button 
             size="lg" 
             className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-6 h-auto"
-            onClick={() => window.open('/agents1', '_blank')}
+            onClick={() => window.location.href = 'https://quipitnextjs.vercel.app/agents1'}
           >
             Plan My Trip Now
           </Button>
