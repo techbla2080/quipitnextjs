@@ -112,55 +112,62 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto trip-content">
-{/* Hero Header Section - Reduced font weight and padding */}
-<div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-6 pb-16 rounded-t-lg relative overflow-hidden">
-<div className="absolute top-4 right-4 z-20">
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="bg-white/20 hover:bg-white/30 rounded-full w-10 h-10 p-0"
-        >
-          <Share className="h-5 w-5 text-white" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-      {typeof navigator !== 'undefined' && 'share' in navigator && (
-  <DropdownMenuItem onClick={() => handleShare('native')}>
-    <Share className="mr-2 h-4 w-4" />
-    Share
-  </DropdownMenuItem>
-)}
-        <DropdownMenuItem onClick={() => handleShare('copy')}>
-          <Link2 className="mr-2 h-4 w-4" />
-          Copy Link
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleShare('pdf')}>
-          <FileText className="mr-2 h-4 w-4" />
-          Save as PDF
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </div>
+      {/* Hero Header Section */}
+      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-6 pb-16 rounded-t-lg relative overflow-hidden">
+        <div className="absolute top-4 right-4 z-20">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="bg-white/20 hover:bg-white/30 rounded-full w-10 h-10 p-0"
+              >
+                <Share className="h-5 w-5 text-white" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <DropdownMenuItem onClick={() => handleShare('native')}>
+                  <Share className="mr-2 h-4 w-4" />
+                  Share
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => handleShare('copy')}>
+                <Link2 className="mr-2 h-4 w-4" />
+                Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleShare('pdf')}>
+                <FileText className="mr-2 h-4 w-4" />
+                Save as PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-  <div className="absolute inset-0 bg-black/10"></div>
-  <div className="relative z-10">
-    <div className="flex justify-center mb-4">
-      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
-        <svg className="w-10 h-10 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative z-10">
+          {/* Quipit Branding */}
+          <div className="text-center text-white mb-6">
+            <h2 className="text-2xl font-semibold mb-1">quipit</h2>
+            <p className="text-sm mb-1">AI that works for you</p>
+            <p className="text-xs italic">just quipit!</p>
+          </div>
+
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <svg className="w-10 h-10 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <div className="text-center text-white">
+            <h1 className="text-3xl font-medium mb-2">Travel Itinerary</h1>
+            <div className="text-lg opacity-90 mb-2">{tripData.location} → {tripData.cities.join(" → ")}</div>
+            <div className="text-base opacity-75">{tripData.dateRange}</div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div className="text-center text-white">
-      <h1 className="text-3xl font-medium mb-2">Travel Itinerary</h1>
-      <div className="text-lg opacity-90 mb-2">{tripData.location} → {tripData.cities.join(" → ")}</div>
-      <div className="text-base opacity-75">{tripData.dateRange}</div>
-    </div>
-  </div>
-</div>
 
-      {/* Trip Summary Cards - Adjusted margins */}
+      {/* Trip Summary Cards */}
       <div className="px-8 -mt-8 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
@@ -196,7 +203,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Trip Overview - Added margin top */}
+      {/* Trip Overview */}
       <div className="p-8 mt-4">
         <h2 className="text-2xl font-bold mb-6 dark:text-white">Trip Overview</h2>
         <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
@@ -211,7 +218,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Daily Itinerary - Added spacing */}
+      {/* Daily Itinerary */}
       <div className="p-8 mt-4 border-t dark:border-gray-700">
         <h2 className="text-2xl font-bold mb-6 dark:text-white">Daily Itinerary</h2>
         <div className="space-y-6">
@@ -244,6 +251,6 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       </div>
     </div>
   );
-};
+}
 
 export default ProfessionalTripView;
