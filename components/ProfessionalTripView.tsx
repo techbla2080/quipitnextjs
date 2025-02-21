@@ -147,9 +147,9 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         <div className="relative z-10">
           {/* Quipit Branding */}
           <div className="text-center text-white mb-6">
-            <h2 className="text-2xl font-semibold mb-1">quipit</h2>
+            <h2 className="text-2xl font-semibold mb-1">Quipit</h2>
             <p className="text-sm mb-1">AI that works for you</p>
-            <p className="text-xs italic">just quipit!</p>
+            <p className="text-xs italic">Just Quipit!</p>
           </div>
 
           <div className="flex justify-center mb-4">
