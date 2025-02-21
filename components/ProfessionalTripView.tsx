@@ -1,6 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Share, Download, Link2, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "react-hot-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface TripViewProps {
   tripData: {
@@ -57,10 +68,81 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
 
   const { overview, days } = parseContent(tripData.tripResult);
 
+  const handleShare = async (type: string) => {
+    try {
+      const tripContent = document.querySelector('.trip-content');
+      if (!tripContent) return;
+  
+      switch (type) {
+        case 'native':
+          if (navigator.share) {
+            await navigator.share({
+              title: `${tripData.location} Travel Itinerary`,
+              text: `Check out my trip to ${tripData.location}!`,
+              url: window.location.href
+            });
+            toast.success('Shared successfully!');
+          }
+          break;
+  
+        case 'copy':
+          await navigator.clipboard.writeText(window.location.href);
+          toast.success('Link copied!');
+          break;
+  
+        case 'pdf':
+          const canvas = await html2canvas(tripContent as HTMLElement);
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+          });
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+          pdf.save(`${tripData.location}-itinerary.pdf`);
+          toast.success('PDF downloaded!');
+          break;
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to share');
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto trip-content">
 {/* Hero Header Section - Reduced font weight and padding */}
 <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-6 pb-16 rounded-t-lg relative overflow-hidden">
+<div className="absolute top-4 right-4 z-20">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className="bg-white/20 hover:bg-white/30 rounded-full w-10 h-10 p-0"
+        >
+          <Share className="h-5 w-5 text-white" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+      {typeof navigator !== 'undefined' && 'share' in navigator && (
+  <DropdownMenuItem onClick={() => handleShare('native')}>
+    <Share className="mr-2 h-4 w-4" />
+    Share
+  </DropdownMenuItem>
+)}
+        <DropdownMenuItem onClick={() => handleShare('copy')}>
+          <Link2 className="mr-2 h-4 w-4" />
+          Copy Link
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleShare('pdf')}>
+          <FileText className="mr-2 h-4 w-4" />
+          Save as PDF
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+
   <div className="absolute inset-0 bg-black/10"></div>
   <div className="relative z-10">
     <div className="flex justify-center mb-4">
