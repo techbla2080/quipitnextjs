@@ -11,20 +11,36 @@ export default function SettingsPage() {
   const { userId } = useAuth();
   const [subscriptionStatus, setSubscriptionStatus] = useState({
     isSubscribed: false,
-    remainingTrips: 0
+    remainingTrips: 0,
+    subscriptionExpires: null as string | null, // New field for expiration date
   });
+  const [daysLeft, setDaysLeft] = useState<number | null>(null); // New state for timer
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSubscription = async () => {
       try {
-        const response = await fetch(`/api/subscription/check?userId=${userId}`);
+        const response = await fetch(`/api/check?userId=${userId}`);
         const data = await response.json();
         setSubscriptionStatus({
-          isSubscribed: data.isSubscribed,
-          remainingTrips: data.remainingTrips || 0
+          isSubscribed: data.isSubscribed || false,
+          remainingTrips: data.remainingTrips || 0,
+          subscriptionExpires: data.subscriptionExpires || null, // Store expiration date
         });
+
+        // Calculate days left if subscribed
+        if (data.isSubscribed && data.subscriptionExpires) {
+          const endDate = new Date(data.subscriptionExpires);
+          const now = new Date();
+          const diffInMs = endDate.getTime() - now.getTime();
+          const daysRemaining = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+          setDaysLeft(daysRemaining > 0 ? daysRemaining : 0);
+        } else {
+          setDaysLeft(0); // Not subscribed or expired
+        }
       } catch (error) {
         console.error('Failed to check subscription:', error);
+        setError('Failed to fetch subscription status');
       }
     };
 
@@ -147,14 +163,16 @@ export default function SettingsPage() {
               <AdminMessagePanel />
             </div>
           )}
-
+  
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Subscription Status</h2>
             
             {subscriptionStatus.isSubscribed ? (
               <div className="mb-4">
-                <p className="text-green-600 dark:text-green-400 font-semibold">
-                  You are currently on a Pro plan
+                <p className={daysLeft && daysLeft > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} font-semibold>
+                  {daysLeft && daysLeft > 0
+                    ? `You are currently on a Pro plan with ${daysLeft} days left.`
+                    : 'Your Pro plan has expired. Please renew to continue enjoying unlimited trips.'}
                 </p>
               </div>
             ) : (
@@ -173,7 +191,7 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-  
+    
             <Button 
               onClick={handleSubscribe}
               className="mt-4 w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 dark:bg-cyan-600 dark:hover:bg-cyan-700 text-white"
