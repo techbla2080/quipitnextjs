@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import Script from 'next/script';
+import AdminMessagePanel from '@/components/AdminMessagePanel';
 
 export default function SettingsPage() {
   const { userId } = useAuth();
@@ -111,6 +112,25 @@ export default function SettingsPage() {
     }
   };
 
+  // Check if user is admin
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (userId) {
+        try {
+          const response = await fetch(`/api/check-admin?userId=${userId}`);
+          const data = await response.json();
+          setIsAdmin(data.isAdmin);
+        } catch (error) {
+          console.error('Failed to check admin status:', error);
+        }
+      }
+    };
+
+    checkAdminStatus();
+  }, [userId]);
+
   return (
     <>
       <Script
@@ -121,6 +141,13 @@ export default function SettingsPage() {
         <div className="max-w-full md:max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h1>
           
+          {/* Admin Message Panel - Only shown to admins */}
+          {isAdmin && (
+            <div className="mb-6">
+              <AdminMessagePanel />
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Subscription Status</h2>
             

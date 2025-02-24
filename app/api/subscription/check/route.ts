@@ -24,13 +24,33 @@ export async function GET(req: Request) {
       });
     }
 
+    // Check if subscription has expired
+    if (user.subscriptionStatus === 'pro' && user.subscriptionEndDate) {
+      const now = new Date();
+      if (now > user.subscriptionEndDate) {
+        // Subscription has expired, update to 'free'
+        user = await User.findOneAndUpdate(
+          { userId },
+          {
+            $set: {
+              subscriptionStatus: 'free',
+              subscriptionStartDate: undefined,
+              subscriptionEndDate: undefined,
+            },
+          },
+          { new: true }
+        );
+      }
+    }
+
     // Check if user is subscribed
     if (user.subscriptionStatus === 'pro') {
       return NextResponse.json({
         success: true,
         canCreate: true,
         isSubscribed: true,
-        subscriptionStatus: 'pro'
+        subscriptionStatus: 'pro',
+        subscriptionExpires: user.subscriptionEndDate?.toISOString()
       });
     }
 

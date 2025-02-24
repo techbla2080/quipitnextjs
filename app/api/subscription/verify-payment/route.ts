@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import crypto from 'crypto';
 import { Resend } from 'resend';
+import { connectDB } from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -29,6 +31,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Invalid payment signature' }, { status: 400 });
     }
 
+    // Connect to the database
+    await connectDB();
+
+    // Update user subscription
+    const subscriptionStartDate = new Date();
+    const subscriptionEndDate = new Date(subscriptionStartDate);
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30); // 30 days
+
+    const user = await User.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          subscriptionStatus: 'pro',
+          subscriptionStartDate,
+          subscriptionEndDate,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
     // Send confirmation email
     const clerkUser = await clerkClient.users.getUser(userId);
     const userEmail = clerkUser.emailAddresses[0].emailAddress;
@@ -41,7 +63,7 @@ export async function POST(req: Request) {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1>Welcome to Quipit Pro!</h1>
-            <p>Your subscription has been successfully activated.</p>
+            <p>Your subscription has been successfully activated and will expire on ${subscriptionEndDate.toLocaleDateString()}.</p>
             <p>You now have access to unlimited trip planning.</p>
             <p>Happy traveling!</p>
           </div>
