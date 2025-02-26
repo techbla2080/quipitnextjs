@@ -13,33 +13,39 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
- title: 'Companion.AI',
- description: 'Your customized companion.',
+  title: 'Companion.AI',
+  description: 'Your customized companion.',
 }
 
 export default function RootLayout({
- children,
+  children,
 }: {
- children: React.ReactNode
+  children: React.ReactNode
 }) {
- return (
-   <ClerkProvider>
-     <html lang="en" suppressHydrationWarning>
-       <head>
-         <Script 
-           src="https://checkout.razorpay.com/v1/checkout.js"
-           strategy="beforeInteractive"
-         />
-         <GoogleAnalytics />
-       </head>
-       <body className={cn("bg-secondary", inter.className)}>
-         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-           <ProModal />
-           {children}
-           <Toaster />
-         </ThemeProvider>
-       </body>
-     </html>
-   </ClerkProvider>
- )
+  return (
+    <ClerkProvider
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+      redirectUrl="/"
+    >
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <Script 
+            src="https://checkout.razorpay.com/v1/checkout.js"
+            strategy="beforeInteractive"
+          />
+          <GoogleAnalytics />
+        </head>
+        <body className={cn("bg-secondary", inter.className)}>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            <ProModal />
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
+  )
 }
