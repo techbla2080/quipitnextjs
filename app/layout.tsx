@@ -39,7 +39,7 @@ export default function RootLayout({
           <GoogleAnalytics />
         </head>
         <body className={cn("bg-secondary", inter.className)}>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             <ProModal />
             {children}
             <Toaster />
