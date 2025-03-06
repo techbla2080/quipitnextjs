@@ -857,80 +857,77 @@ return (
     })()}
   </div>
 )}
+
 {/* Additional Sections */}
 {tripResult && (
   <div className="space-y-8 mt-12">
-    {/* Parse and display additional sections */}
     {(() => {
       const itineraryText = tripResult as unknown as string;
       if (typeof itineraryText !== 'string') return null;
 
-      // Split by section dividers
-      const sections = itineraryText.split(/---+/);
-      if (sections.length <= 1) return null;
+      // Separate day content from additional sections
+      const dayPattern = /Day \d+:/g;
+      const matches = [...itineraryText.matchAll(dayPattern)];
+      let additionalContent = itineraryText;
 
-      // Process additional sections
-      return sections.slice(1).map((section, index) => {
-        const trimmedSection = section.trim();
-        let title = "Additional Information";
-        let content = trimmedSection;
+      if (matches.length > 0) {
+        const lastDayIndex = matches[matches.length - 1].index || 0;
+        additionalContent = itineraryText.substring(lastDayIndex + matches[matches.length - 1][0].length).trim();
+      }
 
-        // Identify section by common headers
-        if (trimmedSection.includes("Accommodation Options") || trimmedSection.includes("### Accommodation")) {
-          title = "Accommodation Options";
-        } else if (trimmedSection.includes("Logistics Options") || trimmedSection.includes("### Logistics")) {
-          title = "Logistics Options";
-        } else if (trimmedSection.includes("Detailed Budget") || trimmedSection.includes("### Budget")) {
-          title = "Detailed Budget Breakdown";
-        } else if (trimmedSection.includes("Restaurant Reservations") || trimmedSection.includes("### Restaurant")) {
-          title = "Restaurant Reservations";
-        } else if (trimmedSection.includes("Weather Forecast") || trimmedSection.includes("### Weather")) {
-          title = "Weather & Packing Suggestions";
-        }
+      // Define specific section headers (updated to include Real-Time Flight Pricing)
+      const sectionHeaders = [
+        '### Accommodation Options',
+        '### Logistics Options',
+        '### Detailed Budget Breakdown',
+        '### Real-Time Flight Pricing',
+        '### Restaurant Reservations',
+        '### Weather Forecast and Packing Suggestions'
+      ];
 
-        // Remove the title from content if it exists
-        const titleRegex = new RegExp(`^.*?${title}.*?\\n`, 'i');
-        content = content.replace(titleRegex, '');
-
-        // Process content to render links
-        const processedContent = content.replace(
-          /\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, 
-          '<a href="$2" class="text-cyan-500 hover:underline" target="_blank">$1</a>'
-        );
-
-        // Create bullet points from the content
-        const createBullets = (text: string) => {
-          // Split by bullet points or line breaks
-          const items = text
-            .split(/\n-|\n\*/g) // Split by bullet markers
-            .map(item => item.trim())
-            .filter(item => item.length > 0);
-
-          return (
-            <ul className="list-disc pl-6 space-y-3">
-              {items.map((item, i) => (
-                <li 
-                  key={i} 
-                  className="text-gray-700 dark:text-gray-300"
-                  dangerouslySetInnerHTML={{ __html: item }}
-                />
-              ))}
-            </ul>
-          );
-        };
-
-        return (
-          <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{title}</h3>
-            <div className="space-y-2">
-              {createBullets(processedContent)}
-            </div>
-          </div>
-        );
+      // Split by these exact headers
+      let sections = [additionalContent];
+      sectionHeaders.forEach(header => {
+        sections = sections.flatMap(section => section.split(header).filter(s => s.trim()));
       });
+
+      // Pair headers with their content and render
+      return sectionHeaders
+        .map((header, index) => {
+          const contentIndex = index * 2 + 1; // Content follows the header
+          const content = sections[contentIndex]?.trim() || '';
+
+          if (!content) return null;
+
+          // Process links in content
+          const processedContent = content.replace(
+            /\((https?:\/\/[^\s)]+)\)/g,
+            (match, url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
+          );
+
+          // Render the section
+          return (
+            <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{header.replace('### ', '')}</h3>
+              <div className="space-y-2">
+                <ul className="list-disc pl-6 space-y-3">
+                  {processedContent.split('\n').filter(line => line.trim().length > 0).map((line, i) => (
+                    <li
+                      key={i}
+                      className="text-gray-700 dark:text-gray-300"
+                      dangerouslySetInnerHTML={{ __html: line.trim() }}
+                    />
+                  ))}
+                </ul>
+              </div>
+            </div>
+          );
+        })
+        .filter(Boolean); // Remove null items
     })()}
   </div>
 )}
+
       {/* Save Button */}
       <div className="flex justify-end mt-6 mb-4">
         <Button 
