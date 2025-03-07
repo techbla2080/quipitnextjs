@@ -370,6 +370,7 @@ export default function TripPlanner() {
         setJobId(result.job_id);
         setShowCelebration(true);
         setTimeout(() => setShowCelebration(false), 3000);
+        console.log("Exact TripResult:", result.result); // Add this log
         console.log("Trip planned successfully");
       } else {
         toast.error("Failed to plan trip.");
@@ -819,97 +820,124 @@ export default function TripPlanner() {
                 })()}
               </div>
 
-              {/* Additional Sections */}
-              <div className="space-y-8 mt-12">
-                {(() => {
-                  if (!tripResult || isLoading) {
-                    return [
-                      "### Accommodation Options",
-                      "### Logistics Options",
-                      "### Detailed Budget Breakdown",
-                      "### Real-Time Flight Pricing",
-                      "### Restaurant Reservations",
-                      "### Weather Forecast and Packing Suggestions",
-                    ].map((header, index) => (
-                      <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-                          {header.replace("### ", "")}
-                        </h3>
-                        <div className="space-y-2">
-                          <ul className="list-disc pl-6 space-y-3">
-                            <li className="text-gray-500 italic">Loading details...</li>
-                          </ul>
-                        </div>
-                      </div>
-                    ));
-                  }
+{/* Additional Sections */}
+<div className="space-y-8 mt-12">
+  {(() => {
+    if (!tripResult || isLoading) {
+      return [
+        "### Accommodation Options",
+        "### Logistics Options",
+        "### Detailed Budget Breakdown",
+        "### Real-Time Flight Pricing",
+        "### Restaurant Reservations",
+        "### Weather Forecast and Packing Suggestions",
+      ].map((header, index) => (
+        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+            {header.replace("### ", "")}
+          </h3>
+          <div className="space-y-2">
+            <ul className="list-disc pl-6 space-y-3">
+              <li className="text-gray-500 italic">Loading details...</li>
+            </ul>
+          </div>
+        </div>
+      ));
+    }
 
-                  const itineraryText = tripResult as unknown as string;
-                  if (typeof itineraryText !== "string") return null;
+    const itineraryText = typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult);
+    console.log("Itinerary Text for Additional Sections:", itineraryText); // Debug log
 
-                  const dayPattern = /Day\s*\d+:/g;
-                  const matches = [...itineraryText.matchAll(dayPattern)];
-                  let additionalContent = itineraryText;
+    // Extract the content after the Daily Itinerary section
+    const dailySectionMatch = itineraryText.match(/### Daily Itinerary\n([\s\S]*?)(?=\n###|$)/);
+    const dailySection = dailySectionMatch ? dailySectionMatch[1] : "";
+    let additionalContent = dailySectionMatch
+      ? itineraryText.replace(dailySectionMatch[0], "").trim()
+      : itineraryText;
 
-                  if (matches.length > 0) {
-                    const lastDayIndex = matches[matches.length - 1].index || 0;
-                    additionalContent = itineraryText
-                      .substring(lastDayIndex + matches[matches.length - 1][0].length)
-                      .trim();
-                  }
+    console.log("Daily Section:", dailySection); // Debug log
+    console.log("Additional Content:", additionalContent); // Debug log
 
-                  const sectionHeaders = [
-                    "### Accommodation Options",
-                    "### Logistics Options",
-                    "### Detailed Budget Breakdown",
-                    "### Real-Time Flight Pricing",
-                    "### Restaurant Reservations",
-                    "### Weather Forecast and Packing Suggestions",
-                  ];
+    const sectionHeaders = [
+      "### Accommodation Options",
+      "### Logistics Options",
+      "### Detailed Budget Breakdown",
+      "### Real-Time Flight Pricing",
+      "### Restaurant Reservations",
+      "### Weather Forecast and Packing Suggestions",
+    ];
 
-                  let sections = [additionalContent];
-                  sectionHeaders.forEach((header) => {
-                    sections = sections.flatMap((section) => section.split(header).filter((s) => s.trim()));
-                  });
+    // Split the additional content into sections
+    let sections = [additionalContent];
+    sectionHeaders.forEach((header) => {
+      sections = sections.flatMap((section) => section.split(header).filter((s) => s.trim()));
+    });
 
-                  return sectionHeaders
-                    .map((header, index) => {
-                      const contentIndex = index * 2 + 1;
-                      const content = sections[contentIndex]?.trim() || "";
+    console.log("Sections after splitting:", sections); // Debug log
 
-                      if (!content) return null;
+    // If no sections are found, show a placeholder
+    if (!additionalContent || sections.every((s) => !s.trim())) {
+      return sectionHeaders.map((header, index) => (
+        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+            {header.replace("### ", "")}
+          </h3>
+          <div className="space-y-2">
+            <ul className="list-disc pl-6 space-y-3">
+              <li className="text-gray-500 italic">No details available yet</li>
+            </ul>
+          </div>
+        </div>
+      ));
+    }
 
-                      const processedContent = content.replace(
-                        /\((https?:\/\/[^\s)]+)\)/g,
-                        (match, url) =>
-                          `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
-                      );
+    return sectionHeaders.map((header, index) => {
+      const contentIndex = index * 2 + 1;
+      const content = sections[contentIndex]?.trim() || "";
 
-                      return (
-                        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-                          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-                            {header.replace("### ", "")}
-                          </h3>
-                          <div className="space-y-2">
-                            <ul className="list-disc pl-6 space-y-3">
-                              {processedContent
-                                .split("\n")
-                                .filter((line) => line.trim().length > 0)
-                                .map((line, i) => (
-                                  <li
-                                    key={i}
-                                    className="text-gray-700 dark:text-gray-300"
-                                    dangerouslySetInnerHTML={{ __html: line.trim() }}
-                                  />
-                                ))}
-                            </ul>
-                          </div>
-                        </div>
-                      );
-                    })
-                    .filter(Boolean);
-                })()}
-              </div>
+      console.log(`Content for ${header}:`, content); // Debug log
+
+      if (!content) return null;
+
+      // Process the content: handle bullet points, URLs, and bold text
+      const processedContent = content
+        .split("\n- ")
+        .filter((point) => point.trim())
+        .map((point) => point.trim());
+
+      return (
+        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+            {header.replace("### ", "")}
+          </h3>
+          <div className="space-y-2">
+            {processedContent.length > 0 ? (
+              <ul className="list-disc pl-6 space-y-3">
+                {processedContent.map((point, i) => {
+                  const formattedPoint = point
+                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Handle bold text
+                    .replace(
+                      /(https?:\/\/[^\s<]+)/g,
+                      '<a href="$1" class="text-cyan-500 hover:underline" target="_blank">$1</a>'
+                    ); // Handle URLs
+                  return (
+                    <li
+                      key={i}
+                      className="text-gray-700 dark:text-gray-300"
+                      dangerouslySetInnerHTML={{ __html: formattedPoint }}
+                    />
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-gray-700 dark:text-gray-300">{content}</p>
+            )}
+          </div>
+        </div>
+      );
+    }).filter(Boolean);
+  })()}
+</div>
 
               {/* Save Button */}
               {tripResult && (
