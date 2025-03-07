@@ -821,148 +821,77 @@ export default function TripPlanner() {
               </div>
 
 {/* Additional Sections */}
-<div className="space-y-8 mt-12">
-  {(() => {
-    if (!tripResult || isLoading) {
-      return [
-        "### Accommodation Options",
-        "### Logistics Options",
-        "### Detailed Budget Breakdown",
-        "### Real-Time Flight Pricing",
-        "### Restaurant Reservations",
-        "### Weather Forecast and Packing Suggestions",
-      ].map((header, index) => (
-        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            {header.replace("### ", "")}
-          </h3>
-          <div className="space-y-2">
-            <ul className="list-disc pl-6 space-y-3">
-              <li className="text-gray-500 italic">Loading details...</li>
-            </ul>
-          </div>
-        </div>
-      ));
-    }
+{tripResult && (
+  <div className="space-y-8 mt-12">
+    {/* Define the sections we want to display */}
+    {[
+      "Accommodation Options",
+      "Logistics Options", 
+      "Detailed Budget Breakdown",
+      "Real-Time Flight Pricing",
+      "Restaurant Reservations",
+      "Weather Forecast and Packing Suggestions"
+    ].map((sectionTitle: string, index: number) => {
+      // Get the content for this section from the tripResult
+      const itineraryText = tripResult as unknown as string;
 
-    const itineraryText = typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult);
-    console.log("Itinerary Text for Additional Sections:", itineraryText); // Debug log
+      // Look for section with format "### Section Title" (similar to "Day N:")
+      const sectionRegex = new RegExp(`### ${sectionTitle}([\\s\\S]*?)(?=###|$)`);
+      const sectionMatch = typeof itineraryText === 'string' ? itineraryText.match(sectionRegex) : null;
+      let sectionContent = sectionMatch ? sectionMatch[1].trim() : "";
 
-    // Extract the content after the Daily Itinerary section
-    const dailySectionMatch = itineraryText.match(/### Daily Itinerary\n([\s\S]*?)(?=\n###|$)/);
-    const dailySection = dailySectionMatch ? dailySectionMatch[1] : "";
-    let additionalContent = dailySectionMatch
-      ? itineraryText.replace(dailySectionMatch[0], "").trim()
-      : itineraryText;
+      // If section not found, try alternative formats
+      if (!sectionContent) {
+        // Try finding by just the title without ###
+        const altRegex = new RegExp(`${sectionTitle}[^\\n]*([\\s\\S]*?)(?=\\n\\n[A-Z]|$)`);
+        const altMatch = typeof itineraryText === 'string' ? itineraryText.match(altRegex) : null;
+        sectionContent = altMatch ? altMatch[1].trim() : "";
+      }
 
-    console.log("Daily Section:", dailySection); // Debug log
-    console.log("Additional Content:", additionalContent); // Debug log
-
-    const sectionHeaders = [
-      "### Accommodation Options",
-      "### Logistics Options",
-      "### Detailed Budget Breakdown",
-      "### Real-Time Flight Pricing",
-      "### Restaurant Reservations",
-      "### Weather Forecast and Packing Suggestions",
-    ];
-
-    // Split the additional content into sections
-    let sections = [additionalContent];
-    sectionHeaders.forEach((header) => {
-      sections = sections.flatMap((section) => section.split(header).filter((s) => s.trim()));
-    });
-
-    console.log("Sections after splitting:", sections); // Debug log
-
-    // If no sections are found, show a placeholder
-    if (!additionalContent || sections.every((s) => !s.trim())) {
-      return sectionHeaders.map((header, index) => (
-        <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            {header.replace("### ", "")}
-          </h3>
-          <div className="space-y-2">
-            <ul className="list-disc pl-6 space-y-3">
-              <li className="text-gray-500 italic">No details available yet</li>
-            </ul>
-          </div>
-        </div>
-      ));
-    }
-
-    return sectionHeaders.map((header, index) => {
-      const contentIndex = index * 2 + 1;
-      const content = sections[contentIndex]?.trim() || "";
-
-      console.log(`Content for ${header}:`, content); // Debug log
-
-      if (!content) return null;
-
-      // Process the content: handle bullet points, URLs, and bold text
-      const processedContent = content
-        .split("\n- ")
-        .filter((point) => point.trim())
-        .map((point) => point.trim());
+      // Create a function to display content as bullet points (same as used for days)
+      const createBullets = (text: string) => {
+        if (!text) return <p className="text-gray-500 italic">Details will be added soon.</p>;
+        
+        // Split by bullet points or sentences
+        const points = text
+          .split(/\n\s*[-•]\s+|\.\s+/)
+          .map(point => point.trim())
+          .filter(point => point && point.length > 10); // Minimum length to be a meaningful point
+        
+        // Format URLs to be clickable
+        const formatText = (text: string) => {
+          return text.replace(
+            /(https?:\/\/[^\s)]+)/g, 
+            (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
+          );
+        };
+        
+        return (
+          <ul className="list-disc pl-6 space-y-2">
+            {points.map((point, i) => (
+              <li 
+                key={i} 
+                className="text-gray-700 dark:text-gray-300" 
+                dangerouslySetInnerHTML={{__html: formatText(point)}}
+              />
+            ))}
+          </ul>
+        );
+      };
 
       return (
         <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            {header.replace("### ", "")}
+            {sectionTitle}
           </h3>
           <div className="space-y-2">
-            {processedContent.length > 0 ? (
-              <ul className="list-disc pl-6 space-y-3">
-                {processedContent.map((point, i) => {
-                  const formattedPoint = point
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Handle bold text
-                    .replace(
-                      /(https?:\/\/[^\s<]+)/g,
-                      '<a href="$1" class="text-cyan-500 hover:underline" target="_blank">$1</a>'
-                    ); // Handle URLs
-                  return (
-                    <li
-                      key={i}
-                      className="text-gray-700 dark:text-gray-300"
-                      dangerouslySetInnerHTML={{ __html: formattedPoint }}
-                    />
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-gray-700 dark:text-gray-300">{content}</p>
-            )}
+            {createBullets(sectionContent)}
           </div>
         </div>
       );
-    }).filter(Boolean);
-  })()}
-</div>
-
-              {/* Save Button */}
-              {tripResult && (
-                <div className="flex justify-end mt-6 mb-4">
-                  <Button
-                    onClick={handleSaveItinerary}
-                    className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
-                      />
-                    </svg>
-                    Save Itinerary
-                  </Button>
-                </div>
-              )}
+    })}
+  </div>
+)}
 
               {/* Footer */}
               <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
