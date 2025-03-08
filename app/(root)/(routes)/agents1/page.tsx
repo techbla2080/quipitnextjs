@@ -825,75 +825,177 @@ export default function TripPlanner() {
   <div className="space-y-8 mt-12">
     {/* Define the sections we want to display */}
     {[
-      "Accommodation Options",
-      "Logistics Options", 
-      "Detailed Budget Breakdown",
-      "Real-Time Flight Pricing",
-      "Restaurant Reservations",
-      "Weather Forecast and Packing Suggestions"
-    ].map((sectionTitle: string, index: number) => {
-      // Get the content for this section from the tripResult
-      const itineraryText = tripResult as unknown as string;
-
-      // Look for section with format "### Section Title" (similar to "Day N:")
-      const sectionRegex = new RegExp(`### ${sectionTitle}([\\s\\S]*?)(?=###|$)`);
-      const sectionMatch = typeof itineraryText === 'string' ? itineraryText.match(sectionRegex) : null;
-      let sectionContent = sectionMatch ? sectionMatch[1].trim() : "";
-
-      // If section not found, try alternative formats
-      if (!sectionContent) {
-        // Try finding by just the title without ###
-        const altRegex = new RegExp(`${sectionTitle}[^\\n]*([\\s\\S]*?)(?=\\n\\n[A-Z]|$)`);
-        const altMatch = typeof itineraryText === 'string' ? itineraryText.match(altRegex) : null;
-        sectionContent = altMatch ? altMatch[1].trim() : "";
+      { title: "Accommodation Options", keywords: ["Accommodation Options", "hotel", "Pearl Continental", "Avari"] },
+      { title: "Logistics Options", keywords: ["Logistics Options", "Flight:", "Local Transport:", "Careem"] },
+      { title: "Detailed Budget Breakdown", keywords: ["Budget Breakdown", "Accommodation Costs", "Meal Costs", "Overall Budget"] },
+      { title: "Real-Time Flight Pricing", keywords: ["Real-Time Flight", "IndiGo", "Emirates", "Flight:"] },
+      { title: "Restaurant Reservations", keywords: ["Restaurant Reservations", "Lunch:", "Dinner:", "Café Zouk", "Food Street"] },
+      { title: "Weather Forecast and Packing Suggestions", keywords: ["Weather Forecast", "Packing", "Temperature:", "Conditions:", "Packing List"] }
+    ].map((section: {title: string, keywords: string[]}, index: number) => {
+      // Get the full text content
+      const itineraryText = typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult);
+      
+      // Create extraction patterns based on the section title and keywords
+      let sectionContent = "";
+      
+      // 1. Try to find section with title exactly as is
+      const titlePattern = new RegExp(`${section.title}[^]*?(?=(?:${[
+        "Accommodation Options",
+        "Logistics Options", 
+        "Detailed Budget Breakdown",
+        "Real-Time Flight Pricing",
+        "Restaurant Reservations",
+        "Weather Forecast and Packing Suggestions"
+      ].filter(t => t !== section.title).join("|")})|$)`, "i");
+      
+      const titleMatch = itineraryText.match(titlePattern);
+      if (titleMatch && titleMatch[0].length > section.title.length + 10) {
+        sectionContent = titleMatch[0].substring(section.title.length).trim();
       }
-
-      // Create a function to display content as bullet points (same as used for days)
-      const createBullets = (text: string) => {
-        if (!text) return <p className="text-gray-500 italic">Details will be added soon.</p>;
+      
+      // 2. If that fails, try to extract using keywords
+      if (!sectionContent) {
+        for (const keyword of section.keywords) {
+          if (itineraryText.includes(keyword)) {
+            const keywordPattern = new RegExp(`${keyword}[^]*?(?=(?:${[
+              "Accommodation Options",
+              "Logistics Options", 
+              "Detailed Budget Breakdown",
+              "Real-Time Flight Pricing",
+              "Restaurant Reservations",
+              "Weather Forecast and Packing Suggestions",
+              "Day \\d+"
+            ].filter(t => !t.includes(keyword)).join("|")})|$)`, "i");
+            
+            const keywordMatch = itineraryText.match(keywordPattern);
+            if (keywordMatch && keywordMatch[0].length > keyword.length + 5) {
+              sectionContent = keywordMatch[0].trim();
+              break;
+            }
+          }
+        }
+      }
+      
+      // 3. For specific sections, try pattern matching based on your data structure
+      if (!sectionContent) {
+        if (section.title === "Accommodation Options") {
+          const accomPattern = /Day\s+\d+\s*(?:[^]*?)((?:Pearl\s+Continental|Avari|hotel|Hotel)[^]*?)(?=Day|Logistics|$)/i;
+          const accomMatch = itineraryText.match(accomPattern);
+          if (accomMatch && accomMatch[1]) {
+            sectionContent = "Accommodation Options " + accomMatch[1].trim();
+          }
+        } 
+        else if (section.title === "Logistics Options") {
+          const logisticsPattern = /(?:Flight:)[^]*?(?=Detailed Budget|Restaurant|Weather|$)/i;
+          const logisticsMatch = itineraryText.match(logisticsPattern);
+          if (logisticsMatch) {
+            sectionContent = "Logistics Options " + logisticsMatch[0].trim();
+          }
+        }
+        else if (section.title === "Restaurant Reservations") {
+          const restaurantPattern = /(?:Day\s+\d+\s+(?:Lunch|Dinner)|Restaurant Reservations)[^]*?(?=Weather|Enjoy your|$)/i;
+          const restaurantMatch = itineraryText.match(restaurantPattern);
+          if (restaurantMatch) {
+            sectionContent = "Restaurant Reservations " + restaurantMatch[0].trim();
+          }
+        }
+      }
+      
+      // Process the content for display
+      const renderContent = (content: string) => {
+        if (!content) return <p className="text-gray-500 italic">Details will be added soon.</p>;
         
-        // Split by bullet points or sentences
-        const points = text
-          .split(/\n\s*[-•]\s+|\.\s+/)
-          .map(point => point.trim())
-          .filter(point => point && point.length > 10); // Minimum length to be a meaningful point
+        // Create bullet points based on the structure in your data
+        // The pattern in your data seems to use "•" or "-" for bullets
+        const bulletRegex = /(?:^|\n)(?:\s*[•-]\s*|\s*\d+\.\s*|\s*Day\s+\d+:?\s*)/g;
+        const hasBullets = bulletRegex.test(content);
         
-        // Format URLs to be clickable
-        const formatText = (text: string) => {
-          return text.replace(
-            /(https?:\/\/[^\s)]+)/g, 
-            (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
+        if (hasBullets) {
+          // Reset regex
+          bulletRegex.lastIndex = 0;
+          
+          // Split by bullet points
+          const bullets = content
+            .split(bulletRegex)
+            .map(item => item.trim())
+            .filter(item => item && item.length > 0 && !item.startsWith("Accommodation") && !item.startsWith("Logistics") && !item.startsWith("Budget") && !item.startsWith("Weather") && !item.startsWith("Restaurant"));
+          
+          // Format URLs to be clickable and handle markdown links
+          const formatText = (text: string) => {
+            // Handle markdown style links [text](url)
+            const markdownFormatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
+              (_, linkText, url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${linkText}</a>`
+            );
+            
+            // Also handle plain URLs
+            return markdownFormatted.replace(
+              /(?<![[\("'])(https?:\/\/[^\s)]+)(?![)\]"'])/g, 
+              (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
+            );
+          };
+          
+          return (
+            <ul className="list-disc pl-6 space-y-2">
+              {bullets.map((bullet, i) => (
+                <li 
+                  key={i} 
+                  className="text-gray-700 dark:text-gray-300" 
+                  dangerouslySetInnerHTML={{__html: formatText(bullet)}}
+                />
+              ))}
+            </ul>
           );
-        };
+        }
         
-        return (
-          <ul className="list-disc pl-6 space-y-2">
-            {points.map((point, i) => (
-              <li 
-                key={i} 
-                className="text-gray-700 dark:text-gray-300" 
-                dangerouslySetInnerHTML={{__html: formatText(point)}}
-              />
-            ))}
-          </ul>
-        );
+        // If no bullets found, split by lines
+        const lines = content
+          .split(/\n/)
+          .map(line => line.trim())
+          .filter(line => line.length > 0 && !line.startsWith("Accommodation") && !line.startsWith("Logistics") && !line.startsWith("Budget") && !line.startsWith("Weather") && !line.startsWith("Restaurant"));
+        
+        if (lines.length > 0) {
+          const formatText = (text: string) => {
+            // Handle markdown links
+            const markdownFormatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
+              (_, linkText, url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${linkText}</a>`
+            );
+            
+            // Handle plain URLs
+            return markdownFormatted.replace(
+              /(?<![[\("'])(https?:\/\/[^\s)]+)(?![)\]"'])/g, 
+              (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
+            );
+          };
+          
+          return (
+            <ul className="list-disc pl-6 space-y-2">
+              {lines.map((line, i) => (
+                <li 
+                  key={i} 
+                  className="text-gray-700 dark:text-gray-300" 
+                  dangerouslySetInnerHTML={{__html: formatText(line)}}
+                />
+              ))}
+            </ul>
+          );
+        }
+        
+        return <p className="text-gray-500 italic">Details will be added soon.</p>;
       };
 
       return (
         <div key={index} className="bg-cyan-50 dark:bg-gray-800/50 p-6 rounded-lg">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-            {sectionTitle}
+            {section.title}
           </h3>
           <div className="space-y-2">
-            {createBullets(sectionContent)}
+            {renderContent(sectionContent)}
           </div>
         </div>
       );
     })}
   </div>
 )}
-
-{/* Add this right after the Additional Sections and before the Footer */}
               
 {/* Save Button */}
 {tripResult && (
