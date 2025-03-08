@@ -922,16 +922,18 @@ export default function TripPlanner() {
           
           // Format URLs to be clickable and handle markdown links
           const formatText = (text: string) => {
-            // Handle markdown style links [text](url)
-            const markdownFormatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
+            // First handle markdown style links
+            let formatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
               (_, linkText, url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${linkText}</a>`
             );
             
-            // Also handle plain URLs
-            return markdownFormatted.replace(
-              /(?<![[\("'])(https?:\/\/[^\s)]+)(?![)\]"'])/g, 
+            // Then handle any remaining plain URLs - this pattern is more comprehensive
+            formatted = formatted.replace(
+              /(?<!["\(\[])https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
               (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
             );
+            
+            return formatted;
           };
           
           return (
