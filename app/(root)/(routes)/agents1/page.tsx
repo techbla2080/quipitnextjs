@@ -825,13 +825,13 @@ export default function TripPlanner() {
   <div className="space-y-8 mt-12">
     {/* Define the sections we want to display */}
     {[
-      { title: "Accommodation Options", keywords: ["Accommodation Options", "hotel", "Pearl Continental", "Avari"] },
-      { title: "Logistics Options", keywords: ["Logistics Options", "Flight:", "Local Transport:", "Careem"] },
-      { title: "Detailed Budget Breakdown", keywords: ["Budget Breakdown", "Accommodation Costs", "Meal Costs", "Overall Budget"] },
-      { title: "Real-Time Flight Pricing", keywords: ["Real-Time Flight", "IndiGo", "Emirates", "Flight:"] },
-      { title: "Restaurant Reservations", keywords: ["Restaurant Reservations", "Lunch:", "Dinner:", "Café Zouk", "Food Street"] },
-      { title: "Weather Forecast and Packing Suggestions", keywords: ["Weather Forecast", "Packing", "Temperature:", "Conditions:", "Packing List"] }
-    ].map((section: {title: string, keywords: string[]}, index: number) => {
+  { title: "Accommodation Options", keywords: ["Accommodation Options", "hotel", "Pearl Continental", "Avari"] },
+  { title: "Logistics Options", keywords: ["Logistics Options", "Flight:", "Local Transport:", "Careem"] },
+  { title: "Detailed Budget Breakdown", keywords: ["Budget Breakdown", "Accommodation Costs", "Meal Costs", "Overall Budget"] },
+  { title: "Real-Time Flight Pricing", keywords: ["Real-Time Flight", "IndiGo", "Emirates", "Flight:"] },
+  { title: "Weather Forecast and Packing Suggestions", keywords: ["Weather Forecast", "Packing", "Temperature:", "Conditions:", "Packing List"] },
+  { title: "Restaurant Reservations", keywords: ["Restaurant Reservations", "Lunch:", "Dinner:", "Café Zouk", "Food Street"] }
+].map((section: {title: string, keywords: string[]}, index: number) => {
       // Get the full text content
       const itineraryText = typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult);
       
