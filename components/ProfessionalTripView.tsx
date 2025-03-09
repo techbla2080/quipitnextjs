@@ -13,6 +13,66 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
+// Create a LinkText component to handle clickable links
+const LinkText = ({ text }: { text: string }) => {
+  // First process markdown links
+  const processMarkdownLinks = (content: string) => {
+    const parts = content.split(/(\[.*?\]\(.*?\))/g);
+    return parts.map((part, i) => {
+      const match = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (match) {
+        const [_, text, url] = match;
+        return (
+          <a 
+            key={i} 
+            href={url} 
+            className="text-cyan-500 hover:underline" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            {text}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  // Then process plain URLs in the remaining text
+  const processUrls = (content: React.ReactNode[]) => {
+    return content.map((part) => {
+      if (typeof part !== 'string') return part;
+      
+      const urlRegex = /https?:\/\/[^\s)]+/g;
+      const parts = part.split(urlRegex);
+      const matches = part.match(urlRegex) || [];
+      
+      return parts.map((text, i) => {
+        return (
+          <React.Fragment key={i}>
+            {text}
+            {matches[i] && (
+              <a 
+                href={matches[i]} 
+                className="text-cyan-500 hover:underline" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                {matches[i]}
+              </a>
+            )}
+          </React.Fragment>
+        );
+      });
+    });
+  };
+
+  const markdownProcessed = processMarkdownLinks(text);
+  const urlProcessed = processUrls(markdownProcessed);
+  
+  return <>{urlProcessed}</>;
+};
+
 interface TripViewProps {
   tripData: {
     location: string;
@@ -22,6 +82,16 @@ interface TripViewProps {
     jobId: string;
     tripResult: string;
   }
+}
+
+// Define types for the parsed content
+interface ParsedContent {
+  overview: string[];
+  days: {
+    date: string;
+    activities: string[];
+  }[];
+  additionalSections: {[key: string]: string[]};
 }
 
 const ProfessionalTripView = ({ tripData }: TripViewProps) => {
@@ -34,7 +104,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
   }, [tripData]);
 
   // Enhanced parsing function that handles additional sections
-  const parseContent = (content: string) => {
+  const parseContent = (content: string): ParsedContent => {
     if (!content) return { overview: [], days: [], additionalSections: {} };
 
     // Define section titles to extract
@@ -74,7 +144,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     }
     
     // Now extract the additional sections
-    const additionalSections = {};
+    // Initialize with index signature explicitly to avoid TypeScript error
+    const additionalSections: {[key: string]: string[]} = {};
     
     for (const title of sectionTitles) {
       // Create a regex to extract each section, stopping at the next section or end
@@ -252,7 +323,9 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
             {overview.map((point, index) => (
               <li key={index} className="flex items-start">
                 <span className="text-cyan-500 mr-2">•</span>
-                {point}
+                <div className="flex-1">
+                  <LinkText text={point} />
+                </div>
               </li>
             ))}
           </ul>
@@ -273,7 +346,9 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
                   {day.activities.map((activity, actIndex) => (
                     <li key={actIndex} className="flex items-start">
                       <span className="text-cyan-500 mr-2">•</span>
-                      {activity}
+                      <div className="flex-1">
+                        <LinkText text={activity} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -284,7 +359,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       </div>
 
       {/* Additional Sections */}
-      {Object.keys(additionalSections || {}).length > 0 && (
+      {Object.keys(additionalSections).length > 0 && (
         <div className="p-8 mt-4 border-t dark:border-gray-700">
           <h2 className="text-2xl font-bold mb-6 dark:text-white">Additional Information</h2>
           <div className="space-y-6">
@@ -295,10 +370,12 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
                 </div>
                 <div className="p-6">
                   <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-                    {Array.isArray(points) && points.map((point, pointIndex) => (
+                    {points.map((point, pointIndex) => (
                       <li key={pointIndex} className="flex items-start">
                         <span className="text-cyan-500 mr-2">•</span>
-                        {point}
+                        <div className="flex-1">
+                          <LinkText text={point} />
+                        </div>
                       </li>
                     ))}
                   </ul>
