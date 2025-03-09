@@ -33,15 +33,36 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     }
   }, [tripData]);
 
+  // Enhanced parsing function that handles additional sections
   const parseContent = (content: string) => {
-    if (!content) return { overview: [], days: [] };
+    if (!content) return { overview: [], days: [], additionalSections: {} };
 
+    // Define section titles to extract
+    const sectionTitles = [
+      "Accommodation Options",
+      "Logistics Options", 
+      "Detailed Budget Breakdown",
+      "Real-Time Flight Pricing",
+      "Restaurant Reservations",
+      "Weather Forecast and Packing Suggestions"
+    ];
+    
+    // First extract the main itinerary parts (overview and days)
     const parts = content.split(/Day \d+:/);
     const overview = parts[0]?.trim().split('.').filter(p => p.trim()) || [];
     
     const days = [];
     for (let i = 1; i < parts.length; i++) {
-      const activities = parts[i]
+      // Only use content up to any known section title
+      let dayContent = parts[i];
+      for (const title of sectionTitles) {
+        const titleIndex = dayContent.indexOf(title);
+        if (titleIndex > -1) {
+          dayContent = dayContent.substring(0, titleIndex);
+        }
+      }
+      
+      const activities = dayContent
         .split('.')
         .map(a => a.trim())
         .filter(a => a.length > 0);
@@ -51,22 +72,29 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         activities
       });
     }
-
-    return { overview, days };
+    
+    // Now extract the additional sections
+    const additionalSections = {};
+    
+    for (const title of sectionTitles) {
+      // Create a regex to extract each section, stopping at the next section or end
+      const pattern = new RegExp(`${title}([\\s\\S]*?)(?=${sectionTitles.filter(t => t !== title).join('|')}|Day \\d+:|$)`, 'i');
+      const match = content.match(pattern);
+      
+      if (match && match[1] && match[1].trim().length > 0) {
+        // Format the section content into bullet points
+        const sectionContent = match[1].trim();
+        const points = sectionContent
+          .split(/\n|\.|•/)
+          .map(point => point.trim())
+          .filter(point => point.length > 0);
+          
+        additionalSections[title] = points;
+      }
+    }
+    
+    return { overview, days, additionalSections };
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading your trip details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { overview, days } = parseContent(tripData.tripResult);
 
   const handleShare = async (type: string) => {
     try {
@@ -109,6 +137,19 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       toast.error('Failed to share');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading your trip details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { overview, days, additionalSections } = parseContent(tripData.tripResult);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto trip-content">
@@ -241,6 +282,32 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           ))}
         </div>
       </div>
+
+      {/* Additional Sections */}
+      {Object.keys(additionalSections || {}).length > 0 && (
+        <div className="p-8 mt-4 border-t dark:border-gray-700">
+          <h2 className="text-2xl font-bold mb-6 dark:text-white">Additional Information</h2>
+          <div className="space-y-6">
+            {Object.entries(additionalSections).map(([title, points], index) => (
+              <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+                <div className="bg-cyan-500 text-white p-4">
+                  <h3 className="text-xl font-bold">{title}</h3>
+                </div>
+                <div className="p-6">
+                  <ul className="space-y-4 text-gray-600 dark:text-gray-300">
+                    {Array.isArray(points) && points.map((point, pointIndex) => (
+                      <li key={pointIndex} className="flex items-start">
+                        <span className="text-cyan-500 mr-2">•</span>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Reference Footer */}
       <div className="border-t dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800 rounded-b-lg mt-8">
