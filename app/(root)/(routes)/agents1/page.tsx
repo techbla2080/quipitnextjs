@@ -19,6 +19,66 @@ import ReactConfetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import ProfessionalTripView from "@/components/ProfessionalTripView";
 
+// Create a LinkText component to handle clickable links
+const LinkText = ({ text }: { text: string }) => {
+  // First process markdown links
+  const processMarkdownLinks = (content: string) => {
+    const parts = content.split(/(\[.*?\]\(.*?\))/g);
+    return parts.map((part, i) => {
+      const match = part.match(/\[(.*?)\]\((.*?)\)/);
+      if (match) {
+        const [_, text, url] = match;
+        return (
+          <a 
+            key={i} 
+            href={url} 
+            className="text-cyan-500 hover:underline" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            {text}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
+  // Then process plain URLs in the remaining text
+  const processUrls = (content: React.ReactNode[]) => {
+    return content.map((part) => {
+      if (typeof part !== 'string') return part;
+      
+      const urlRegex = /https?:\/\/[^\s)]+/g;
+      const parts = part.split(urlRegex);
+      const matches = part.match(urlRegex) || [];
+      
+      return parts.map((text, i) => {
+        return (
+          <React.Fragment key={i}>
+            {text}
+            {matches[i] && (
+              <a 
+                href={matches[i]} 
+                className="text-cyan-500 hover:underline" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                {matches[i]}
+              </a>
+            )}
+          </React.Fragment>
+        );
+      });
+    });
+  };
+
+  const markdownProcessed = processMarkdownLinks(text);
+  const urlProcessed = processUrls(markdownProcessed);
+  
+  return <>{urlProcessed}</>;
+};
+
 // Updated TripData type
 export type TripData = {
   location: string;
@@ -920,30 +980,12 @@ export default function TripPlanner() {
             .map(item => item.trim())
             .filter(item => item && item.length > 0 && !item.startsWith("Accommodation") && !item.startsWith("Logistics") && !item.startsWith("Budget") && !item.startsWith("Weather") && !item.startsWith("Restaurant"));
           
-          // Format URLs to be clickable and handle markdown links
-          const formatText = (text: string) => {
-            // First handle markdown style links
-            let formatted = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
-              (_, linkText, url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${linkText}</a>`
-            );
-            
-            // Then handle any remaining plain URLs - this pattern is more comprehensive
-            formatted = formatted.replace(
-              /(?<!["\(\[])https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi,
-              (url) => `<a href="${url}" class="text-cyan-500 hover:underline" target="_blank">${url}</a>`
-            );
-            
-            return formatted;
-          };
-          
           return (
             <ul className="list-disc pl-6 space-y-2">
               {bullets.map((bullet, i) => (
-                <li 
-                  key={i} 
-                  className="text-gray-700 dark:text-gray-300" 
-                  dangerouslySetInnerHTML={{__html: formatText(bullet)}}
-                />
+                <li key={i} className="text-gray-700 dark:text-gray-300">
+                  <LinkText text={bullet} />
+                </li>
               ))}
             </ul>
           );
@@ -972,11 +1014,9 @@ export default function TripPlanner() {
           return (
             <ul className="list-disc pl-6 space-y-2">
               {lines.map((line, i) => (
-                <li 
-                  key={i} 
-                  className="text-gray-700 dark:text-gray-300" 
-                  dangerouslySetInnerHTML={{__html: formatText(line)}}
-                />
+                <li key={i} className="text-gray-700 dark:text-gray-300">
+                  <LinkText text={line} />
+                </li>
               ))}
             </ul>
           );
