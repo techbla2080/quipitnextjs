@@ -112,128 +112,235 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     // Clean up the content to remove any potential artifacts
     content = content.replace(/```/g, "").trim();
     
+    // Calculate actual number of days in trip from dateRange
+    let tripDayCount = 5; // Default to 5 days if we can't parse the date range
+    if (tripData.dateRange) {
+      const dateRangeParts = tripData.dateRange.split(' to ');
+      if (dateRangeParts.length === 2) {
+        try {
+          const startDate = new Date(dateRangeParts[0]);
+          const endDate = new Date(dateRangeParts[1]);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+            tripDayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+            console.log(`Trip duration: ${tripDayCount} days`);
+          }
+        } catch (e) {
+          console.error("Error parsing date range", e);
+        }
+      }
+    }
+    
     // Define section titles to extract (and their common variations)
     const sectionTitleVariants: {[key: string]: string[]} = {
-      "Accommodation Options": ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay"],
-      "Logistics Options": ["Logistics Options", "Logistics", "Transport", "Flight", "Transportation"],
-      "Detailed Budget Breakdown": ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Cost", "Expenses"],
-      "Real-Time Flight Pricing": ["Real-Time Flight Pricing", "Flight Pricing", "Flights", "Airlines"],
-      "Restaurant Reservations": ["Restaurant Reservations", "Restaurants", "Dining", "Food", "Cafes"],
-      "Weather Forecast and Packing Suggestions": ["Weather Forecast and Packing Suggestions", "Weather Forecast", "Weather", "Packing", "Temperature", "Conditions"]
+      "Accommodation Options": ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay", "Hotel", "Residence"],
+      "Logistics Options": ["Logistics Options", "Logistics", "Transport", "Flight", "Transportation", "Local Transport"],
+      "Detailed Budget Breakdown": ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Cost", "Expenses", "Total cost"],
+      "Real-Time Flight Pricing": ["Real-Time Flight Pricing", "Flight Pricing", "Flights", "Airlines", "Air Arabia"],
+      "Restaurant Reservations": ["Restaurant Reservations", "Restaurants", "Dining", "Food", "Cafes", "Dinner", "Lunch"],
+      "Weather Forecast and Packing Suggestions": ["Weather Forecast and Packing Suggestions", "Weather Forecast", "Weather", "Packing", "Temperature", "Conditions", "Packing List"]
     };
     
     // Get flat list of all section titles for splitting day content
     const allSectionTitles = Object.values(sectionTitleVariants).flat();
     
     // First extract the main itinerary parts (overview and days)
-    const parts = content.split(/Day \d+:/);
-    const overview = parts[0]?.trim().split('.').filter(p => p.trim()) || [];
+    const initialParts = content.split(/Day \d+:/);
+    const overview = initialParts[0]?.trim().split('.').filter(p => p.trim()) || [];
+    
+    // Extract all day parts from content including their headers
+    const dayMatches = content.match(/Day \d+:[^]*?(?=Day \d+:|$)/g) || [];
     
     const days = [];
-    for (let i = 1; i < parts.length; i++) {
-      // Skip if this part is clearly not a day (too short)
-      if (parts[i].length < 20) continue;
+    // Only process valid trip days (1 to tripDayCount)
+    for (let i = 1; i <= tripDayCount; i++) {
+      // Find the corresponding day content
+      const dayMatch = dayMatches.find(d => d.startsWith(`Day ${i}:`));
       
-      // Only use content up to any known section title
-      let dayContent = parts[i];
-      for (const title of allSectionTitles) {
-        // Make sure we don't match things like "Weather: Sunny" as a section title
-        const titleRegex = new RegExp(`${title}\\s*[\\n:]`, 'i');
-        const match = dayContent.match(titleRegex);
-        if (match && typeof match.index === 'number' && match.index > 20) {  // Fix for match.index undefined
-          dayContent = dayContent.substring(0, match.index);
+      if (dayMatch) {
+        // Extract just the day content without the header
+        let dayContent = dayMatch.substring(`Day ${i}:`.length);
+        
+        // Truncate content if it contains any section titles
+        for (const title of allSectionTitles) {
+          // Make sure we're not matching things like "Weather: Sunny" inside day content
+          const titleRegex = new RegExp(`(?:^|\\n|\\s)(${title})\\s*[:][^\\n]*`, 'i');
+          const match = dayContent.match(titleRegex);
+          if (match && typeof match.index === 'number' && match.index > 20) {
+            dayContent = dayContent.substring(0, match.index);
+          }
         }
+        
+        // Clean up activities text
+        const activities = dayContent
+          .split(/\.|\n|-|•/)
+          .map(a => a.trim())
+          .filter(a => a.length > 5 && a.length < 300);  // reasonable length for activity
+        
+        days.push({
+          date: `Day ${i}`,
+          activities
+        });
+      } else {
+        // If no content found for this day, add an empty day
+        days.push({
+          date: `Day ${i}`,
+          activities: []
+        });
       }
-      
-      // Clean up activities text
-      const activities = dayContent
-        .split(/\.|\n|-|•/)
-        .map(a => a.trim())
-        .filter(a => a.length > 5 && a.length < 300);  // reasonable length for activity
-      
-      days.push({
-        date: `Day ${i}`,
-        activities
-      });
     }
     
     // Now extract the additional sections
     // Initialize with index signature explicitly to avoid TypeScript error
     const additionalSections: {[key: string]: string[]} = {};
     
-    // Collect sections by checking for each variant of title
+    // First pass: extract sections that are properly formatted
     for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
+      // Try each variant of the section title
       for (const variant of variants) {
-        // Create a regex to find this section
         const escapedVariant = variant.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const allSectionRegex = allSectionTitles
-          .map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'))
-          .map(t => `(?:^|\\n|\\s)${t}\\s*[:\\n]`)
-          .join('|');
-          
-        const variantRegex = new RegExp(`(?:^|\\n|\\s)(${escapedVariant})\\s*[:\\n]([\\s\\S]*?)(?=(${allSectionRegex})|$)`, 'i');
-        const match = content.match(variantRegex);
+        const sectionRegex = new RegExp(`(?:^|\\n|\\s)(${escapedVariant})\\s*[:][^]*?(?=(?:${allSectionTitles.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).filter(t => t !== escapedVariant).join('|')})|$)`, 'i');
+        const match = content.match(sectionRegex);
         
-        if (match && match[2] && match[2].trim().length > 20) {
-          // Format the section content into bullet points
-          const sectionContent = match[2].trim();
+        if (match && match[0] && match[0].length > variant.length + 10) {
+          const sectionContent = match[0].substring(match[0].indexOf(':') + 1).trim();
           
-          // Try different splitting methods
-          let points: string[] = [];
+          // Split section content into bullet points
+          const points = sectionContent
+            .split(/\.|\n|-|•/)
+            .map(p => p.trim())
+            .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
           
-          // Method 1: Split by bullets, numbers or newlines
-          points = sectionContent
-            .split(/(?:\n|\.|\d+\.\s*|•|-|\*)\s*/)
-            .map(point => point.trim())
-            .filter(point => point.length > 10 && point.length < 500);
-          
-          // Method 2: If few points found, try just newlines
-          if (points.length < 2) {
-            points = sectionContent
-              .split(/\n/)
-              .map(point => point.trim())
-              .filter(point => point.length > 10 && point.length < 500);
-          }
-          
-          // Method 3: If still few points, try just periods
-          if (points.length < 2) {
-            points = sectionContent
-              .split(/\./)
-              .map(point => point.trim())
-              .filter(point => point.length > 10 && point.length < 500);
-          }
-          
-          // If we found points, save them under the main title
           if (points.length > 0) {
             additionalSections[mainTitle] = points;
-            break;  // Once we found content for this section, stop looking
+            break; // Once we found this section, stop looking for variants
           }
         }
       }
     }
     
-    // Special handling for Weather Forecast
-    if (!additionalSections["Weather Forecast and Packing Suggestions"]) {
-      // Look for weather info in day sections
+    // Second pass: look for section content mistakenly labeled as days beyond trip duration
+    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
+      // Skip if we already found this section
+      if (additionalSections[mainTitle] && additionalSections[mainTitle].length > 0) continue;
+      
+      // Look for section content in days beyond the trip duration
+      const sectionPoints: string[] = [];
+      
+      // Check each day past the trip duration
+      for (let i = tripDayCount + 1; i <= 20; i++) { // Check up to Day 20 to be safe
+        const dayRegex = new RegExp(`Day ${i}:[^]*?(?=Day \\d+:|$)`, 'i');
+        const dayMatch = content.match(dayRegex);
+        
+        if (dayMatch && dayMatch[0]) {
+          const dayContent = dayMatch[0].substring(`Day ${i}:`.length).trim();
+          
+          // Check if this day content belongs to our section
+          const belongsToSection = variants.some(variant => 
+            dayContent.includes(variant) || 
+            new RegExp(`${variant}\\s*[:\\n]`, 'i').test(dayContent)
+          );
+          
+          if (belongsToSection) {
+            // Extract points from this day content
+            const points = dayContent
+              .split(/\.|\n|-|•/)
+              .map(p => p.trim())
+              .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
+            
+            sectionPoints.push(...points);
+          }
+        }
+      }
+      
+      // Also look for section content embedded in the main text
+      for (const variant of variants) {
+        const variantInText = content.indexOf(variant);
+        if (variantInText >= 0) {
+          // Extract content around this variant
+          const surroundingText = content.substring(variantInText - 50 > 0 ? variantInText - 50 : 0, 
+                                                   variantInText + 500 < content.length ? variantInText + 500 : content.length);
+          
+          // Extract points from this text
+          const points = surroundingText
+            .split(/\.|\n|-|•/)
+            .map(p => p.trim())
+            .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day') && p.includes(variant));
+          
+          sectionPoints.push(...points);
+        }
+      }
+      
+      // If we found points, add them to the section
+      if (sectionPoints.length > 0) {
+        additionalSections[mainTitle] = sectionPoints;
+      }
+    }
+    
+    // Special handling for Weather Forecast section
+    if (!additionalSections["Weather Forecast and Packing Suggestions"] || 
+        additionalSections["Weather Forecast and Packing Suggestions"].length === 0) {
+      // Look for weather info in the content
       const weatherPoints: string[] = [];
       
-      // Extract weather info from days
-      days.forEach((day) => {
-        // Find weather-related activities
+      // Look for temperature and condition patterns
+      const tempRegex = /(?:High|Low)[\s:]*\d+°[FC]/g;
+      const tempMatches = content.match(tempRegex) || [];
+      
+      if (tempMatches.length > 0) {
+        // Extract sentences containing temperature info
+        for (const tempMatch of tempMatches) {
+          const tempIndex = content.indexOf(tempMatch);
+          if (tempIndex >= 0) {
+            // Get sentence containing this temperature
+            const sentenceStart = content.lastIndexOf('.', tempIndex) + 1;
+            const sentenceEnd = content.indexOf('.', tempIndex + tempMatch.length);
+            if (sentenceEnd > sentenceStart) {
+              const sentence = content.substring(sentenceStart, sentenceEnd).trim();
+              if (sentence.length > 5 && !weatherPoints.includes(sentence)) {
+                weatherPoints.push(sentence);
+              }
+            }
+          }
+        }
+      }
+      
+      // Look for packing suggestions
+      const packingRegex = /Packing(?:\s+List)?[:\s]([^]*?)(?=Day|\n\n|$)/i;
+      const packingMatch = content.match(packingRegex);
+      
+      if (packingMatch && packingMatch[1]) {
+        const packingContent = packingMatch[1].trim();
+        const packingItems = packingContent
+          .split(/\.|\n|-|•/)
+          .map(p => p.trim())
+          .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
+        
+        weatherPoints.push(...packingItems);
+      }
+      
+      // Also extract weather info from day activities
+      days.forEach(day => {
         const weatherActivities = day.activities.filter(activity => 
           /weather|temperature|conditions|high|low|packing|forecast|degrees|°[CF]|rain|sunny|cloudy/i.test(activity)
         );
         
-        // Add them to weather points
-        weatherPoints.push(...weatherActivities);
-        
-        // Remove them from day activities
-        day.activities = day.activities.filter(activity => 
-          !weatherActivities.includes(activity)
-        );
+        if (weatherActivities.length > 0) {
+          // Add unique weather points
+          weatherActivities.forEach(activity => {
+            if (!weatherPoints.includes(activity)) {
+              weatherPoints.push(activity);
+            }
+          });
+          
+          // Remove weather activities from day content
+          day.activities = day.activities.filter(activity => 
+            !weatherActivities.includes(activity)
+          );
+        }
       });
       
-      // Add collected weather points if we found any
+      // If we found weather points, add them to the section
       if (weatherPoints.length > 0) {
         additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
       }
@@ -241,6 +348,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     
     // Get the full section list for console debugging
     console.log("Found sections:", Object.keys(additionalSections));
+    console.log("Found days:", days.length);
     
     return { overview, days, additionalSections };
   };
@@ -430,16 +538,20 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
                 <h3 className="text-xl font-bold">{day.date}</h3>
               </div>
               <div className="p-6">
-                <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-                  {day.activities.map((activity, actIndex) => (
-                    <li key={actIndex} className="flex items-start">
-                      <span className="text-cyan-500 mr-2">•</span>
-                      <div className="flex-1">
-                        <LinkText text={activity} />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                {day.activities.length > 0 ? (
+                  <ul className="space-y-4 text-gray-600 dark:text-gray-300">
+                    {day.activities.map((activity, actIndex) => (
+                      <li key={actIndex} className="flex items-start">
+                        <span className="text-cyan-500 mr-2">•</span>
+                        <div className="flex-1">
+                          <LinkText text={activity} />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 italic">No activities planned for this day.</p>
+                )}
               </div>
             </div>
           ))}
