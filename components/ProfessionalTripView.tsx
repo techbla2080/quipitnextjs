@@ -171,11 +171,11 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           }
         }
         
-        // Clean up activities text
+        // Clean up activities text with minimal filtering
         const activities = dayContent
           .split(/\.|\n|-|•/)
           .map(a => a.trim())
-          .filter(a => a.length > 5 && a.length < 300);  // reasonable length for activity
+          .filter(a => a.length > 0);  // Keep all non-empty lines
         
         days.push({
           date: `Day ${i}`,
@@ -202,14 +202,14 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         const sectionRegex = new RegExp(`(?:^|\\n|\\s)(${escapedVariant})\\s*[:][^]*?(?=(?:${allSectionTitles.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).filter(t => t !== escapedVariant).join('|')})|$)`, 'i');
         const match = content.match(sectionRegex);
         
-        if (match && match[0] && match[0].length > variant.length + 10) {
+        if (match && match[0] && match[0].length > variant.length + 1) { // Reduced length requirement
           const sectionContent = match[0].substring(match[0].indexOf(':') + 1).trim();
           
-          // Split section content into bullet points
+          // Split section content into bullet points with minimal filtering
           const points = sectionContent
             .split(/\.|\n|-|•/)
             .map(p => p.trim())
-            .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
+            .filter(p => p.length > 0);  // Keep all non-empty content
           
           if (points.length > 0) {
             additionalSections[mainTitle] = points;
@@ -242,11 +242,11 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           );
           
           if (belongsToSection) {
-            // Extract points from this day content
+            // Extract points from this day content with minimal filtering
             const points = dayContent
               .split(/\.|\n|-|•/)
               .map(p => p.trim())
-              .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
+              .filter(p => p.length > 0);  // Keep all non-empty content
             
             sectionPoints.push(...points);
           }
@@ -259,13 +259,13 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         if (variantInText >= 0) {
           // Extract content around this variant
           const surroundingText = content.substring(variantInText - 50 > 0 ? variantInText - 50 : 0, 
-                                                   variantInText + 500 < content.length ? variantInText + 500 : content.length);
+                                                   variantInText + 1000 < content.length ? variantInText + 1000 : content.length);
           
-          // Extract points from this text
+          // Extract points from this text with minimal filtering
           const points = surroundingText
             .split(/\.|\n|-|•/)
             .map(p => p.trim())
-            .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day') && p.includes(variant));
+            .filter(p => p.length > 0 && p.includes(variant));
           
           sectionPoints.push(...points);
         }
@@ -284,7 +284,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       const weatherPoints: string[] = [];
       
       // Look for temperature and condition patterns
-      const tempRegex = /(?:High|Low)[\s:]*\d+°[FC]/g;
+      const tempRegex = /(?:High|Low|Temperature)[\s:]*\d+°?[FC]?/g;
       const tempMatches = content.match(tempRegex) || [];
       
       if (tempMatches.length > 0) {
@@ -297,7 +297,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
             const sentenceEnd = content.indexOf('.', tempIndex + tempMatch.length);
             if (sentenceEnd > sentenceStart) {
               const sentence = content.substring(sentenceStart, sentenceEnd).trim();
-              if (sentence.length > 5 && !weatherPoints.includes(sentence)) {
+              if (sentence.length > 0 && !weatherPoints.includes(sentence)) {
                 weatherPoints.push(sentence);
               }
             }
@@ -314,7 +314,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         const packingItems = packingContent
           .split(/\.|\n|-|•/)
           .map(p => p.trim())
-          .filter(p => p.length > 5 && p.length < 300 && !p.startsWith('Day'));
+          .filter(p => p.length > 0);  // Keep all non-empty content
         
         weatherPoints.push(...packingItems);
       }
@@ -343,6 +343,49 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       // If we found weather points, add them to the section
       if (weatherPoints.length > 0) {
         additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
+      }
+    }
+    
+    // Also try to directly parse entire sections from content
+    const originalContent = content;
+    
+    // Try to find entire sections in the content
+    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
+      // Skip if we already have content for this section
+      if (additionalSections[mainTitle] && additionalSections[mainTitle].length > 3) continue;
+      
+      // Look for the entire section
+      for (const variant of variants) {
+        // Find section start
+        const sectionStart = originalContent.indexOf(variant);
+        if (sectionStart >= 0) {
+          // Find section end (next section or end of content)
+          let sectionEnd = originalContent.length;
+          
+          // Find the next section title after this one
+          for (const otherTitle of allSectionTitles) {
+            if (otherTitle === variant) continue;
+            
+            const otherStart = originalContent.indexOf(otherTitle, sectionStart + variant.length);
+            if (otherStart > sectionStart && otherStart < sectionEnd) {
+              sectionEnd = otherStart;
+            }
+          }
+          
+          // Extract the section content
+          const sectionContent = originalContent.substring(sectionStart, sectionEnd).trim();
+          
+          // Split into points
+          const points = sectionContent
+            .split(/\.|\n|-|•/)
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+          
+          if (points.length > 0) {
+            additionalSections[mainTitle] = points;
+            break;
+          }
+        }
       }
     }
     
