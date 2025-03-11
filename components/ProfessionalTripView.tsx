@@ -43,7 +43,8 @@ const LinkText = ({ text }: { text: string }) => {
     return content.map((part) => {
       if (typeof part !== 'string') return part;
       
-      const urlRegex = /https?:\/\/[^\s)]+/g;
+      // Improved URL regex to catch more complete URLs
+      const urlRegex = /https?:\/\/[^\s)]+(?:\.[^\s)]+)*/g;
       const parts = part.split(urlRegex);
       const matches = part.match(urlRegex) || [];
       
@@ -103,6 +104,57 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     }
   }, [tripData]);
 
+  // Helper function to clean up URL fragments and join them
+  const joinUrlFragments = (points: string[]): string[] => {
+    const result: string[] = [];
+    let i = 0;
+    
+    while (i < points.length) {
+      // Current point
+      let point = points[i];
+      
+      // Check if this point ends with a URL start
+      if (/https?:\/\/www\.?$/i.test(point)) {
+        // Join with as many next points needed to form a complete URL
+        let j = i + 1;
+        while (j < points.length && 
+              !points[j].includes(" ") && 
+              !points[j].match(/https?:\/\//i) &&
+              points[j].length < 50) {
+          point += points[j];
+          j++;
+        }
+        result.push(point);
+        i = j;
+      } 
+      // Check if it's a URL domain without http://
+      else if (/^www\.[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z0-9]+/.test(point) && 
+              !point.includes(" ")) {
+        result.push("https://" + point);
+        i++;
+      }
+      // If it's a normal point, just add it
+      else {
+        result.push(point);
+        i++;
+      }
+    }
+    
+    return result;
+  };
+  
+  // Helper function to extract content more reliably
+  const extractContent = (text: string): string[] => {
+    // First split by visible delimiters
+    const initialSplit = text
+      .split(/(?:\r?\n|\r|•|-|(?<=\.)\s+)/g)
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    // Join URL fragments that got split
+    return joinUrlFragments(initialSplit);
+  };
+
   // Enhanced parsing function that handles additional sections
   const parseContent = (content: string): ParsedContent => {
     if (!content) return { overview: [], days: [], additionalSections: {} };
@@ -146,7 +198,9 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     
     // First extract the main itinerary parts (overview and days)
     const initialParts = content.split(/Day \d+:/);
-    const overview = initialParts[0]?.trim().split('.').filter(p => p.trim()) || [];
+    // More carefully process the overview text to avoid breaking URLs
+    const overviewText = initialParts[0]?.trim() || "";
+    const overview = extractContent(overviewText);
     
     // Extract all day parts from content including their headers
     const dayMatches = content.match(/Day \d+:[^]*?(?=Day \d+:|$)/g) || [];
@@ -171,11 +225,8 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           }
         }
         
-        // Clean up activities text with minimal filtering
-        const activities = dayContent
-          .split(/\.|\n|-|•/)
-          .map(a => a.trim())
-          .filter(a => a.length > 0);  // Keep all non-empty lines
+        // Extract activities with minimal processing to maintain URLs and formatting
+        const activities = extractContent(dayContent);
         
         days.push({
           date: `Day ${i}`,
@@ -194,197 +245,133 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     // Initialize with index signature explicitly to avoid TypeScript error
     const additionalSections: {[key: string]: string[]} = {};
     
-    // First pass: extract sections that are properly formatted
+    // Process entire content to identify and extract sections directly
+    // This is more reliable than breaking it up too much
     for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
-      // Try each variant of the section title
       for (const variant of variants) {
-        const escapedVariant = variant.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-        const sectionRegex = new RegExp(`(?:^|\\n|\\s)(${escapedVariant})\\s*[:][^]*?(?=(?:${allSectionTitles.map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).filter(t => t !== escapedVariant).join('|')})|$)`, 'i');
-        const match = content.match(sectionRegex);
-        
-        if (match && match[0] && match[0].length > variant.length + 1) { // Reduced length requirement
-          const sectionContent = match[0].substring(match[0].indexOf(':') + 1).trim();
+        // Find section in content
+        const sectionIndex = content.indexOf(variant);
+        if (sectionIndex >= 0) {
+          // Find the end of this section (next section or end)
+          let sectionEnd = content.length;
           
-          // Split section content into bullet points with minimal filtering
-          const points = sectionContent
-            .split(/\.|\n|-|•/)
-            .map(p => p.trim())
-            .filter(p => p.length > 0);  // Keep all non-empty content
+          // Look for the next section after this one
+          for (const otherTitle of allSectionTitles) {
+            if (otherTitle === variant) continue;
+            
+            const otherIndex = content.indexOf(otherTitle, sectionIndex + variant.length);
+            if (otherIndex > sectionIndex && otherIndex < sectionEnd) {
+              sectionEnd = otherIndex;
+            }
+          }
+          
+          // Also check for Day markers as section boundaries
+          const dayMarkerIndex = content.indexOf("Day ", sectionIndex + variant.length);
+          if (dayMarkerIndex > sectionIndex && dayMarkerIndex < sectionEnd) {
+            // Only use the day marker if it's a day header (Day X:)
+            const nextChars = content.substring(dayMarkerIndex, dayMarkerIndex + 8);
+            if (/Day \d+:/.test(nextChars)) {
+              sectionEnd = dayMarkerIndex;
+            }
+          }
+          
+          // Extract the section content
+          const sectionContent = content.substring(sectionIndex, sectionEnd).trim();
+          
+          // Skip the section title/header when extracting content
+          const colonIndex = sectionContent.indexOf(":");
+          const contentStart = colonIndex > -1 ? colonIndex + 1 : variant.length;
+          const cleanedContent = sectionContent.substring(contentStart).trim();
+          
+          // Process the section content
+          const points = extractContent(cleanedContent);
           
           if (points.length > 0) {
             additionalSections[mainTitle] = points;
-            break; // Once we found this section, stop looking for variants
+            break; // Found content for this section, stop looking
           }
         }
       }
     }
     
-    // Second pass: look for section content mistakenly labeled as days beyond trip duration
+    // Second pass: look for section content in days beyond trip duration
     for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
       // Skip if we already found this section
       if (additionalSections[mainTitle] && additionalSections[mainTitle].length > 0) continue;
       
       // Look for section content in days beyond the trip duration
-      const sectionPoints: string[] = [];
-      
-      // Check each day past the trip duration
       for (let i = tripDayCount + 1; i <= 20; i++) { // Check up to Day 20 to be safe
-        const dayRegex = new RegExp(`Day ${i}:[^]*?(?=Day \\d+:|$)`, 'i');
-        const dayMatch = content.match(dayRegex);
+        const dayHeader = `Day ${i}:`;
+        const dayIndex = content.indexOf(dayHeader);
         
-        if (dayMatch && dayMatch[0]) {
-          const dayContent = dayMatch[0].substring(`Day ${i}:`.length).trim();
+        if (dayIndex >= 0) {
+          // Find end of this day content
+          let dayEnd = content.length;
+          const nextDayIndex = content.indexOf("Day ", dayIndex + dayHeader.length);
+          if (nextDayIndex > dayIndex) {
+            dayEnd = nextDayIndex;
+          }
+          
+          const dayContent = content.substring(dayIndex, dayEnd).trim();
           
           // Check if this day content belongs to our section
-          const belongsToSection = variants.some(variant => 
-            dayContent.includes(variant) || 
-            new RegExp(`${variant}\\s*[:\\n]`, 'i').test(dayContent)
-          );
+          const belongsToSection = variants.some(variant => dayContent.includes(variant));
           
           if (belongsToSection) {
-            // Extract points from this day content with minimal filtering
-            const points = dayContent
-              .split(/\.|\n|-|•/)
-              .map(p => p.trim())
-              .filter(p => p.length > 0);  // Keep all non-empty content
+            // Extract content from this day section
+            const points = extractContent(dayContent.substring(dayHeader.length));
             
-            sectionPoints.push(...points);
+            if (points.length > 0) {
+              additionalSections[mainTitle] = points;
+              break; // Found content for this section, stop looking
+            }
           }
         }
-      }
-      
-      // Also look for section content embedded in the main text
-      for (const variant of variants) {
-        const variantInText = content.indexOf(variant);
-        if (variantInText >= 0) {
-          // Extract content around this variant
-          const surroundingText = content.substring(variantInText - 50 > 0 ? variantInText - 50 : 0, 
-                                                   variantInText + 1000 < content.length ? variantInText + 1000 : content.length);
-          
-          // Extract points from this text with minimal filtering
-          const points = surroundingText
-            .split(/\.|\n|-|•/)
-            .map(p => p.trim())
-            .filter(p => p.length > 0 && p.includes(variant));
-          
-          sectionPoints.push(...points);
-        }
-      }
-      
-      // If we found points, add them to the section
-      if (sectionPoints.length > 0) {
-        additionalSections[mainTitle] = sectionPoints;
       }
     }
     
     // Special handling for Weather Forecast section
     if (!additionalSections["Weather Forecast and Packing Suggestions"] || 
         additionalSections["Weather Forecast and Packing Suggestions"].length === 0) {
-      // Look for weather info in the content
-      const weatherPoints: string[] = [];
+      // Look for weather info in the entire content
+      const weatherKeywords = ["Weather", "Temperature", "Conditions", "Packing", "High", "Low", "°F", "°C"];
+      const weatherContaining: string[] = [];
       
-      // Look for temperature and condition patterns
-      const tempRegex = /(?:High|Low|Temperature)[\s:]*\d+°?[FC]?/g;
-      const tempMatches = content.match(tempRegex) || [];
+      // Find content chunks containing weather info
+      const contentLines = content.split("\n");
       
-      if (tempMatches.length > 0) {
-        // Extract sentences containing temperature info
-        for (const tempMatch of tempMatches) {
-          const tempIndex = content.indexOf(tempMatch);
-          if (tempIndex >= 0) {
-            // Get sentence containing this temperature
-            const sentenceStart = content.lastIndexOf('.', tempIndex) + 1;
-            const sentenceEnd = content.indexOf('.', tempIndex + tempMatch.length);
-            if (sentenceEnd > sentenceStart) {
-              const sentence = content.substring(sentenceStart, sentenceEnd).trim();
-              if (sentence.length > 0 && !weatherPoints.includes(sentence)) {
-                weatherPoints.push(sentence);
-              }
+      for (let i = 0; i < contentLines.length; i++) {
+        const line = contentLines[i].trim();
+        
+        if (weatherKeywords.some(keyword => line.includes(keyword))) {
+          // Found a line with weather info
+          let weatherContext = line;
+          
+          // Include surrounding context
+          for (let j = Math.max(0, i-1); j <= Math.min(contentLines.length-1, i+1); j++) {
+            if (j !== i && contentLines[j].trim().length > 0) {
+              weatherContext += " " + contentLines[j].trim();
             }
           }
+          
+          weatherContaining.push(weatherContext);
         }
       }
       
-      // Look for packing suggestions
-      const packingRegex = /Packing(?:\s+List)?[:\s]([^]*?)(?=Day|\n\n|$)/i;
-      const packingMatch = content.match(packingRegex);
-      
-      if (packingMatch && packingMatch[1]) {
-        const packingContent = packingMatch[1].trim();
-        const packingItems = packingContent
-          .split(/\.|\n|-|•/)
-          .map(p => p.trim())
-          .filter(p => p.length > 0);  // Keep all non-empty content
+      if (weatherContaining.length > 0) {
+        // Process the extracted weather content
+        const weatherPoints = [];
         
-        weatherPoints.push(...packingItems);
-      }
-      
-      // Also extract weather info from day activities
-      days.forEach(day => {
-        const weatherActivities = day.activities.filter(activity => 
-          /weather|temperature|conditions|high|low|packing|forecast|degrees|°[CF]|rain|sunny|cloudy/i.test(activity)
-        );
-        
-        if (weatherActivities.length > 0) {
-          // Add unique weather points
-          weatherActivities.forEach(activity => {
-            if (!weatherPoints.includes(activity)) {
-              weatherPoints.push(activity);
-            }
-          });
-          
-          // Remove weather activities from day content
-          day.activities = day.activities.filter(activity => 
-            !weatherActivities.includes(activity)
-          );
+        for (const chunk of weatherContaining) {
+          const extractedPoints = extractContent(chunk);
+          weatherPoints.push(...extractedPoints);
         }
-      });
-      
-      // If we found weather points, add them to the section
-      if (weatherPoints.length > 0) {
-        additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
-      }
-    }
-    
-    // Also try to directly parse entire sections from content
-    const originalContent = content;
-    
-    // Try to find entire sections in the content
-    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
-      // Skip if we already have content for this section
-      if (additionalSections[mainTitle] && additionalSections[mainTitle].length > 3) continue;
-      
-      // Look for the entire section
-      for (const variant of variants) {
-        // Find section start
-        const sectionStart = originalContent.indexOf(variant);
-        if (sectionStart >= 0) {
-          // Find section end (next section or end of content)
-          let sectionEnd = originalContent.length;
-          
-          // Find the next section title after this one
-          for (const otherTitle of allSectionTitles) {
-            if (otherTitle === variant) continue;
-            
-            const otherStart = originalContent.indexOf(otherTitle, sectionStart + variant.length);
-            if (otherStart > sectionStart && otherStart < sectionEnd) {
-              sectionEnd = otherStart;
-            }
-          }
-          
-          // Extract the section content
-          const sectionContent = originalContent.substring(sectionStart, sectionEnd).trim();
-          
-          // Split into points
-          const points = sectionContent
-            .split(/\.|\n|-|•/)
-            .map(p => p.trim())
-            .filter(p => p.length > 0);
-          
-          if (points.length > 0) {
-            additionalSections[mainTitle] = points;
-            break;
-          }
+        
+        // Filter duplicates
+        const uniquePoints = [...new Set(weatherPoints)];
+        
+        if (uniquePoints.length > 0) {
+          additionalSections["Weather Forecast and Packing Suggestions"] = uniquePoints;
         }
       }
     }
