@@ -113,7 +113,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     content = content.replace(/```/g, "").trim();
     
     // Define section titles to extract (and their common variations)
-    const sectionTitleVariants = {
+    const sectionTitleVariants: {[key: string]: string[]} = {
       "Accommodation Options": ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay"],
       "Logistics Options": ["Logistics Options", "Logistics", "Transport", "Flight", "Transportation"],
       "Detailed Budget Breakdown": ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Cost", "Expenses"],
@@ -140,7 +140,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         // Make sure we don't match things like "Weather: Sunny" as a section title
         const titleRegex = new RegExp(`${title}\\s*[\\n:]`, 'i');
         const match = dayContent.match(titleRegex);
-        if (match && match.index > 20) {  // Only truncate if not at the beginning
+        if (match && typeof match.index === 'number' && match.index > 20) {  // Fix for match.index undefined
           dayContent = dayContent.substring(0, match.index);
         }
       }
@@ -165,7 +165,13 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
       for (const variant of variants) {
         // Create a regex to find this section
-        const variantRegex = new RegExp(`(?:^|\\n|\\s)(${variant})\\s*[:\\n]([\\s\\S]*?)(?=(?:${allSectionTitles.map(t => `(?:^|\\n|\\s)${t}\\s*[:\\n]`).join('|')})|$)`, 'i');
+        const escapedVariant = variant.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        const allSectionRegex = allSectionTitles
+          .map(t => t.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'))
+          .map(t => `(?:^|\\n|\\s)${t}\\s*[:\\n]`)
+          .join('|');
+          
+        const variantRegex = new RegExp(`(?:^|\\n|\\s)(${escapedVariant})\\s*[:\\n]([\\s\\S]*?)(?=(${allSectionRegex})|$)`, 'i');
         const match = content.match(variantRegex);
         
         if (match && match[2] && match[2].trim().length > 20) {
