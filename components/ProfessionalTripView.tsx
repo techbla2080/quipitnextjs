@@ -164,6 +164,26 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       }
     }
     
+    // Special handling for Weather Forecast section which might have different formatting
+    if (!additionalSections["Weather Forecast and Packing Suggestions"]) {
+      const weatherKeywords = ["Weather", "Temperature", "Packing List", "Conditions", "Forecast"];
+      for (const keyword of weatherKeywords) {
+        const weatherPattern = new RegExp(`${keyword}[\\s\\S]*?(?=(Accommodation|Logistics|Budget|Flight|Restaurant|Day \\d+:|$))`, 'i');
+        const weatherMatch = content.match(weatherPattern);
+        
+        if (weatherMatch && weatherMatch[0] && weatherMatch[0].trim().length > 20) {
+          const weatherContent = weatherMatch[0].trim();
+          const weatherPoints = weatherContent
+            .split(/\n|\.|•/)
+            .map(point => point.trim())
+            .filter(point => point.length > 0 && point.length < 500);
+            
+          additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
+          break;
+        }
+      }
+    }
+    
     return { overview, days, additionalSections };
   };
 
@@ -221,6 +241,16 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
   }
 
   const { overview, days, additionalSections } = parseContent(tripData.tripResult);
+
+  // Fixed order of sections for display
+  const orderedSections = [
+    "Accommodation Options",
+    "Logistics Options", 
+    "Detailed Budget Breakdown",
+    "Real-Time Flight Pricing",
+    "Restaurant Reservations",
+    "Weather Forecast and Packing Suggestions"
+  ];
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto trip-content">
@@ -358,30 +388,35 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
-      {/* Additional Sections */}
+      {/* Additional Sections - Using fixed order */}
       {Object.keys(additionalSections).length > 0 && (
         <div className="p-8 mt-4 border-t dark:border-gray-700">
           <h2 className="text-2xl font-bold mb-6 dark:text-white">Additional Information</h2>
           <div className="space-y-6">
-            {Object.entries(additionalSections).map(([title, points], index) => (
-              <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
-                <div className="bg-cyan-500 text-white p-4">
-                  <h3 className="text-xl font-bold">{title}</h3>
+            {orderedSections.map(title => {
+              const points = additionalSections[title];
+              if (!points || points.length === 0) return null;
+              
+              return (
+                <div key={title} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+                  <div className="bg-cyan-500 text-white p-4">
+                    <h3 className="text-xl font-bold">{title}</h3>
+                  </div>
+                  <div className="p-6">
+                    <ul className="space-y-4 text-gray-600 dark:text-gray-300">
+                      {points.map((point, pointIndex) => (
+                        <li key={pointIndex} className="flex items-start">
+                          <span className="text-cyan-500 mr-2">•</span>
+                          <div className="flex-1">
+                            <LinkText text={point} />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-                    {points.map((point, pointIndex) => (
-                      <li key={pointIndex} className="flex items-start">
-                        <span className="text-cyan-500 mr-2">•</span>
-                        <div className="flex-1">
-                          <LinkText text={point} />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
