@@ -107,15 +107,23 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
   const parseContent = (content: string): ParsedContent => {
     if (!content) return { overview: [], days: [], additionalSections: {} };
 
-    // Define section titles to extract
-    const sectionTitles = [
-      "Accommodation Options",
-      "Logistics Options", 
-      "Detailed Budget Breakdown",
-      "Real-Time Flight Pricing",
-      "Restaurant Reservations",
-      "Weather Forecast and Packing Suggestions"
-    ];
+    console.log("Parsing trip content...");
+    
+    // Clean up the content to remove any potential artifacts
+    content = content.replace(/```/g, "").trim();
+    
+    // Define section titles to extract (and their common variations)
+    const sectionTitleVariants = {
+      "Accommodation Options": ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay"],
+      "Logistics Options": ["Logistics Options", "Logistics", "Transport", "Flight", "Transportation"],
+      "Detailed Budget Breakdown": ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Cost", "Expenses"],
+      "Real-Time Flight Pricing": ["Real-Time Flight Pricing", "Flight Pricing", "Flights", "Airlines"],
+      "Restaurant Reservations": ["Restaurant Reservations", "Restaurants", "Dining", "Food", "Cafes"],
+      "Weather Forecast and Packing Suggestions": ["Weather Forecast and Packing Suggestions", "Weather Forecast", "Weather", "Packing", "Temperature", "Conditions"]
+    };
+    
+    // Get flat list of all section titles for splitting day content
+    const allSectionTitles = Object.values(sectionTitleVariants).flat();
     
     // First extract the main itinerary parts (overview and days)
     const parts = content.split(/Day \d+:/);
@@ -123,19 +131,25 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     
     const days = [];
     for (let i = 1; i < parts.length; i++) {
+      // Skip if this part is clearly not a day (too short)
+      if (parts[i].length < 20) continue;
+      
       // Only use content up to any known section title
       let dayContent = parts[i];
-      for (const title of sectionTitles) {
-        const titleIndex = dayContent.indexOf(title);
-        if (titleIndex > -1) {
-          dayContent = dayContent.substring(0, titleIndex);
+      for (const title of allSectionTitles) {
+        // Make sure we don't match things like "Weather: Sunny" as a section title
+        const titleRegex = new RegExp(`${title}\\s*[\\n:]`, 'i');
+        const match = dayContent.match(titleRegex);
+        if (match && match.index > 20) {  // Only truncate if not at the beginning
+          dayContent = dayContent.substring(0, match.index);
         }
       }
       
+      // Clean up activities text
       const activities = dayContent
-        .split('.')
+        .split(/\.|\n|-|•/)
         .map(a => a.trim())
-        .filter(a => a.length > 0);
+        .filter(a => a.length > 5 && a.length < 300);  // reasonable length for activity
       
       days.push({
         date: `Day ${i}`,
@@ -147,42 +161,80 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     // Initialize with index signature explicitly to avoid TypeScript error
     const additionalSections: {[key: string]: string[]} = {};
     
-    for (const title of sectionTitles) {
-      // Create a regex to extract each section, stopping at the next section or end
-      const pattern = new RegExp(`${title}([\\s\\S]*?)(?=${sectionTitles.filter(t => t !== title).join('|')}|Day \\d+:|$)`, 'i');
-      const match = content.match(pattern);
-      
-      if (match && match[1] && match[1].trim().length > 0) {
-        // Format the section content into bullet points
-        const sectionContent = match[1].trim();
-        const points = sectionContent
-          .split(/\n|\.|•/)
-          .map(point => point.trim())
-          .filter(point => point.length > 0);
-          
-        additionalSections[title] = points;
-      }
-    }
-    
-    // Special handling for Weather Forecast section which might have different formatting
-    if (!additionalSections["Weather Forecast and Packing Suggestions"]) {
-      const weatherKeywords = ["Weather", "Temperature", "Packing List", "Conditions", "Forecast"];
-      for (const keyword of weatherKeywords) {
-        const weatherPattern = new RegExp(`${keyword}[\\s\\S]*?(?=(Accommodation|Logistics|Budget|Flight|Restaurant|Day \\d+:|$))`, 'i');
-        const weatherMatch = content.match(weatherPattern);
+    // Collect sections by checking for each variant of title
+    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
+      for (const variant of variants) {
+        // Create a regex to find this section
+        const variantRegex = new RegExp(`(?:^|\\n|\\s)(${variant})\\s*[:\\n]([\\s\\S]*?)(?=(?:${allSectionTitles.map(t => `(?:^|\\n|\\s)${t}\\s*[:\\n]`).join('|')})|$)`, 'i');
+        const match = content.match(variantRegex);
         
-        if (weatherMatch && weatherMatch[0] && weatherMatch[0].trim().length > 20) {
-          const weatherContent = weatherMatch[0].trim();
-          const weatherPoints = weatherContent
-            .split(/\n|\.|•/)
+        if (match && match[2] && match[2].trim().length > 20) {
+          // Format the section content into bullet points
+          const sectionContent = match[2].trim();
+          
+          // Try different splitting methods
+          let points: string[] = [];
+          
+          // Method 1: Split by bullets, numbers or newlines
+          points = sectionContent
+            .split(/(?:\n|\.|\d+\.\s*|•|-|\*)\s*/)
             .map(point => point.trim())
-            .filter(point => point.length > 0 && point.length < 500);
-            
-          additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
-          break;
+            .filter(point => point.length > 10 && point.length < 500);
+          
+          // Method 2: If few points found, try just newlines
+          if (points.length < 2) {
+            points = sectionContent
+              .split(/\n/)
+              .map(point => point.trim())
+              .filter(point => point.length > 10 && point.length < 500);
+          }
+          
+          // Method 3: If still few points, try just periods
+          if (points.length < 2) {
+            points = sectionContent
+              .split(/\./)
+              .map(point => point.trim())
+              .filter(point => point.length > 10 && point.length < 500);
+          }
+          
+          // If we found points, save them under the main title
+          if (points.length > 0) {
+            additionalSections[mainTitle] = points;
+            break;  // Once we found content for this section, stop looking
+          }
         }
       }
     }
+    
+    // Special handling for Weather Forecast
+    if (!additionalSections["Weather Forecast and Packing Suggestions"]) {
+      // Look for weather info in day sections
+      const weatherPoints: string[] = [];
+      
+      // Extract weather info from days
+      days.forEach((day) => {
+        // Find weather-related activities
+        const weatherActivities = day.activities.filter(activity => 
+          /weather|temperature|conditions|high|low|packing|forecast|degrees|°[CF]|rain|sunny|cloudy/i.test(activity)
+        );
+        
+        // Add them to weather points
+        weatherPoints.push(...weatherActivities);
+        
+        // Remove them from day activities
+        day.activities = day.activities.filter(activity => 
+          !weatherActivities.includes(activity)
+        );
+      });
+      
+      // Add collected weather points if we found any
+      if (weatherPoints.length > 0) {
+        additionalSections["Weather Forecast and Packing Suggestions"] = weatherPoints;
+      }
+    }
+    
+    // Get the full section list for console debugging
+    console.log("Found sections:", Object.keys(additionalSections));
     
     return { overview, days, additionalSections };
   };
