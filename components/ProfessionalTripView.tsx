@@ -77,9 +77,9 @@ const LinkText = ({ text }: { text: string }) => {
 interface TripViewProps {
   tripData: {
     location: string;
-    cities: string[];
+    cities: string[] | string;
     dateRange: string;
-    interests: string[];
+    interests: string[] | string;
     jobId: string;
     tripResult: string;
   }
@@ -87,300 +87,172 @@ interface TripViewProps {
 
 // Define types for the parsed content
 interface ParsedContent {
-  overview: string[];
-  days: {
-    date: string;
-    activities: string[];
-  }[];
-  additionalSections: {[key: string]: string[]};
+  intro: string;
+  days: string[];
+  additionalSections: {
+    accommodationOptions?: string;
+    logisticsOptions?: string;
+    budgetBreakdown?: string;
+    flightPricing?: string;
+    restaurantReservations?: string;
+    weatherForecast?: string;
+  }
 }
 
 const ProfessionalTripView = ({ tripData }: TripViewProps) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [parsedContent, setParsedContent] = useState<ParsedContent>({
+    intro: '',
+    days: [],
+    additionalSections: {}
+  });
+
+  // Normalize tripData to ensure consistent format
+  const normalizedTripData = {
+    ...tripData,
+    cities: Array.isArray(tripData.cities) ? tripData.cities : [tripData.cities],
+    interests: Array.isArray(tripData.interests) ? tripData.interests : [tripData.interests]
+  };
 
   useEffect(() => {
     if (tripData) {
+      parseItinerary();
       setIsLoading(false);
     }
   }, [tripData]);
 
-  // Helper function to clean up URL fragments and join them
-  const joinUrlFragments = (points: string[]): string[] => {
-    const result: string[] = [];
-    let i = 0;
-    
-    while (i < points.length) {
-      // Current point
-      let point = points[i];
+  // Function to parse the itinerary in the same way as TripPlanner
+  const parseItinerary = () => {
+    try {
+      // Ensure tripResult is a string
+      const itineraryText = typeof tripData.tripResult === 'string' 
+        ? tripData.tripResult 
+        : JSON.stringify(tripData.tripResult);
       
-      // Check if this point ends with a URL start
-      if (/https?:\/\/www\.?$/i.test(point)) {
-        // Join with as many next points needed to form a complete URL
-        let j = i + 1;
-        while (j < points.length && 
-              !points[j].includes(" ") && 
-              !points[j].match(/https?:\/\//i) &&
-              points[j].length < 50) {
-          point += points[j];
-          j++;
-        }
-        result.push(point);
-        i = j;
-      } 
-      // Check if it's a URL domain without http://
-      else if (/^www\.[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z0-9]+/.test(point) && 
-              !point.includes(" ")) {
-        result.push("https://" + point);
-        i++;
+      // First extract the intro (overview)
+      let intro = '';
+      let days: string[] = [];
+      
+      // Split by "Day X:" pattern to separate intro and daily content
+      const parts = itineraryText.split(/Day \d+:/);
+      
+      if (parts.length > 0) {
+        intro = parts[0].trim();
+        
+        // Extract each day's content
+        const dayMatches = itineraryText.match(/Day \d+:[^]*?(?=Day \d+:|$)/g) || [];
+        days = dayMatches.map(day => day.trim());
       }
-      // If it's a normal point, just add it
-      else {
-        result.push(point);
-        i++;
-      }
+      
+      // Extract additional sections
+      const additionalSections = {
+        accommodationOptions: extractSection(
+          itineraryText, 
+          ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay"]
+        ),
+        logisticsOptions: extractSection(
+          itineraryText, 
+          ["Logistics Options", "Logistics", "Transport", "Transportation", "Local Transport"]
+        ),
+        budgetBreakdown: extractSection(
+          itineraryText, 
+          ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Expenses"]
+        ),
+        flightPricing: extractSection(
+          itineraryText, 
+          ["Real-Time Flight Pricing", "Flight Pricing", "Flights", "Airlines"]
+        ),
+        restaurantReservations: extractSection(
+          itineraryText, 
+          ["Restaurant Reservations", "Restaurants", "Dining", "Food", "Cafes"]
+        ),
+        weatherForecast: extractSection(
+          itineraryText, 
+          ["Weather Forecast and Packing Suggestions", "Weather Forecast", "Weather", "Packing"]
+        )
+      };
+      
+      setParsedContent({
+        intro,
+        days,
+        additionalSections
+      });
+      
+    } catch (error) {
+      console.error("Error parsing itinerary:", error);
+      toast.error("Error parsing your itinerary");
     }
-    
-    return result;
   };
   
-  // Helper function to extract content more reliably
-  const extractContent = (text: string): string[] => {
-    // First split by visible delimiters
-    const initialSplit = text
-      .split(/(?:\r?\n|\r|•|-|(?<=\.)\s+)/g)
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-    
-    // Join URL fragments that got split
-    return joinUrlFragments(initialSplit);
+  // Helper function to extract a section by its possible titles
+  const extractSection = (text: string, possibleTitles: string[]): string => {
+    for (const title of possibleTitles) {
+      const index = text.indexOf(title);
+      if (index !== -1) {
+        // Find the end of this section (next section or end of text)
+        let endIndex = text.length;
+        
+        const commonSectionTitles = [
+          "Accommodation Options",
+          "Logistics Options",
+          "Detailed Budget Breakdown",
+          "Budget Breakdown",
+          "Real-Time Flight Pricing",
+          "Restaurant Reservations",
+          "Weather Forecast",
+          "Day 1:",
+          "Day 2:",
+          "Day 3:",
+          "Day 4:",
+          "Day 5:",
+          "Day 6:",
+          "Day 7:"
+        ];
+        
+        for (const nextTitle of commonSectionTitles) {
+          // Skip the current title
+          if (nextTitle === title) continue;
+          
+          const nextIndex = text.indexOf(nextTitle, index + title.length);
+          if (nextIndex !== -1 && nextIndex < endIndex) {
+            endIndex = nextIndex;
+          }
+        }
+        
+        // Extract the section
+        return text.substring(index, endIndex).trim();
+      }
+    }
+    return '';
   };
 
-  // Enhanced parsing function that handles additional sections
-  const parseContent = (content: string): ParsedContent => {
-    if (!content) return { overview: [], days: [], additionalSections: {} };
-
-    console.log("Parsing trip content...");
-    
-    // Clean up the content to remove any potential artifacts
-    content = content.replace(/```/g, "").trim();
-    
-    // Calculate actual number of days in trip from dateRange
-    let tripDayCount = 5; // Default to 5 days if we can't parse the date range
-    if (tripData.dateRange) {
-      const dateRangeParts = tripData.dateRange.split(' to ');
-      if (dateRangeParts.length === 2) {
-        try {
-          const startDate = new Date(dateRangeParts[0]);
-          const endDate = new Date(dateRangeParts[1]);
-          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-            const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-            tripDayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
-            console.log(`Trip duration: ${tripDayCount} days`);
-          }
-        } catch (e) {
-          console.error("Error parsing date range", e);
-        }
-      }
-    }
-    
-    // Define section titles to extract (and their common variations)
-    const sectionTitleVariants: {[key: string]: string[]} = {
-      "Accommodation Options": ["Accommodation Options", "Accommodation", "Hotels", "Places to Stay", "Hotel", "Residence"],
-      "Logistics Options": ["Logistics Options", "Logistics", "Transport", "Flight", "Transportation", "Local Transport"],
-      "Detailed Budget Breakdown": ["Detailed Budget Breakdown", "Budget Breakdown", "Budget", "Cost", "Expenses", "Total cost"],
-      "Real-Time Flight Pricing": ["Real-Time Flight Pricing", "Flight Pricing", "Flights", "Airlines", "Air Arabia"],
-      "Restaurant Reservations": ["Restaurant Reservations", "Restaurants", "Dining", "Food", "Cafes", "Dinner", "Lunch"],
-      "Weather Forecast and Packing Suggestions": ["Weather Forecast and Packing Suggestions", "Weather Forecast", "Weather", "Packing", "Temperature", "Conditions", "Packing List"]
-    };
-    
-    // Get flat list of all section titles for splitting day content
-    const allSectionTitles = Object.values(sectionTitleVariants).flat();
-    
-    // First extract the main itinerary parts (overview and days)
-    const initialParts = content.split(/Day \d+:/);
-    // More carefully process the overview text to avoid breaking URLs
-    const overviewText = initialParts[0]?.trim() || "";
-    const overview = extractContent(overviewText);
-    
-    // Extract all day parts from content including their headers
-    const dayMatches = content.match(/Day \d+:[^]*?(?=Day \d+:|$)/g) || [];
-    
-    const days = [];
-    // Only process valid trip days (1 to tripDayCount)
-    for (let i = 1; i <= tripDayCount; i++) {
-      // Find the corresponding day content
-      const dayMatch = dayMatches.find(d => d.startsWith(`Day ${i}:`));
+  // Helper function to calculate date for a specific day in the itinerary
+  const getDayDate = (dayIndex: number): string => {
+    try {
+      if (!tripData.dateRange) return `Day ${dayIndex + 1}`;
       
-      if (dayMatch) {
-        // Extract just the day content without the header
-        let dayContent = dayMatch.substring(`Day ${i}:`.length);
-        
-        // Truncate content if it contains any section titles
-        for (const title of allSectionTitles) {
-          // Make sure we're not matching things like "Weather: Sunny" inside day content
-          const titleRegex = new RegExp(`(?:^|\\n|\\s)(${title})\\s*[:][^\\n]*`, 'i');
-          const match = dayContent.match(titleRegex);
-          if (match && typeof match.index === 'number' && match.index > 20) {
-            dayContent = dayContent.substring(0, match.index);
-          }
-        }
-        
-        // Extract activities with minimal processing to maintain URLs and formatting
-        const activities = extractContent(dayContent);
-        
-        days.push({
-          date: `Day ${i}`,
-          activities
-        });
-      } else {
-        // If no content found for this day, add an empty day
-        days.push({
-          date: `Day ${i}`,
-          activities: []
-        });
-      }
-    }
-    
-    // Now extract the additional sections
-    // Initialize with index signature explicitly to avoid TypeScript error
-    const additionalSections: {[key: string]: string[]} = {};
-    
-    // Process entire content to identify and extract sections directly
-    // This is more reliable than breaking it up too much
-    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
-      for (const variant of variants) {
-        // Find section in content
-        const sectionIndex = content.indexOf(variant);
-        if (sectionIndex >= 0) {
-          // Find the end of this section (next section or end)
-          let sectionEnd = content.length;
-          
-          // Look for the next section after this one
-          for (const otherTitle of allSectionTitles) {
-            if (otherTitle === variant) continue;
-            
-            const otherIndex = content.indexOf(otherTitle, sectionIndex + variant.length);
-            if (otherIndex > sectionIndex && otherIndex < sectionEnd) {
-              sectionEnd = otherIndex;
-            }
-          }
-          
-          // Also check for Day markers as section boundaries
-          const dayMarkerIndex = content.indexOf("Day ", sectionIndex + variant.length);
-          if (dayMarkerIndex > sectionIndex && dayMarkerIndex < sectionEnd) {
-            // Only use the day marker if it's a day header (Day X:)
-            const nextChars = content.substring(dayMarkerIndex, dayMarkerIndex + 8);
-            if (/Day \d+:/.test(nextChars)) {
-              sectionEnd = dayMarkerIndex;
-            }
-          }
-          
-          // Extract the section content
-          const sectionContent = content.substring(sectionIndex, sectionEnd).trim();
-          
-          // Skip the section title/header when extracting content
-          const colonIndex = sectionContent.indexOf(":");
-          const contentStart = colonIndex > -1 ? colonIndex + 1 : variant.length;
-          const cleanedContent = sectionContent.substring(contentStart).trim();
-          
-          // Process the section content
-          const points = extractContent(cleanedContent);
-          
-          if (points.length > 0) {
-            additionalSections[mainTitle] = points;
-            break; // Found content for this section, stop looking
-          }
-        }
-      }
-    }
-    
-    // Second pass: look for section content in days beyond trip duration
-    for (const [mainTitle, variants] of Object.entries(sectionTitleVariants)) {
-      // Skip if we already found this section
-      if (additionalSections[mainTitle] && additionalSections[mainTitle].length > 0) continue;
+      const [startStr, endStr] = tripData.dateRange.split(" to ");
       
-      // Look for section content in days beyond the trip duration
-      for (let i = tripDayCount + 1; i <= 20; i++) { // Check up to Day 20 to be safe
-        const dayHeader = `Day ${i}:`;
-        const dayIndex = content.indexOf(dayHeader);
-        
-        if (dayIndex >= 0) {
-          // Find end of this day content
-          let dayEnd = content.length;
-          const nextDayIndex = content.indexOf("Day ", dayIndex + dayHeader.length);
-          if (nextDayIndex > dayIndex) {
-            dayEnd = nextDayIndex;
-          }
-          
-          const dayContent = content.substring(dayIndex, dayEnd).trim();
-          
-          // Check if this day content belongs to our section
-          const belongsToSection = variants.some(variant => dayContent.includes(variant));
-          
-          if (belongsToSection) {
-            // Extract content from this day section
-            const points = extractContent(dayContent.substring(dayHeader.length));
-            
-            if (points.length > 0) {
-              additionalSections[mainTitle] = points;
-              break; // Found content for this section, stop looking
-            }
-          }
-        }
-      }
+      const parseDate = (dateStr: string) => {
+        const [month, day, year] = dateStr.split("/").map(num => parseInt(num, 10));
+        return new Date(year, month - 1, day);
+      };
+      
+      const startDate = parseDate(startStr);
+      if (isNaN(startDate.getTime())) return `Day ${dayIndex + 1}`;
+      
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + dayIndex);
+      
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric"
+      });
+    } catch (error) {
+      console.error("Error calculating date:", error);
+      return `Day ${dayIndex + 1}`;
     }
-    
-    // Special handling for Weather Forecast section
-    if (!additionalSections["Weather Forecast and Packing Suggestions"] || 
-        additionalSections["Weather Forecast and Packing Suggestions"].length === 0) {
-      // Look for weather info in the entire content
-      const weatherKeywords = ["Weather", "Temperature", "Conditions", "Packing", "High", "Low", "°F", "°C"];
-      const weatherContaining: string[] = [];
-      
-      // Find content chunks containing weather info
-      const contentLines = content.split("\n");
-      
-      for (let i = 0; i < contentLines.length; i++) {
-        const line = contentLines[i].trim();
-        
-        if (weatherKeywords.some(keyword => line.includes(keyword))) {
-          // Found a line with weather info
-          let weatherContext = line;
-          
-          // Include surrounding context
-          for (let j = Math.max(0, i-1); j <= Math.min(contentLines.length-1, i+1); j++) {
-            if (j !== i && contentLines[j].trim().length > 0) {
-              weatherContext += " " + contentLines[j].trim();
-            }
-          }
-          
-          weatherContaining.push(weatherContext);
-        }
-      }
-      
-      if (weatherContaining.length > 0) {
-        // Process the extracted weather content
-        const weatherPoints = [];
-        
-        for (const chunk of weatherContaining) {
-          const extractedPoints = extractContent(chunk);
-          weatherPoints.push(...extractedPoints);
-        }
-        
-        // Filter duplicates
-        const uniquePoints = [...new Set(weatherPoints)];
-        
-        if (uniquePoints.length > 0) {
-          additionalSections["Weather Forecast and Packing Suggestions"] = uniquePoints;
-        }
-      }
-    }
-    
-    // Get the full section list for console debugging
-    console.log("Found sections:", Object.keys(additionalSections));
-    console.log("Found days:", days.length);
-    
-    return { overview, days, additionalSections };
   };
 
   const handleShare = async (type: string) => {
@@ -425,6 +297,49 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     }
   };
 
+  // Helper function to extract bullet points from text
+  const extractBulletPoints = (text: string): string[] => {
+    if (!text) return [];
+    
+    // Try to split by common separators
+    const lines = text.split(/(?:\r?\n|\r|•|-|\.|(?<=\.)\s+)/g)
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    return lines;
+  };
+
+  // Helper function to create bullet list from content
+  const createBulletList = (content: string | null | undefined): React.ReactNode => {
+    if (!content) return <p className="text-gray-500 italic">Details will be added soon.</p>;
+    
+    const points = extractBulletPoints(content);
+    
+    if (points.length === 0) {
+      // Try to display the content as is, if it has some substance
+      return content.length > 10 ? (
+        <p className="text-gray-600 dark:text-gray-300">
+          <LinkText text={content} />
+        </p>
+      ) : (
+        <p className="text-gray-500 italic">Details will be added soon.</p>
+      );
+    }
+    
+    return (
+      <ul className="space-y-4 text-gray-600 dark:text-gray-300">
+        {points.map((point, index) => (
+          <li key={index} className="flex items-start">
+            <span className="text-cyan-500 mr-2">•</span>
+            <div className="flex-1">
+              <LinkText text={point} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -436,17 +351,28 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
     );
   }
 
-  const { overview, days, additionalSections } = parseContent(tripData.tripResult);
-
-  // Fixed order of sections for display
-  const orderedSections = [
-    "Accommodation Options",
-    "Logistics Options", 
-    "Detailed Budget Breakdown",
-    "Real-Time Flight Pricing",
-    "Restaurant Reservations",
-    "Weather Forecast and Packing Suggestions"
-  ];
+  // Calculate the number of days in the trip
+  const calculateNumberOfDays = (): number => {
+    try {
+      const [startStr, endStr] = tripData.dateRange.split(" to ");
+      
+      const parseDate = (dateStr: string) => {
+        const [month, day, year] = dateStr.split("/").map(num => parseInt(num, 10));
+        return new Date(year, month - 1, day);
+      };
+      
+      const startDate = parseDate(startStr);
+      const endDate = parseDate(endStr);
+      
+      const diffTime = endDate.getTime() - startDate.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    } catch (error) {
+      console.error("Error calculating days:", error);
+      return parsedContent.days.length || 5; // Fallback to parsed days or default 5
+    }
+  };
+  
+  const numberOfDays = calculateNumberOfDays();
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-4xl mx-auto trip-content">
@@ -485,7 +411,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         <div className="relative z-10">
           {/* Quipit Branding */}
           <div className="text-center text-white mb-6">
-            <h2 className="text-2xl font-semibold mb-1">Quipit</h2>
+            <h2 className="text-2xl font-semibold mb-1">TRAVELOGUE</h2>
             <p className="text-sm mb-1">AI that works for you</p>
             <p className="text-xs italic">Just Quipit!</p>
           </div>
@@ -493,14 +419,23 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg">
               <svg className="w-10 h-10 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
           <div className="text-center text-white">
             <h1 className="text-3xl font-medium mb-2">Travel Itinerary</h1>
-            <div className="text-lg opacity-90 mb-2">{tripData.location} → {tripData.cities.join(" → ")}</div>
-            <div className="text-base opacity-75">{tripData.dateRange}</div>
+            <div className="text-lg opacity-90 mb-2">
+              {normalizedTripData.location} 
+              {normalizedTripData.cities.length > 0 && ` → ${normalizedTripData.cities.join(" → ")}`}
+            </div>
+            <div className="text-base opacity-75">{normalizedTripData.dateRange}</div>
+            {normalizedTripData.interests.length > 0 && (
+              <div className="text-sm opacity-75 mt-2">
+                Interests: {normalizedTripData.interests.join(", ")}
+              </div>
+            )}
+            <div className="text-sm opacity-75 mt-1">Job ID: {normalizedTripData.jobId}</div>
           </div>
         </div>
       </div>
@@ -516,7 +451,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
               </svg>
             </div>
             <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Destination</h3>
-            <p className="text-lg font-semibold dark:text-white">{tripData.location}</p>
+            <p className="text-lg font-semibold dark:text-white">{normalizedTripData.location}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
@@ -526,7 +461,7 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
               </svg>
             </div>
             <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Duration</h3>
-            <p className="text-lg font-semibold dark:text-white">{tripData.dateRange}</p>
+            <p className="text-lg font-semibold dark:text-white">{normalizedTripData.dateRange}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-700 rounded-lg shadow-lg p-6">
@@ -536,96 +471,134 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
               </svg>
             </div>
             <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Interests</h3>
-            <p className="text-lg font-semibold dark:text-white">{tripData.interests.join(", ")}</p>
+            <p className="text-lg font-semibold dark:text-white">
+              {normalizedTripData.interests.join(", ") || "Not specified"}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Trip Overview */}
-      <div className="p-8 mt-4">
-        <h2 className="text-2xl font-bold mb-6 dark:text-white">Trip Overview</h2>
-        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
-          <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-            {overview.map((point, index) => (
-              <li key={index} className="flex items-start">
-                <span className="text-cyan-500 mr-2">•</span>
-                <div className="flex-1">
-                  <LinkText text={point} />
-                </div>
-              </li>
-            ))}
-          </ul>
+      {parsedContent.intro && (
+        <div className="p-8 mt-4">
+          <h2 className="text-2xl font-bold mb-6 dark:text-white">Trip Overview</h2>
+          <div className="bg-cyan-50 dark:bg-gray-700/50 rounded-lg p-6">
+            {createBulletList(parsedContent.intro)}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Daily Itinerary */}
       <div className="p-8 mt-4 border-t dark:border-gray-700">
         <h2 className="text-2xl font-bold mb-6 dark:text-white">Daily Itinerary</h2>
         <div className="space-y-6">
-          {days.map((day, index) => (
-            <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
-              <div className="bg-cyan-500 text-white p-4">
-                <h3 className="text-xl font-bold">{day.date}</h3>
+          {Array.from({ length: numberOfDays }).map((_, index) => {
+            const dayContent = parsedContent.days[index] || '';
+            const dayHeader = dayContent.match(/Day \d+:/)?.[0] || `Day ${index + 1}:`;
+            const dayDetails = dayContent.replace(dayHeader, '').trim();
+            
+            return (
+              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg flex flex-col items-center justify-center">
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white">DAY {index + 1}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{getDayDate(index)}</p>
+                </div>
+                <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg col-span-2">
+                  <h4 className="font-bold mb-4 dark:text-white">Activities:</h4>
+                  <div className="space-y-2">
+                    {createBulletList(dayDetails)}
+                  </div>
+                </div>
               </div>
-              <div className="p-6">
-                {day.activities.length > 0 ? (
-                  <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-                    {day.activities.map((activity, actIndex) => (
-                      <li key={actIndex} className="flex items-start">
-                        <span className="text-cyan-500 mr-2">•</span>
-                        <div className="flex-1">
-                          <LinkText text={activity} />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 italic">No activities planned for this day.</p>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Additional Sections - Using fixed order */}
-      {Object.keys(additionalSections).length > 0 && (
-        <div className="p-8 mt-4 border-t dark:border-gray-700">
-          <h2 className="text-2xl font-bold mb-6 dark:text-white">Additional Information</h2>
-          <div className="space-y-6">
-            {orderedSections.map(title => {
-              const points = additionalSections[title];
-              if (!points || points.length === 0) return null;
-              
-              return (
-                <div key={title} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
-                  <div className="bg-cyan-500 text-white p-4">
-                    <h3 className="text-xl font-bold">{title}</h3>
-                  </div>
-                  <div className="p-6">
-                    <ul className="space-y-4 text-gray-600 dark:text-gray-300">
-                      {points.map((point, pointIndex) => (
-                        <li key={pointIndex} className="flex items-start">
-                          <span className="text-cyan-500 mr-2">•</span>
-                          <div className="flex-1">
-                            <LinkText text={point} />
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Additional Sections */}
+      <div className="p-8 mt-4 border-t dark:border-gray-700">
+        <h2 className="text-2xl font-bold mb-6 dark:text-white">Additional Information</h2>
+        <div className="space-y-6">
+          {/* Accommodation Options */}
+          {parsedContent.additionalSections.accommodationOptions && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Accommodation Options
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.accommodationOptions)}
+              </div>
+            </div>
+          )}
 
-      {/* Reference Footer */}
-      <div className="border-t dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-800 rounded-b-lg mt-8">
-        <div className="text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Reference Number</p>
-          <p className="font-mono text-lg text-cyan-600 dark:text-cyan-400">{tripData.jobId}</p>
+          {/* Logistics Options */}
+          {parsedContent.additionalSections.logisticsOptions && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Logistics Options
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.logisticsOptions)}
+              </div>
+            </div>
+          )}
+
+          {/* Budget Breakdown */}
+          {parsedContent.additionalSections.budgetBreakdown && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Detailed Budget Breakdown
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.budgetBreakdown)}
+              </div>
+            </div>
+          )}
+
+          {/* Flight Pricing */}
+          {parsedContent.additionalSections.flightPricing && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Real-Time Flight Pricing
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.flightPricing)}
+              </div>
+            </div>
+          )}
+
+          {/* Restaurant Reservations */}
+          {parsedContent.additionalSections.restaurantReservations && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Restaurant Reservations
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.restaurantReservations)}
+              </div>
+            </div>
+          )}
+
+          {/* Weather Forecast */}
+          {parsedContent.additionalSections.weatherForecast && (
+            <div className="bg-cyan-50 dark:bg-gray-700/50 p-6 rounded-lg">
+              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                Weather Forecast and Packing Suggestions
+              </h3>
+              <div className="space-y-2">
+                {createBulletList(parsedContent.additionalSections.weatherForecast)}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t dark:border-gray-700 p-6 mt-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+          <p className="text-center sm:text-left">www.quipit.com</p>
+          <p className="text-center">greenvalleymotor@gmail.com</p>
+          <p className="text-center sm:text-right">+919830016577</p>
         </div>
       </div>
     </div>
