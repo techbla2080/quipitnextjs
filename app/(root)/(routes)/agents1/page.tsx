@@ -18,6 +18,7 @@ import DebugButton from "@/components/DebugButton";
 import ReactConfetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import ProfessionalTripView from "@/components/ProfessionalTripView";
+import TripMap from "@/components/TripMap";
 
 // Create a LinkText component to handle clickable links
 const LinkText = ({ text }: { text: string }) => {
@@ -1038,7 +1039,21 @@ export default function TripPlanner() {
     })}
   </div>
 )}
-              
+
+
+{/* Trip Map Visualization */}
+{tripResult && (
+  <div className="mt-8">
+    <TripMap
+      location={addedLocation}
+      cities={citiesList}
+      dateRange={addedDateRange}
+      tripResult={typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult)}
+    />
+  </div>
+)}
+
+
 {/* Save Button */}
 {tripResult && (
   <div className="flex justify-end mt-6 mb-4">

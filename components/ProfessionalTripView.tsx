@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import TripMap from "@/components/TripMap";
 
 // Create a LinkText component to handle clickable links
 const LinkText = ({ text }: { text: string }) => {
@@ -592,6 +593,15 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
           )}
         </div>
       </div>
+
+      <div className="p-8 mt-4 border-t dark:border-gray-700">
+  <TripMap
+    location={normalizedTripData.location}
+    cities={normalizedTripData.cities}
+    dateRange={normalizedTripData.dateRange}
+    tripResult={tripData.tripResult}
+  />
+</div>
 
       {/* Footer */}
       <div className="border-t dark:border-gray-700 p-6 mt-8">
