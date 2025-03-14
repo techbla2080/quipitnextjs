@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin, Loader2, Navigation, Landmark, Coffee, Utensils, Building, Hotel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import 'leaflet/dist/leaflet.css';
 
@@ -32,6 +32,11 @@ const Polyline = dynamic(
   { ssr: false }
 );
 
+const useMap = dynamic(
+  () => import('react-leaflet').then((mod) => mod.useMap),
+  { ssr: false }
+);
+
 // Define types
 interface TripMapProps {
   location: string;
@@ -49,9 +54,40 @@ interface LocationData {
   description?: string;
   isStart?: boolean;
   isEnd?: boolean;
+  pointsOfInterest?: PointOfInterest[];
 }
 
-const TripMap: React.FC<TripMapProps> = ({ 
+interface PointOfInterest {
+  name: string;
+  lat: number;
+  lng: number;
+  type: 'museum' | 'landmark' | 'restaurant' | 'hotel' | 'attraction' | 'transport';
+  description?: string;
+  day?: number;
+}
+
+// Component to handle map view changes
+const MapController = ({ 
+  center, 
+  zoom, 
+  selectedLocation 
+}: { 
+  center: [number, number], 
+  zoom: number, 
+  selectedLocation: LocationData | null 
+}) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (map) {
+      map.setView(center, zoom);
+    }
+  }, [map, center, zoom, selectedLocation]);
+  
+  return null;
+};
+
+const EnhancedTripMap: React.FC<TripMapProps> = ({ 
   location, 
   cities, 
   dateRange, 
@@ -63,17 +99,15 @@ const TripMap: React.FC<TripMapProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 0]);
   const [mapZoom, setMapZoom] = useState(2);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [detailMode, setDetailMode] = useState(false);
+  const mapRef = useRef<any>(null);
 
   // Fix Leaflet icon issues that occur in Next.js
   useEffect(() => {
-    // Only run on client side
     if (typeof window !== 'undefined') {
-      // Import Leaflet
       import('leaflet').then((L) => {
-        // Delete the default icon
         delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-        // Set default icon paths - these need to be in your public folder
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: '/marker-icon-2x.png',
           iconUrl: '/marker-icon.png',
@@ -82,6 +116,168 @@ const TripMap: React.FC<TripMapProps> = ({
       });
     }
   }, []);
+
+  // Function to extract points of interest from trip data
+  const extractPointsOfInterest = async (content: string, location: string): Promise<PointOfInterest[]> => {
+    const pois: PointOfInterest[] = [];
+    
+    try {
+      // Find relevant section for this location
+      const locationRegex = new RegExp(`Day\\s+\\d+[^]*?\\b${location}\\b[^]*?(?=Day\\s+\\d+:|$)`, 'i');
+      const locationMatch = content.match(locationRegex);
+      
+      if (!locationMatch) return pois;
+      
+      // Extract potential POIs - look for phrases that indicate locations
+      const poiKeywords = [
+        { type: 'museum', keywords: ['museum', 'gallery', 'exhibition'] },
+        { type: 'landmark', keywords: ['temple', 'mosque', 'bridge', 'memorial', 'monument', 'palace', 'square', 'garden', 'park'] },
+        { type: 'restaurant', keywords: ['restaurant', 'café', 'cafe', 'dine', 'lunch', 'dinner', 'breakfast', 'eat'] },
+        { type: 'hotel', keywords: ['hotel', 'accommodation', 'stay', 'resort'] },
+        { type: 'attraction', keywords: ['visit', 'explore', 'see', 'tour'] },
+        { type: 'transport', keywords: ['airport', 'station', 'terminal', 'port'] }
+      ];
+      
+      // Extract lines with activities
+      const lines = locationMatch[0]
+        .split(/\n|•|●|-|\.|,/)
+        .map(line => line.trim())
+        .filter(line => line.length > 5);
+      
+      for (const line of lines) {
+        // Find what type of POI this might be
+        let poiType: 'museum' | 'landmark' | 'restaurant' | 'hotel' | 'attraction' | 'transport' = 'attraction';
+        
+        for (const { type, keywords } of poiKeywords) {
+          if (keywords.some(keyword => line.toLowerCase().includes(keyword))) {
+            poiType = type as any;
+            break;
+          }
+        }
+        
+        // Look for potential named locations in quotes or with specific indicators
+        let poiName = '';
+        
+        // Check for quoted names
+        const quoteMatch = line.match(/"([^"]+)"|"([^"]+)"|'([^']+)'/);
+        if (quoteMatch) {
+          poiName = quoteMatch[1] || quoteMatch[2] || quoteMatch[3];
+        } else {
+          // Look for patterns like "Visit the X" or "Explore Y"
+          const visitMatch = line.match(/(?:visit|explore|see|tour)\s+(?:the\s+)?([A-Z][^,.]+)/i);
+          if (visitMatch) {
+            poiName = visitMatch[1];
+          } else if (line.includes(':')) {
+            // Format like "Lunch: Restaurant Name"
+            const colonMatch = line.match(/(?:lunch|dinner|breakfast):\s+([^,.]+)/i);
+            if (colonMatch) {
+              poiName = colonMatch[1];
+            }
+          } else {
+            // Just look for proper nouns
+            const properNounMatch = line.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/);
+            if (properNounMatch && !['Day', 'Morning', 'Afternoon', 'Evening', 'Night'].includes(properNounMatch[1])) {
+              poiName = properNounMatch[1];
+            }
+          }
+        }
+        
+        // If we found a POI name and it's not the main location
+        if (poiName && !poiName.toLowerCase().includes(location.toLowerCase())) {
+          // Try to geocode only significant POIs
+          if (poiName.length > 3) {
+            try {
+              // Add a delay to avoid rate limiting
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Geocode with the location context for better results
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(poiName + ', ' + location)}&limit=1`,
+                {
+                  headers: {
+                    'User-Agent': 'TravelPlanner/1.0'
+                  }
+                }
+              );
+              
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                  // Extract day number if available
+                  const dayMatch = line.match(/Day\s+(\d+)/i) || locationMatch[0].match(/Day\s+(\d+)/i);
+                  const day = dayMatch ? parseInt(dayMatch[1], 10) : undefined;
+                  
+                  pois.push({
+                    name: poiName,
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon),
+                    type: poiType,
+                    description: line,
+                    day
+                  });
+                }
+              }
+            } catch (error) {
+              console.warn(`Could not geocode POI: ${poiName}`);
+            }
+          }
+        }
+      }
+      
+      // If we didn't find any POIs, try a more general search
+      if (pois.length === 0) {
+        // Just get generic popular places in the location
+        const popularKeywords = ['popular', 'must-see', 'attraction', 'landmark'];
+        
+        for (const keyword of popularKeywords) {
+          try {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(keyword + ' ' + location)}&limit=3`,
+              {
+                headers: {
+                  'User-Agent': 'TravelPlanner/1.0'
+                }
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              if (data && data.length > 0) {
+                for (const place of data) {
+                  // Don't add duplicates
+                  if (!pois.some(poi => 
+                    Math.abs(poi.lat - parseFloat(place.lat)) < 0.001 && 
+                    Math.abs(poi.lng - parseFloat(place.lon)) < 0.001
+                  )) {
+                    pois.push({
+                      name: place.display_name.split(',')[0],
+                      lat: parseFloat(place.lat),
+                      lng: parseFloat(place.lon),
+                      type: 'attraction',
+                      description: `Popular attraction in ${location}`
+                    });
+                  }
+                }
+              }
+            }
+            
+            // If we found some places, stop searching
+            if (pois.length > 0) break;
+          } catch (error) {
+            console.warn(`Could not find generic POIs for ${location}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error extracting POIs:', error);
+    }
+    
+    return pois;
+  };
 
   // Process trip data and geocode locations
   useEffect(() => {
@@ -109,35 +305,6 @@ const TripMap: React.FC<TripMapProps> = ({
           ? tripResult 
           : JSON.stringify(tripResult);
 
-        // Extract location information from tripResult
-        const extractActivityLocations = (text: string, locationName: string): string[] => {
-          try {
-            // Find the day that mentions this location
-            const regex = new RegExp(`Day \\d+:[^]*?\\b${locationName}\\b[^]*?(?=Day \\d+:|$)`, 'i');
-            const match = text.match(regex);
-            
-            if (!match) return [];
-            
-            // Extract key attractions from this section
-            const attractions = match[0]
-              .split(/\n|•|-|\.|,/)
-              .map(line => line.trim())
-              .filter(line => 
-                line.length > 0 && 
-                line.includes("Visit") || 
-                line.includes("Explore") || 
-                line.includes("Temple") || 
-                line.includes("Museum") || 
-                line.includes("Palace") || 
-                line.includes("Bridge")
-              );
-              
-            return attractions;
-          } catch {
-            return [];
-          }
-        };
-        
         // Process each location with a delay to avoid rate limiting
         const processWithDelay = async (locations: string[]) => {
           const results: LocationData[] = [];
@@ -185,11 +352,20 @@ const TripMap: React.FC<TripMapProps> = ({
                 }
               }
               
-              // Get activities for this location
-              const activities = tripResultText ? extractActivityLocations(tripResultText, loc) : [];
-              const description = activities.length > 0 
-                ? `Activities: ${activities.slice(0, 3).join(', ')}` 
-                : undefined;
+              // Extract activities and description from trip result
+              const activities = tripResultText ? 
+                await extractPointsOfInterest(tripResultText, loc) : 
+                [];
+              
+              // Get a brief description for the location
+              let description = '';
+              if (tripResultText) {
+                const locationRegex = new RegExp(`\\b${loc}\\b[^.]*\\.`);
+                const match = tripResultText.match(locationRegex);
+                if (match) {
+                  description = match[0].trim();
+                }
+              }
               
               // Add to results
               results.push({
@@ -199,7 +375,8 @@ const TripMap: React.FC<TripMapProps> = ({
                 day,
                 description,
                 isStart: i === 0,
-                isEnd: i === locations.length - 1
+                isEnd: i === locations.length - 1,
+                pointsOfInterest: activities
               });
             } catch (err) {
               console.error(`Error geocoding ${loc}:`, err);
@@ -259,13 +436,79 @@ const TripMap: React.FC<TripMapProps> = ({
     fetchLocations();
   }, [location, cities, tripResult]);
 
+  // Handle location selection
+  const handleLocationClick = (loc: LocationData) => {
+    setSelectedLocation(loc);
+    setDetailMode(true);
+    setMapCenter([loc.lat, loc.lng]);
+    setMapZoom(13); // Zoom in closer
+  };
+
+  // Return to overview mode
+  const handleBackToOverview = () => {
+    setDetailMode(false);
+    setSelectedLocation(null);
+    
+    // Reset to show all locations
+    if (mapLocations.length === 1) {
+      setMapCenter([mapLocations[0].lat, mapLocations[0].lng]);
+      setMapZoom(10);
+    } else if (mapLocations.length > 1) {
+      const minLat = Math.min(...mapLocations.map(loc => loc.lat));
+      const maxLat = Math.max(...mapLocations.map(loc => loc.lat));
+      const minLng = Math.min(...mapLocations.map(loc => loc.lng));
+      const maxLng = Math.max(...mapLocations.map(loc => loc.lng));
+      
+      setMapCenter([(minLat + maxLat) / 2, (minLng + maxLng) / 2]);
+      
+      const latDiff = maxLat - minLat;
+      const lngDiff = maxLng - minLng;
+      const maxDiff = Math.max(latDiff, lngDiff);
+      
+      if (maxDiff > 20) setMapZoom(3);
+      else if (maxDiff > 10) setMapZoom(4);
+      else if (maxDiff > 5) setMapZoom(5);
+      else if (maxDiff > 1) setMapZoom(6);
+      else if (maxDiff > 0.5) setMapZoom(7);
+      else setMapZoom(8);
+    }
+  };
+
+  // Get appropriate icon based on POI type
+  const getPoiIcon = (type: string) => {
+    switch (type) {
+      case 'museum': return <Landmark className="h-4 w-4 text-purple-600" />;
+      case 'restaurant': return <Utensils className="h-4 w-4 text-red-600" />;
+      case 'hotel': return <Building className="h-4 w-4 text-blue-600" />;
+      case 'transport': return <Navigation className="h-4 w-4 text-gray-600" />;
+      case 'landmark': return <Landmark className="h-4 w-4 text-amber-600" />;
+      default: return <MapPin className="h-4 w-4 text-green-600" />;
+    }
+  };
+
   return (
     <div className={`w-full ${className}`}>
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-          <MapPin className="mr-2 h-6 w-6 text-cyan-500" />
-          Trip Route Map
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
+            <MapPin className="mr-2 h-6 w-6 text-cyan-500" />
+            {detailMode && selectedLocation 
+              ? `Exploring ${selectedLocation.name}` 
+              : "Trip Route Map"}
+          </h3>
+          
+          {detailMode && (
+            <Button 
+              onClick={handleBackToOverview}
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <Navigation className="h-4 w-4" />
+              Back to Trip Overview
+            </Button>
+          )}
+        </div>
         
         <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           {isLoading ? (
@@ -294,20 +537,71 @@ const TripMap: React.FC<TripMapProps> = ({
                   width: 100%;
                   z-index: 1;
                 }
+                
+                .poi-icon {
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                }
+                
+                .leaflet-popup-content {
+                  margin: 8px 12px;
+                  max-width: 300px;
+                }
+                
+                .poi-popup {
+                  font-size: 14px;
+                }
+                
+                .poi-popup h3 {
+                  font-weight: bold;
+                  margin-bottom: 4px;
+                }
+                
+                .poi-popup p {
+                  margin-top: 4px;
+                  margin-bottom: 4px;
+                }
+                
+                .poi-popup .day {
+                  display: inline-block;
+                  background-color: #0ea5e9;
+                  color: white;
+                  font-size: 12px;
+                  padding: 2px 6px;
+                  border-radius: 9999px;
+                  margin-left: 4px;
+                }
+                
+                .city-marker-popup {
+                  cursor: pointer;
+                }
+                
+                .city-marker-popup:hover {
+                  text-decoration: underline;
+                }
               `}</style>
               
               <MapContainer 
                 center={mapCenter} 
                 zoom={mapZoom} 
                 scrollWheelZoom={true}
+                ref={mapRef}
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 
-                {/* Route line connecting locations */}
-                {mapLocations.length > 1 && (
+                {/* Controller to handle view changes */}
+                <MapController 
+                  center={mapCenter} 
+                  zoom={mapZoom} 
+                  selectedLocation={selectedLocation} 
+                />
+                
+                {/* Route line connecting locations - only in overview mode */}
+                {!detailMode && mapLocations.length > 1 && (
                   <Polyline 
                     positions={mapLocations.map(loc => [loc.lat, loc.lng])}
                     color="#0ea5e9"
@@ -322,10 +616,23 @@ const TripMap: React.FC<TripMapProps> = ({
                   <Marker 
                     key={`${loc.name}-${index}`}
                     position={[loc.lat, loc.lng]}
+                    eventHandlers={{
+                      click: detailMode ? undefined : () => handleLocationClick(loc)
+                    }}
                   >
                     <Popup>
                       <div className="p-1">
-                        <h3 className="font-bold text-base">{loc.name}</h3>
+                        <h3 
+                          className={`font-bold text-base ${!detailMode ? 'city-marker-popup' : ''}`}
+                          onClick={detailMode ? undefined : () => handleLocationClick(loc)}
+                        >
+                          {loc.name}
+                          {!detailMode && (
+                            <span className="text-xs ml-2 text-cyan-500">
+                              (Click to explore)
+                            </span>
+                          )}
+                        </h3>
                         {loc.day && (
                           <p className="text-sm text-gray-600 mt-1">Day {loc.day}</p>
                         )}
@@ -342,6 +649,29 @@ const TripMap: React.FC<TripMapProps> = ({
                     </Popup>
                   </Marker>
                 ))}
+                
+                {/* Display Points of Interest when in detail mode */}
+                {detailMode && selectedLocation && selectedLocation.pointsOfInterest && 
+                  selectedLocation.pointsOfInterest.map((poi, index) => (
+                    <Marker
+                      key={`poi-${index}`}
+                      position={[poi.lat, poi.lng]}
+                    >
+                      <Popup>
+                        <div className="poi-popup">
+                          <div className="flex items-center">
+                            {getPoiIcon(poi.type)}
+                            <h3 className="ml-1">{poi.name}</h3>
+                            {poi.day && <span className="day">Day {poi.day}</span>}
+                          </div>
+                          {poi.description && (
+                            <p className="text-gray-700">{poi.description}</p>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))
+                }
               </MapContainer>
             </>
           ) : (
@@ -351,15 +681,25 @@ const TripMap: React.FC<TripMapProps> = ({
           )}
         </div>
         
-        {mapLocations.length > 1 && (
-          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-            <p>Trip route from {mapLocations[0]?.name} to {mapLocations[mapLocations.length-1]?.name}</p>
-            {dateRange && <p className="mt-1">Travel dates: {dateRange}</p>}
-          </div>
-        )}
+        <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+          {detailMode && selectedLocation ? (
+            <p>
+              Showing detailed view of {selectedLocation.name}
+              {selectedLocation.pointsOfInterest && selectedLocation.pointsOfInterest.length > 0 ? 
+                ` with ${selectedLocation.pointsOfInterest.length} points of interest` : 
+                '. No specific points of interest found in the itinerary.'}
+            </p>
+          ) : mapLocations.length > 1 ? (
+            <>
+              <p>Trip route from {mapLocations[0]?.name} to {mapLocations[mapLocations.length-1]?.name}</p>
+              {dateRange && <p className="mt-1">Travel dates: {dateRange}</p>}
+              <p className="mt-1 text-cyan-600">Tip: Click on any location marker to see detailed points of interest</p>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 };
 
-export default TripMap;
+export default EnhancedTripMap;
