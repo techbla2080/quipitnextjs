@@ -5,37 +5,53 @@ import dynamic from 'next/dynamic';
 import { MapPin, Loader2, Navigation, Landmark, Coffee, Utensils, Building, Hotel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import 'leaflet/dist/leaflet.css';
+import type { Map as LeafletMap } from 'leaflet';
 
-// Dynamically import Leaflet components to avoid SSR issues
+// Dynamically import Leaflet components with no SSR
 const MapContainer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  () => import('react-leaflet').then(mod => mod.MapContainer),
   { ssr: false }
-);
+) as any;
 
 const TileLayer = dynamic(
-  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  () => import('react-leaflet').then(mod => mod.TileLayer),
   { ssr: false }
-);
+) as any;
 
 const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
+  () => import('react-leaflet').then(mod => mod.Marker),
   { ssr: false }
-);
+) as any;
 
 const Popup = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Popup),
+  () => import('react-leaflet').then(mod => mod.Popup),
   { ssr: false }
-);
+) as any;
 
 const Polyline = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Polyline),
+  () => import('react-leaflet').then(mod => mod.Polyline),
   { ssr: false }
-);
+) as any;
 
-const useMap = dynamic(
-  () => import('react-leaflet').then((mod) => mod.useMap),
+// For useMap, we'll create a simple wrapper
+const MapControllerWrapper = dynamic(() => 
+  Promise.resolve(() => {
+    // This only runs client-side
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { useMap } = require('react-leaflet');
+    const map = useMap();
+    
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useEffect(() => {
+      if (map && (window as any).mapCenter && (window as any).mapZoom) {
+        map.setView((window as any).mapCenter, (window as any).mapZoom);
+      }
+    }, [map]);
+    
+    return null;
+  }),
   { ssr: false }
-);
+) as any;
 
 // Define types
 interface TripMapProps {
@@ -66,28 +82,7 @@ interface PointOfInterest {
   day?: number;
 }
 
-// Component to handle map view changes
-const MapController = ({ 
-  center, 
-  zoom, 
-  selectedLocation 
-}: { 
-  center: [number, number], 
-  zoom: number, 
-  selectedLocation: LocationData | null 
-}) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (map) {
-      map.setView(center, zoom);
-    }
-  }, [map, center, zoom, selectedLocation]);
-  
-  return null;
-};
-
-const EnhancedTripMap: React.FC<TripMapProps> = ({ 
+const TripMap: React.FC<TripMapProps> = ({ 
   location, 
   cities, 
   dateRange, 
@@ -101,7 +96,15 @@ const EnhancedTripMap: React.FC<TripMapProps> = ({
   const [mapZoom, setMapZoom] = useState(2);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [detailMode, setDetailMode] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+
+  // Update global variables for the map controller
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).mapCenter = mapCenter;
+      (window as any).mapZoom = mapZoom;
+    }
+  }, [mapCenter, mapZoom]);
 
   // Fix Leaflet icon issues that occur in Next.js
   useEffect(() => {
@@ -289,7 +292,7 @@ const EnhancedTripMap: React.FC<TripMapProps> = ({
         // Normalize cities to array
         const citiesArray = Array.isArray(cities) 
           ? cities 
-          : cities.split(',').map(city => city.trim());
+          : typeof cities === 'string' ? cities.split(',').map(city => city.trim()) : [];
         
         // Combine location and cities
         const allLocations = [location, ...citiesArray].filter(loc => loc && loc.trim() !== '');
@@ -593,12 +596,8 @@ const EnhancedTripMap: React.FC<TripMapProps> = ({
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 
-                {/* Controller to handle view changes */}
-                <MapController 
-                  center={mapCenter} 
-                  zoom={mapZoom} 
-                  selectedLocation={selectedLocation} 
-                />
+                {/* Include our map controller wrapper */}
+                <MapControllerWrapper />
                 
                 {/* Route line connecting locations - only in overview mode */}
                 {!detailMode && mapLocations.length > 1 && (
@@ -702,4 +701,4 @@ const EnhancedTripMap: React.FC<TripMapProps> = ({
   );
 };
 
-export default EnhancedTripMap;
+export default TripMap;
