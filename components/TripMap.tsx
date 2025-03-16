@@ -130,31 +130,57 @@ const TripMap: React.FC<TripMapProps> = ({
     }
   }, []);
 
-  // Calculate number of days from the dateRange
-  useEffect(() => {
-    if (dateRange) {
-      try {
-        const [startStr, endStr] = dateRange.split(" to ");
-        
-        const parseDate = (dateStr: string) => {
-          const [month, day, year] = dateStr.split("/").map(num => parseInt(num, 10));
-          return new Date(year, month - 1, day);
-        };
-        
-        const startDate = parseDate(startStr);
-        const endDate = parseDate(endStr);
-        
-        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-          const diffTime = endDate.getTime() - startDate.getTime();
-          const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-          setNumberOfDays(dayCount);
-        }
-      } catch (error) {
-        console.error("Error calculating days from date range:", error);
-        setNumberOfDays(0);
-      }
+// Calculate number of days from the dateRange
+useEffect(() => {
+  setNumberOfDays(1); // Default to 1 day
+  
+  if (!dateRange || typeof dateRange !== 'string') {
+    console.log("Date range is undefined or not a string");
+    return;
+  }
+  
+  try {
+    if (!dateRange.includes(" to ")) {
+      console.log("Date range doesn't contain 'to' separator:", dateRange);
+      return;
     }
-  }, [dateRange]);
+    
+    const [startStr, endStr] = dateRange.split(" to ");
+    
+    if (!startStr || !endStr) {
+      console.log("Invalid date range format after split:", dateRange);
+      return;
+    }
+    
+    const parseDate = (dateStr: string) => {
+      if (!dateStr.includes("/")) {
+        throw new Error("Date string doesn't contain expected '/' separators");
+      }
+      
+      const parts = dateStr.split("/");
+      if (parts.length !== 3) {
+        throw new Error("Date string doesn't have 3 parts (month/day/year)");
+      }
+      
+      const [month, day, year] = parts.map(num => parseInt(num, 10));
+      return new Date(year, month - 1, day);
+    };
+    
+    const startDate = parseDate(startStr);
+    const endDate = parseDate(endStr);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.log("Invalid date parsed from strings:", startStr, endStr);
+      return;
+    }
+    
+    const diffTime = endDate.getTime() - startDate.getTime();
+    const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    setNumberOfDays(dayCount);
+  } catch (error) {
+    console.error("Error calculating days from date range:", error);
+  }
+}, [dateRange]);
 
   // Enhanced function to extract points of interest with improved pattern matching
   const extractPointsOfInterest = async (content: string, location: string): Promise<PointOfInterest[]> => {
