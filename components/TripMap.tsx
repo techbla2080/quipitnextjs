@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, Loader2, Navigation, Landmark, Coffee, Utensils, Building, Hotel } from "lucide-react";
+import { MapPin, Loader2, Navigation, Landmark, Coffee, Utensils, Building, Hotel, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import 'leaflet/dist/leaflet.css';
 import type { Map as LeafletMap } from 'leaflet';
@@ -33,7 +33,7 @@ const Polyline = dynamic(
   { ssr: false }
 ) as any;
 
-// For useMap, we'll create a simple wrapper
+// For useMap, we'll create a simple wrapper with enhanced animation
 const MapControllerWrapper = dynamic(() => 
   Promise.resolve(() => {
     // This only runs client-side
@@ -41,15 +41,20 @@ const MapControllerWrapper = dynamic(() =>
     const { useMap } = require('react-leaflet');
     const map = useMap();
     
-// Add flyTo animation instead of instant view change
-useEffect(() => {
-  if (map && (window as any).mapCenter && (window as any).mapZoom) {
-    map.flyTo((window as any).mapCenter, (window as any).mapZoom, {
-      duration: 1.5, // Animation duration in seconds
-      easeLinearity: 0.25
-    });
-  }
-}, [map]);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useEffect(() => {
+      if (map && (window as any).mapCenter && (window as any).mapZoom) {
+        // Use flyTo for smooth animation instead of setView
+        map.flyTo(
+          (window as any).mapCenter, 
+          (window as any).mapZoom, 
+          {
+            duration: 1.5, // Animation duration in seconds
+            easeLinearity: 0.25 // Makes animation more natural
+          }
+        );
+      }
+    }, [map, (window as any).mapCenter, (window as any).mapZoom]);
     
     return null;
   }),
@@ -99,6 +104,8 @@ const TripMap: React.FC<TripMapProps> = ({
   const [mapZoom, setMapZoom] = useState(2);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [detailMode, setDetailMode] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [numberOfDays, setNumberOfDays] = useState<number>(0);
   const mapRef = useRef<LeafletMap | null>(null);
 
   // Update global variables for the map controller
@@ -123,35 +130,102 @@ const TripMap: React.FC<TripMapProps> = ({
     }
   }, []);
 
-  // Function to extract points of interest from trip data
+  // Calculate number of days from the dateRange
+  useEffect(() => {
+    if (dateRange) {
+      try {
+        const [startStr, endStr] = dateRange.split(" to ");
+        
+        const parseDate = (dateStr: string) => {
+          const [month, day, year] = dateStr.split("/").map(num => parseInt(num, 10));
+          return new Date(year, month - 1, day);
+        };
+        
+        const startDate = parseDate(startStr);
+        const endDate = parseDate(endStr);
+        
+        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+          const diffTime = endDate.getTime() - startDate.getTime();
+          const dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          setNumberOfDays(dayCount);
+        }
+      } catch (error) {
+        console.error("Error calculating days from date range:", error);
+        setNumberOfDays(0);
+      }
+    }
+  }, [dateRange]);
+
+  // Enhanced function to extract points of interest with improved pattern matching
   const extractPointsOfInterest = async (content: string, location: string): Promise<PointOfInterest[]> => {
     const pois: PointOfInterest[] = [];
+    const processedLocations = new Set<string>(); // To avoid duplicates
     
     try {
-      // Find relevant section for this location
-      const locationRegex = new RegExp(`Day\\s+\\d+[^]*?\\b${location}\\b[^]*?(?=Day\\s+\\d+:|$)`, 'i');
-      const locationMatch = content.match(locationRegex);
+      // Get multiple sections that might mention this location
+      const locationPattern = new RegExp(`(Day\\s+\\d+[^]*?\\b${location}\\b[^]*?(?=Day\\s+\\d+:|$)|\\b${location}\\b[^.]*\\.|\\b${location}\\b[^\\n]*\\n)`, 'gi');
+      const locationMatches = content.match(locationPattern) || [];
       
-      if (!locationMatch) return pois;
+      // Combine all sections mentioning this location
+      const combinedContent = locationMatches.join("\n");
       
-      // Extract potential POIs - look for phrases that indicate locations
+      if (!combinedContent) return pois;
+      
+      // Extract potential POIs - expanded keywords for better coverage
       const poiKeywords = [
-        { type: 'museum', keywords: ['museum', 'gallery', 'exhibition'] },
-        { type: 'landmark', keywords: ['temple', 'mosque', 'bridge', 'memorial', 'monument', 'palace', 'square', 'garden', 'park'] },
-        { type: 'restaurant', keywords: ['restaurant', 'café', 'cafe', 'dine', 'lunch', 'dinner', 'breakfast', 'eat'] },
-        { type: 'hotel', keywords: ['hotel', 'accommodation', 'stay', 'resort'] },
-        { type: 'attraction', keywords: ['visit', 'explore', 'see', 'tour'] },
-        { type: 'transport', keywords: ['airport', 'station', 'terminal', 'port'] }
+        { 
+          type: 'museum', 
+          keywords: ['museum', 'gallery', 'exhibition', 'artifacts', 'collection', 'archaeological', 'ancient', 'art', 'history'] 
+        },
+        { 
+          type: 'landmark', 
+          keywords: ['temple', 'mosque', 'bridge', 'memorial', 'monument', 'palace', 'square', 'garden', 'park', 'fort', 'castle', 'historic', 'heritage', 'statue', 'tower', 'cathedral', 'church', 'site'] 
+        },
+        { 
+          type: 'restaurant', 
+          keywords: ['restaurant', 'café', 'cafe', 'dine', 'lunch', 'dinner', 'breakfast', 'eat', 'food', 'cuisine', 'culinary', 'dining', 'eatery', 'bistro', 'pub', 'bar'] 
+        },
+        { 
+          type: 'hotel', 
+          keywords: ['hotel', 'accommodation', 'stay', 'resort', 'lodge', 'inn', 'suite', 'room', 'hostel', 'motel', 'residence'] 
+        },
+        { 
+          type: 'attraction', 
+          keywords: ['visit', 'explore', 'see', 'tour', 'attraction', 'experience', 'popular', 'famous', 'renowned', 'destination', 'spot', 'point of interest', 'highlight'] 
+        },
+        { 
+          type: 'transport', 
+          keywords: ['airport', 'station', 'terminal', 'port', 'train', 'bus', 'metro', 'subway', 'ferry', 'transportation', 'transit'] 
+        }
       ];
       
-      // Extract lines with activities
-      const lines = locationMatch[0]
-        .split(/\n|•|●|-|\.|,/)
+      // Multiple extraction methods
+      // 1. Extract from bullet points and paragraphs
+      const textChunks = combinedContent
+        .split(/\n|•|●|-|(?<=\.) |,/)
         .map(line => line.trim())
         .filter(line => line.length > 5);
+        
+      // 2. Add day by day extraction to find activities for each day
+      const dayMatches = content.match(/Day\s+(\d+)[^\n]*[\n\s]+(.*?)(?=Day\s+\d+:|$)/gs) || [];
       
-      for (const line of lines) {
-        // Find what type of POI this might be
+      for (const dayMatch of dayMatches) {
+        const dayNumberMatch = dayMatch.match(/Day\s+(\d+)/);
+        const day = dayNumberMatch ? parseInt(dayNumberMatch[1], 10) : undefined;
+        
+        if (dayMatch.toLowerCase().includes(location.toLowerCase()) && day) {
+          const dayLines = dayMatch
+            .split(/\n|•|●|-|(?<=\.) |,/)
+            .map(line => line.trim())
+            .filter(line => line.length > 5);
+          
+          textChunks.push(...dayLines.map(line => line + ` (Day ${day})`));
+        }
+      }
+      
+      // Process each text chunk to find POIs
+      for (const line of textChunks) {
+        // Determine POI type
         let poiType: 'museum' | 'landmark' | 'restaurant' | 'hotel' | 'attraction' | 'transport' = 'attraction';
         
         for (const { type, keywords } of poiKeywords) {
@@ -161,36 +235,69 @@ const TripMap: React.FC<TripMapProps> = ({
           }
         }
         
-        // Look for potential named locations in quotes or with specific indicators
+        // Multiple methods to extract POI names
         let poiName = '';
+        let day: number | undefined = undefined;
         
-        // Check for quoted names
+        // Extract day information
+        const dayMatch = line.match(/Day\s+(\d+)/i);
+        if (dayMatch) {
+          day = parseInt(dayMatch[1], 10);
+        }
+        
+        // Method 1: Quoted text
         const quoteMatch = line.match(/"([^"]+)"|"([^"]+)"|'([^']+)'/);
         if (quoteMatch) {
           poiName = quoteMatch[1] || quoteMatch[2] || quoteMatch[3];
-        } else {
-          // Look for patterns like "Visit the X" or "Explore Y"
-          const visitMatch = line.match(/(?:visit|explore|see|tour)\s+(?:the\s+)?([A-Z][^,.]+)/i);
-          if (visitMatch) {
-            poiName = visitMatch[1];
-          } else if (line.includes(':')) {
-            // Format like "Lunch: Restaurant Name"
-            const colonMatch = line.match(/(?:lunch|dinner|breakfast):\s+([^,.]+)/i);
-            if (colonMatch) {
-              poiName = colonMatch[1];
-            }
-          } else {
-            // Just look for proper nouns
-            const properNounMatch = line.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/);
-            if (properNounMatch && !['Day', 'Morning', 'Afternoon', 'Evening', 'Night'].includes(properNounMatch[1])) {
-              poiName = properNounMatch[1];
+        } 
+        // Method 2: "Visit/Explore" patterns (enhanced)
+        else {
+          const actionPatterns = [
+            /(?:visit|explore|see|tour|discover|experience)\s+(?:the\s+)?([A-Z][^,.;:]+)/i,
+            /(?:check out|go to|head to|stop by)\s+(?:the\s+)?([A-Z][^,.;:]+)/i
+          ];
+          
+          for (const pattern of actionPatterns) {
+            const match = line.match(pattern);
+            if (match && match[1]) {
+              poiName = match[1];
+              break;
             }
           }
         }
         
-        // If we found a POI name and it's not the main location
-        if (poiName && !poiName.toLowerCase().includes(location.toLowerCase())) {
-          // Try to geocode only significant POIs
+        // Method 3: Colon patterns for meals and activities
+        if (!poiName && line.includes(':')) {
+          const colonMatch = line.match(/(?:lunch|dinner|breakfast|meal|activity):\s+([^,.;:]+)/i);
+          if (colonMatch && colonMatch[1]) {
+            poiName = colonMatch[1];
+          }
+        }
+        
+        // Method 4: Named entities (proper nouns)
+        if (!poiName) {
+          // Look for sequences of capitalized words that might be place names
+          const properNounMatches = Array.from(line.matchAll(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g));
+          
+          for (const match of properNounMatches) {
+            const potentialName = match[1];
+            // Filter out common words that shouldn't be POIs
+            if (!['Day', 'Morning', 'Afternoon', 'Evening', 'Night', 'January', 'February', 'March', 
+                 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 
+                 'December', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
+                 'Saturday', 'Sunday'].includes(potentialName)) {
+              poiName = potentialName;
+              break;
+            }
+          }
+        }
+        
+        // If we found a POI name and it's not the main location or already processed
+        if (poiName && 
+            !poiName.toLowerCase().includes(location.toLowerCase()) && 
+            !processedLocations.has(poiName.toLowerCase())) {
+          
+          // Only geocode substantial POIs
           if (poiName.length > 3) {
             try {
               // Add a delay to avoid rate limiting
@@ -210,9 +317,7 @@ const TripMap: React.FC<TripMapProps> = ({
                 const data = await response.json();
                 
                 if (data && data.length > 0) {
-                  // Extract day number if available
-                  const dayMatch = line.match(/Day\s+(\d+)/i) || locationMatch[0].match(/Day\s+(\d+)/i);
-                  const day = dayMatch ? parseInt(dayMatch[1], 10) : undefined;
+                  processedLocations.add(poiName.toLowerCase());
                   
                   pois.push({
                     name: poiName,
@@ -231,17 +336,81 @@ const TripMap: React.FC<TripMapProps> = ({
         }
       }
       
-      // If we didn't find any POIs, try a more general search
-      if (pois.length === 0) {
-        // Just get generic popular places in the location
-        const popularKeywords = ['popular', 'must-see', 'attraction', 'landmark'];
+      // Method 5: Look for specific attractions mentioned by name in the text
+      const specificAttractionPatterns = [
+        /(museum|gallery|temple|mosque|bridge|fort|castle|palace|garden|park|square|market) of ([A-Z][^,.;:]+)/gi,
+        /([A-Z][a-z]+ (?:museum|gallery|temple|mosque|bridge|fort|castle|palace|garden|park|square|market))/g
+      ];
+      
+      for (const pattern of specificAttractionPatterns) {
+        const matches = Array.from(combinedContent.matchAll(pattern));
+        
+        for (const match of matches) {
+          const attractionName = match[0];
+          
+          if (!processedLocations.has(attractionName.toLowerCase())) {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(attractionName + ', ' + location)}&limit=1`,
+                {
+                  headers: {
+                    'User-Agent': 'TravelPlanner/1.0'
+                  }
+                }
+              );
+              
+              if (response.ok) {
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                  processedLocations.add(attractionName.toLowerCase());
+                  
+                  // Try to determine the day
+                  let day: number | undefined = undefined;
+                  for (let i = 1; i <= 30; i++) {
+                    if (combinedContent.includes(`Day ${i}`) && 
+                        combinedContent.indexOf(`Day ${i}`) < combinedContent.indexOf(attractionName)) {
+                      day = i;
+                      break;
+                    }
+                  }
+                  
+                  // Determine type based on attraction name
+                  let type: 'museum' | 'landmark' | 'restaurant' | 'hotel' | 'attraction' | 'transport' = 'attraction';
+                  
+                  if (/museum|gallery/i.test(attractionName)) type = 'museum';
+                  else if (/temple|mosque|palace|fort|castle|bridge|park|garden|square/i.test(attractionName)) type = 'landmark';
+                  
+                  pois.push({
+                    name: attractionName,
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon),
+                    type,
+                    description: `Visit the ${attractionName}`,
+                    day
+                  });
+                }
+              }
+            } catch (error) {
+              console.warn(`Could not geocode specific attraction: ${attractionName}`);
+            }
+          }
+        }
+      }
+      
+      // If we still don't have many POIs, try a more general search
+      if (pois.length < 3) {
+        // Get popular places in the location
+        const popularKeywords = ['popular', 'must-see', 'attraction', 'landmark', 'famous'];
         
         for (const keyword of popularKeywords) {
           try {
             await new Promise(resolve => setTimeout(resolve, 300));
             
             const response = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(keyword + ' ' + location)}&limit=3`,
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(keyword + ' ' + location)}&limit=5`,
               {
                 headers: {
                   'User-Agent': 'TravelPlanner/1.0'
@@ -254,16 +423,32 @@ const TripMap: React.FC<TripMapProps> = ({
               
               if (data && data.length > 0) {
                 for (const place of data) {
-                  // Don't add duplicates
-                  if (!pois.some(poi => 
-                    Math.abs(poi.lat - parseFloat(place.lat)) < 0.001 && 
-                    Math.abs(poi.lng - parseFloat(place.lon)) < 0.001
-                  )) {
+                  const placeName = place.display_name.split(',')[0];
+                  
+                  // Don't add duplicates based on name or coordinates
+                  if (!processedLocations.has(placeName.toLowerCase()) &&
+                      !pois.some(poi => 
+                        Math.abs(poi.lat - parseFloat(place.lat)) < 0.001 && 
+                        Math.abs(poi.lng - parseFloat(place.lon)) < 0.001
+                      )) {
+                    
+                    processedLocations.add(placeName.toLowerCase());
+                    
+                    // Determine attraction type based on OSM tags or name
+                    let type: 'museum' | 'landmark' | 'restaurant' | 'hotel' | 'attraction' | 'transport' = 'attraction';
+                    
+                    const lowerName = placeName.toLowerCase();
+                    if (/museum|gallery/i.test(lowerName)) type = 'museum';
+                    else if (/restaurant|café|cafe|dining/i.test(lowerName)) type = 'restaurant';
+                    else if (/hotel|resort|accommodation/i.test(lowerName)) type = 'hotel';
+                    else if (/temple|mosque|church|monument|palace|bridge/i.test(lowerName)) type = 'landmark';
+                    else if (/airport|station|terminal/i.test(lowerName)) type = 'transport';
+                    
                     pois.push({
-                      name: place.display_name.split(',')[0],
+                      name: placeName,
                       lat: parseFloat(place.lat),
                       lng: parseFloat(place.lon),
-                      type: 'attraction',
+                      type,
                       description: `Popular attraction in ${location}`
                     });
                   }
@@ -271,8 +456,8 @@ const TripMap: React.FC<TripMapProps> = ({
               }
             }
             
-            // If we found some places, stop searching
-            if (pois.length > 0) break;
+            // If we found enough places, stop searching
+            if (pois.length >= 5) break;
           } catch (error) {
             console.warn(`Could not find generic POIs for ${location}`);
           }
@@ -363,6 +548,8 @@ const TripMap: React.FC<TripMapProps> = ({
                 await extractPointsOfInterest(tripResultText, loc) : 
                 [];
               
+              console.log(`Found ${activities.length} points of interest for ${loc}`);
+              
               // Get a brief description for the location
               let description = '';
               if (tripResultText) {
@@ -442,18 +629,20 @@ const TripMap: React.FC<TripMapProps> = ({
     fetchLocations();
   }, [location, cities, tripResult]);
 
-  // Handle location selection
+  // Handle location selection with deeper street-level zoom
   const handleLocationClick = (loc: LocationData) => {
     setSelectedLocation(loc);
     setDetailMode(true);
     setMapCenter([loc.lat, loc.lng]);
-    setMapZoom(17); // Zoom in closer
+    setMapZoom(17); // Set to 17 for street-level details
+    setSelectedDay(null); // Reset day filter when changing location
   };
 
   // Return to overview mode
   const handleBackToOverview = () => {
     setDetailMode(false);
     setSelectedLocation(null);
+    setSelectedDay(null);
     
     // Reset to show all locations
     if (mapLocations.length === 1) {
@@ -492,6 +681,19 @@ const TripMap: React.FC<TripMapProps> = ({
     }
   };
 
+  // Get total count of POIs for the current selected location
+  const getTotalPOICount = () => {
+    if (!selectedLocation || !selectedLocation.pointsOfInterest) return 0;
+    return selectedLocation.pointsOfInterest.length;
+  };
+
+  // Get filtered POIs based on selected day
+  const getFilteredPOIs = () => {
+    if (!selectedLocation || !selectedLocation.pointsOfInterest) return [];
+    if (selectedDay === null) return selectedLocation.pointsOfInterest;
+    return selectedLocation.pointsOfInterest.filter(poi => poi.day === selectedDay);
+  };
+
   return (
     <div className={`w-full ${className}`}>
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -515,6 +717,39 @@ const TripMap: React.FC<TripMapProps> = ({
             </Button>
           )}
         </div>
+        
+        {/* Day filter buttons - only show in detail mode */}
+        {detailMode && selectedLocation && selectedLocation.pointsOfInterest && selectedLocation.pointsOfInterest.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className="h-4 w-4 text-cyan-500" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filter by day:
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                size="sm" 
+                variant={selectedDay === null ? "default" : "outline"}
+                onClick={() => setSelectedDay(null)}
+                className="text-xs px-3 py-1 h-7"
+              >
+                All Days
+              </Button>
+              {Array.from({ length: numberOfDays }).map((_, i) => (
+                <Button
+                  key={i}
+                  size="sm"
+                  variant={selectedDay === i+1 ? "default" : "outline"}
+                  onClick={() => setSelectedDay(i+1)}
+                  className="text-xs px-3 py-1 h-7"
+                >
+                  Day {i+1}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
         
         <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           {isLoading ? (
@@ -586,6 +821,13 @@ const TripMap: React.FC<TripMapProps> = ({
                 .city-marker-popup:hover {
                   text-decoration: underline;
                 }
+                
+                /* Enhanced animation styles */
+                .leaflet-fade-anim .leaflet-tile,
+                .leaflet-zoom-anim .leaflet-zoom-animated {
+                  will-change: auto !important;
+                  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+                }
               `}</style>
               
               <MapContainer 
@@ -647,6 +889,11 @@ const TripMap: React.FC<TripMapProps> = ({
                         {loc.description && (
                           <p className="text-sm mt-2">{loc.description}</p>
                         )}
+                        {loc.pointsOfInterest && loc.pointsOfInterest.length > 0 && !detailMode && (
+                          <p className="text-sm text-cyan-600 mt-2">
+                            {loc.pointsOfInterest.length} points of interest available
+                          </p>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
@@ -654,7 +901,7 @@ const TripMap: React.FC<TripMapProps> = ({
                 
                 {/* Display Points of Interest when in detail mode */}
                 {detailMode && selectedLocation && selectedLocation.pointsOfInterest && 
-                  selectedLocation.pointsOfInterest.map((poi, index) => (
+                  getFilteredPOIs().map((poi, index) => (
                     <Marker
                       key={`poi-${index}`}
                       position={[poi.lat, poi.lng]}
@@ -688,7 +935,7 @@ const TripMap: React.FC<TripMapProps> = ({
             <p>
               Showing detailed view of {selectedLocation.name}
               {selectedLocation.pointsOfInterest && selectedLocation.pointsOfInterest.length > 0 ? 
-                ` with ${selectedLocation.pointsOfInterest.length} points of interest` : 
+                ` with ${selectedDay === null ? getTotalPOICount() : getFilteredPOIs().length} points of interest${selectedDay !== null ? ` for Day ${selectedDay}` : ''}` : 
                 '. No specific points of interest found in the itinerary.'}
             </p>
           ) : mapLocations.length > 1 ? (
