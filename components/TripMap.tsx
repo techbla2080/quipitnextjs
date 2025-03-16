@@ -116,7 +116,7 @@ const TripMap: React.FC<TripMapProps> = ({
         console.log("TripMap: Safety timeout triggered after 15 seconds");
         setIsLoading(false);
         setError("Map loading timed out. Check console for detailed logs.");
-      }, 15000); // 15 seconds timeout
+      }, 45000); // 45 seconds timeout
       
       return () => clearTimeout(timeout);
     }
