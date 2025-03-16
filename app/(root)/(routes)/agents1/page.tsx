@@ -766,6 +766,18 @@ export default function TripPlanner() {
                 </div>
               </div>
 
+              {/* Trip Map Visualization */}
+{tripResult && (
+  <div className="mt-8">
+    <TripMap
+      location={addedLocation}
+      cities={citiesList}
+      dateRange={addedDateRange}
+      tripResult={typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult)}
+    />
+  </div>
+)}
+
               {/* Intro Box */}
               {(() => {
                 const introText = tripResult && (tripResult as unknown as string);
@@ -1039,20 +1051,6 @@ export default function TripPlanner() {
     })}
   </div>
 )}
-
-
-{/* Trip Map Visualization */}
-{tripResult && (
-  <div className="mt-8">
-    <TripMap
-      location={addedLocation}
-      cities={citiesList}
-      dateRange={addedDateRange}
-      tripResult={typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult)}
-    />
-  </div>
-)}
-
 
 {/* Save Button */}
 {tripResult && (
