@@ -479,6 +479,13 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
         </div>
       </div>
 
+      <TripMap
+    location={normalizedTripData.location}
+    cities={normalizedTripData.cities}
+    dateRange={normalizedTripData.dateRange}
+    tripResult={tripData.tripResult}
+  />
+
       {/* Trip Overview */}
       {parsedContent.intro && (
         <div className="p-8 mt-4">
@@ -595,12 +602,6 @@ const ProfessionalTripView = ({ tripData }: TripViewProps) => {
       </div>
 
       <div className="p-8 mt-4 border-t dark:border-gray-700">
-  <TripMap
-    location={normalizedTripData.location}
-    cities={normalizedTripData.cities}
-    dateRange={normalizedTripData.dateRange}
-    tripResult={tripData.tripResult}
-  />
 </div>
 
       {/* Footer */}
