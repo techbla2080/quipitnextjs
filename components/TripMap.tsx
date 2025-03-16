@@ -41,12 +41,15 @@ const MapControllerWrapper = dynamic(() =>
     const { useMap } = require('react-leaflet');
     const map = useMap();
     
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    React.useEffect(() => {
-      if (map && (window as any).mapCenter && (window as any).mapZoom) {
-        map.setView((window as any).mapCenter, (window as any).mapZoom);
-      }
-    }, [map]);
+// Add flyTo animation instead of instant view change
+useEffect(() => {
+  if (map && (window as any).mapCenter && (window as any).mapZoom) {
+    map.flyTo((window as any).mapCenter, (window as any).mapZoom, {
+      duration: 1.5, // Animation duration in seconds
+      easeLinearity: 0.25
+    });
+  }
+}, [map]);
     
     return null;
   }),
@@ -444,7 +447,7 @@ const TripMap: React.FC<TripMapProps> = ({
     setSelectedLocation(loc);
     setDetailMode(true);
     setMapCenter([loc.lat, loc.lng]);
-    setMapZoom(13); // Zoom in closer
+    setMapZoom(17); // Zoom in closer
   };
 
   // Return to overview mode
