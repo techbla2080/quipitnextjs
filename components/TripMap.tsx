@@ -106,7 +106,7 @@ const TripMap: React.FC<TripMapProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 0]);
-  const [mapZoom, setMapZoom] = useState(2);
+  const [mapZoom, setMapZoom] = useState(5);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [detailMode, setDetailMode] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -160,7 +160,7 @@ const TripMap: React.FC<TripMapProps> = ({
           setMapLocations(defaultLocations);
           setMapCenter([(defaultLocations[0].lat + defaultLocations[1].lat) / 2, 
                        (defaultLocations[0].lng + defaultLocations[1].lng) / 2]);
-          setMapZoom(4);
+          setMapZoom(6);
           
           // Start the flight animation automatically
           setTimeout(() => {
@@ -385,7 +385,7 @@ const TripMap: React.FC<TripMapProps> = ({
         if (results.length === 1) {
           // If only one location, center on it
           setMapCenter([results[0].lat, results[0].lng]);
-          setMapZoom(10);
+          setMapZoom(12);
         } else {
           // Find bounds to include all locations
           const minLat = Math.min(...results.map(loc => loc.lat));
@@ -403,13 +403,13 @@ const TripMap: React.FC<TripMapProps> = ({
           const lngDiff = maxLng - minLng;
           const maxDiff = Math.max(latDiff, lngDiff);
           
-          let newZoom = 8;
-          // Adjust zoom level based on the distance
-          if (maxDiff > 20) newZoom = 3;
-          else if (maxDiff > 10) newZoom = 4;
-          else if (maxDiff > 5) newZoom = 5;
-          else if (maxDiff > 1) newZoom = 6;
-          else if (maxDiff > 0.5) newZoom = 7;
+          let newZoom = 9;
+          // Adjust zoom level based on the distance - increase all zoom levels
+          if (maxDiff > 20) newZoom = 5;
+          else if (maxDiff > 10) newZoom = 6;
+          else if (maxDiff > 5) newZoom = 7;
+          else if (maxDiff > 1) newZoom = 8;
+          else if (maxDiff > 0.5) newZoom = 9;
           
           setMapZoom(newZoom);
           
