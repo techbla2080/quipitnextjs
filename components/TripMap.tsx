@@ -176,11 +176,19 @@ const TripMap: React.FC<TripMapProps> = ({
     }
   }, [isLoading, location, cities, mapLocations]);
 
-  // Update global variables for the map controller
+  // Update global variables for the map controller and ensure map flies to locations
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).mapCenter = mapCenter;
       (window as any).mapZoom = mapZoom;
+      
+      // If we have the map reference and new coordinates, fly to them
+      if (mapRef.current && mapCenter[0] !== 0 && mapCenter[1] !== 0) {
+        mapRef.current.flyTo(mapCenter, mapZoom, {
+          duration: 1.5,
+          easeLinearity: 0.25
+        });
+      }
     }
   }, [mapCenter, mapZoom]);
 
@@ -244,38 +252,72 @@ const TripMap: React.FC<TripMapProps> = ({
       cancelAnimationFrame(animationRef.current);
     }
     
-    setFlightAnimation({
-      isAnimating: true,
-      progress: 0,
-      startPoint,
-      endPoint
-    });
-    
-    let startTime: number | null = null;
-    const duration = 5000; // 5 seconds
-    
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const elapsed = timestamp - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+    // First ensure the map is positioned to see both points
+    if (mapRef.current) {
+      // Calculate center between points
+      const centerLat = (startPoint[0] + endPoint[0]) / 2;
+      const centerLng = (startPoint[1] + endPoint[1]) / 2;
       
-      setFlightAnimation(prev => ({
-        ...prev,
-        progress
-      }));
+      // Calculate distance to determine zoom
+      const latDiff = Math.abs(endPoint[0] - startPoint[0]);
+      const lngDiff = Math.abs(endPoint[1] - startPoint[1]);
+      const maxDiff = Math.max(latDiff, lngDiff);
       
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
+      // Determine appropriate zoom
+      let newZoom = 9;
+      if (maxDiff > 20) newZoom = 5;
+      else if (maxDiff > 10) newZoom = 6;
+      else if (maxDiff > 5) newZoom = 7;
+      else if (maxDiff > 1) newZoom = 8;
+      
+      // Fly to position that shows both points
+      mapRef.current.flyTo([centerLat, centerLng], newZoom, {
+        duration: 1.5,
+        easeLinearity: 0.25
+      });
+      
+      // Wait for map to finish flying before starting the animation
+      setTimeout(() => {
+        startActualAnimation();
+      }, 1600); // Slightly longer than the flyTo duration
+    } else {
+      startActualAnimation();
+    }
+    
+    function startActualAnimation() {
+      setFlightAnimation({
+        isAnimating: true,
+        progress: 0,
+        startPoint,
+        endPoint
+      });
+      
+      let startTime: number | null = null;
+      const duration = 5000; // 5 seconds
+      
+      const animate = (timestamp: number) => {
+        if (!startTime) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
         setFlightAnimation(prev => ({
           ...prev,
-          isAnimating: false
+          progress
         }));
-      }
-    };
-    
-    animationRef.current = requestAnimationFrame(animate);
-    console.log("TripMap: Flight animation started");
+        
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        } else {
+          setFlightAnimation(prev => ({
+            ...prev,
+            isAnimating: false
+          }));
+        }
+      };
+      
+      animationRef.current = requestAnimationFrame(animate);
+      console.log("TripMap: Flight animation started");
+    }
   };
   
   // Clean up animation on unmount
