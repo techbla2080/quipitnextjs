@@ -106,8 +106,7 @@ const FuturisticHomePage = () => {
   };
 
   return (
-    <div className="relative w-full overflow-x-hidden">
-     <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white overflow-hidden relative">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-black text-white overflow-hidden relative">
       {/* Interactive background with particles */}
       {showParticles && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -696,7 +695,6 @@ const FuturisticHomePage = () => {
           </div>
         </footer>
       </main>
-    </div>
     </div>
   );
 };
