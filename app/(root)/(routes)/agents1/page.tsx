@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { usePlanTrip } from "@/hooks/usePlanTrip";
-import { Toaster, toast } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast"; 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
