@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
 import { Sparkles } from "lucide-react";
+import { motion } from "framer-motion"; // Added for animation
 
 import { cn } from "@/lib/utils";
 import { MobileSidebar } from "@/components/mobile-sidebar";
@@ -25,9 +26,21 @@ export const Navbar = ({ isPro }: NavbarProps) => {
       <div className="flex items-center">
         <MobileSidebar isPro={isPro} />
         <Link href="/">
-          <h1 className={cn("hidden md:block text-xl md:text-3xl font-bold text-primary", font.className)}>
-            Quipit
-          </h1>
+          <div className="flex items-center">
+            <div className="relative">
+              <Sparkles className="w-8 h-8 text-blue-500" />
+              <motion.div
+                className="absolute inset-0 text-blue-600 opacity-75"
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Sparkles className="w-8 h-8" />
+              </motion.div>
+            </div>
+            <h1 className={cn("hidden md:block text-xl md:text-3xl font-bold text-primary ml-2", font.className)}>
+              Quipit
+            </h1>
+          </div>
         </Link>
       </div>
       <div className="flex-grow flex justify-center items-center">
