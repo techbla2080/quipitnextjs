@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Plane, PenTool, TreePine, ChevronRight, MapPin, MessageSquare, Clock, Phone } from "lucide-react"; // Added missing icons
+import { Sparkles, Plane, PenTool, TreePine, ChevronRight, MapPin, MessageSquare, Clock, Phone } from "lucide-react"; // Icons for intro, agents, and footer
 
 const TravelPage = () => {
   // Define the three agents, all available, with content from FuturisticHomePage
@@ -45,82 +45,90 @@ const TravelPage = () => {
           </h2>
         </div>
 
-        <div className="text-center max-w-2xl mx-auto">
-          {/* Quipit Intro Section (from FuturisticHomePage Hero) */}
-          <div className="mb-12">
-            <div className="mb-6 flex justify-center">
-              <Sparkles className="w-16 h-16 text-blue-500" />
+        <div className="max-w-2xl mx-auto">
+          {/* Quipit Intro Section (Bounded in a Card) */}
+          <Card className="p-6 sm:p-8 mb-12 bg-white dark:bg-gray-800 shadow-lg">
+            <div className="text-center">
+              <div className="mb-6 flex justify-center">
+                <Sparkles className="w-16 h-16 text-blue-500" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                Your Personal AI Ecosystem
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300">
+                Experience the future of productivity with intelligent AI agents that transform how you travel, organize thoughts, and manage tasks.
+              </p>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-              Your Personal AI Ecosystem
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Experience the future of productivity with intelligent AI agents that transform how you travel, organize thoughts, and manage tasks.
-            </p>
-          </div>
+          </Card>
 
-          {/* About NovaTrek */}
-          <div className="mb-12">
-            <div className="mb-6 flex justify-center">
-              <Plane className="w-16 h-16 text-blue-500" />
+          {/* About NovaTrek (Bounded in a Card) */}
+          <Card className="p-6 sm:p-8 mb-12 bg-white dark:bg-gray-800 shadow-lg">
+            <div className="text-center">
+              <div className="mb-6 flex justify-center">
+                <Plane className="w-16 h-16 text-blue-500" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                NovaTrek: Your Travel Planner
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
+                Experience AI-powered travel planning. Get personalized itineraries, real-time recommendations, and interactive maps for your dream destinations.
+              </p>
+              <ul className="text-gray-600 dark:text-gray-300 space-y-2">
+                {agents[0].features.map((feature, i) => (
+                  <li key={i} className="flex items-start justify-center">
+                    <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-              NovaTrek: Your Travel Planner
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
-              Experience AI-powered travel planning. Get personalized itineraries, real-time recommendations, and interactive maps for your dream destinations.
-            </p>
-            <ul className="text-gray-600 dark:text-gray-300 space-y-2">
-              {agents[0].features.map((feature, i) => (
-                <li key={i} className="flex items-start justify-center">
-                  <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </Card>
 
-          {/* About DropThought */}
-          <div className="mb-12">
-            <div className="mb-6 flex justify-center">
-              <PenTool className="w-16 h-16 text-blue-500" />
+          {/* About DropThought (Bounded in a Card) */}
+          <Card className="p-6 sm:p-8 mb-12 bg-white dark:bg-gray-800 shadow-lg">
+            <div className="text-center">
+              <div className="mb-6 flex justify-center">
+                <PenTool className="w-16 h-16 text-blue-500" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                DropThought: Your Note-Taking Assistant
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
+                Revolutionize your note-taking with AI that organizes, connects, and enhances your thoughts. Capture ideas instantly and transform them into actionable insights.
+              </p>
+              <ul className="text-gray-600 dark:text-gray-300 space-y-2">
+                {agents[1].features.map((feature, i) => (
+                  <li key={i} className="flex items-start justify-center">
+                    <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-              DropThought: Your Note-Taking Assistant
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
-              Revolutionize your note-taking with AI that organizes, connects, and enhances your thoughts. Capture ideas instantly and transform them into actionable insights.
-            </p>
-            <ul className="text-gray-600 dark:text-gray-300 space-y-2">
-              {agents[1].features.map((feature, i) => (
-                <li key={i} className="flex items-start justify-center">
-                  <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </Card>
 
-          {/* About MindBloom (Renamed from Nexus) */}
-          <div className="mb-12">
-            <div className="mb-6 flex justify-center">
-              <TreePine className="w-16 h-16 text-blue-500" />
+          {/* About MindBloom (Bounded in a Card) */}
+          <Card className="p-6 sm:p-8 mb-12 bg-white dark:bg-gray-800 shadow-lg">
+            <div className="text-center">
+              <div className="mb-6 flex justify-center">
+                <TreePine className="w-16 h-16 text-blue-500" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+                MindBloom: Your Productivity Tree
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
+                Visualize your productivity with an AI-powered mind mapping system that grows as you accomplish tasks, connecting your work in meaningful, revealing patterns.
+              </p>
+              <ul className="text-gray-600 dark:text-gray-300 space-y-2">
+                {agents[2].features.map((feature, i) => (
+                  <li key={i} className="flex items-start justify-center">
+                    <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-              MindBloom: Your Productivity Tree
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-4">
-              Visualize your productivity with an AI-powered mind mapping system that grows as you accomplish tasks, connecting your work in meaningful, revealing patterns.
-            </p>
-            <ul className="text-gray-600 dark:text-gray-300 space-y-2">
-              {agents[2].features.map((feature, i) => (
-                <li key={i} className="flex items-start justify-center">
-                  <ChevronRight className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </Card>
 
           {/* Marketing Tagline */}
           <div className="text-center mb-8">
