@@ -49,7 +49,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
     className={`
       relative px-4 py-3 
       hover:bg-blue-50/50 rounded-lg 
-      cursor-pointer group transition-all duration-150 // Changed from 300ms to 150ms
+      cursor-pointer group transition-all
       ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
     `}
   >
@@ -59,7 +59,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
         onClick={(e) => onDelete(e, trip.job_id)}
         variant="ghost"
         size="icon"
-        className="opacity-0 group-hover:opacity-100 transition-all duration-150" // Changed from 300ms to 150ms
+        className="opacity-0 group-hover:opacity-100 transition-all"
       >
         <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
       </Button>
@@ -78,7 +78,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
 
     <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
       <div 
-        className="bg-blue-500 h-1.5 rounded-full transition-all duration-150" // Changed from 300ms to 150ms
+        className="bg-blue-500 h-1.5 rounded-full transition-all"
         style={{ width: isActive ? '100%' : '75%' }}
       />
     </div>
@@ -285,7 +285,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   onClick={() => onNavigate(route.href, route.pro)}
                   key={route.href}
                   className={cn(
-                    "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-150", // Changed from 300ms to 150ms
+                    "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
                     pathname === route.href && "bg-gray-100"
                   )}
                 >
@@ -305,7 +305,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   onClick={() => onNavigate(route.href, route.pro)}
                   key={route.href}
                   className={cn(
-                    "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-150", // Changed from 300ms to 150ms
+                    "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
                     pathname === route.href && "bg-gray-100"
                   )}
                 >
@@ -326,13 +326,48 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   const urlParams = new URLSearchParams(window.location.search);
                   const isActive = urlParams.get('job_id') === trip.job_id;
                   return (
-                    <SavedTripItem
+                    <div
                       key={trip._id}
-                      trip={trip}
-                      isActive={isActive}
-                      onDelete={handleDeleteTrip}
+                      className={`
+                        px-2 py-3 w-full
+                        hover:bg-blue-50/50 rounded-lg 
+                        cursor-pointer group transition-all
+                        ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
+                      `}
                       onClick={() => navigateToTrip(trip)}
-                    />
+                    >
+                      <div className="flex items-center justify-between mb-2 w-full">
+                        <span className="font-semibold text-gray-800 truncate max-w-[160px]">
+                          {trip.location}
+                        </span>
+                        <Button
+                          onClick={(e) => handleDeleteTrip(e, trip.job_id)}
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                        >
+                          <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-col space-y-2 text-sm text-gray-600">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="truncate">{trip.dateRange}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 shrink-0" />
+                          <span className="truncate">{trip.cities[0]}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 w-full bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-500 h-1.5 rounded-full transition-all"
+                          style={{ width: isActive ? '100%' : '75%' }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -343,5 +378,5 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
         </div>
       </div>
     </div>
-  );
+  );  
 };
