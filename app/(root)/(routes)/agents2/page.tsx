@@ -65,7 +65,7 @@ export default function KarpathyNotePage() {
     // Process with OpenAI (in a real implementation)
     // For this example, we'll just append without AI processing
     setTimeout(() => {
-      const newNote = input + '\n\n';
+      const newNote = input + '\n'; // Just one newline instead of two
       setNoteContent(newNote + noteContent);
       setInput('');
       setIsProcessing(false);
@@ -95,7 +95,7 @@ export default function KarpathyNotePage() {
     const afterParagraph = lines.slice(endIndex + 1);
     
     // Move it to the top
-    const newContent = paragraph + '\n\n' + beforeParagraph.concat(afterParagraph).join('\n');
+    const newContent = paragraph + '\n' + beforeParagraph.concat(afterParagraph).join('\n');
     setNoteContent(newContent);
     setActiveLineIndex(null);
   };
@@ -206,15 +206,20 @@ export default function KarpathyNotePage() {
           ) : (
             noteLines.map((line, index) => 
               line.trim() ? (
-                <div key={index} className="relative flex items-start group mb-1">
+                <div key={index} className="relative flex items-start group mb-2">
                   <div 
                     className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
                     onClick={(e) => handleCheckboxClick(index, e)}
                   >
-                    {activeLineIndex === index ? 
-                      <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
+                    {activeLineIndex === index ? (
+                      <div className="w-4 h-4 border border-gray-500 rounded-sm flex items-center justify-center bg-gray-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    ) : (
                       <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
-                    }
+                    )}
                   </div>
                   <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
                   
@@ -241,7 +246,7 @@ export default function KarpathyNotePage() {
                   )}
                 </div>
               ) : (
-                <div key={index} className="h-4"></div> // Space for empty lines without checkbox
+                <div key={index} className="h-2"></div> // Smaller space for empty lines
               )
             )
           )}
