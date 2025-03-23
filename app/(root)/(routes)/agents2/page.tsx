@@ -196,7 +196,7 @@ export default function KarpathyNotePage() {
         </button>
       </div>
       
-      {/* Main Note with Checkbox Selection */}
+      {/* Main Note with Checkbox Selection - Skip Empty Lines */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
           {noteLines.length === 0 ? (
@@ -204,42 +204,46 @@ export default function KarpathyNotePage() {
               Your notes will appear here. Add a note to get started.
             </div>
           ) : (
-            noteLines.map((line, index) => (
-              <div key={index} className="relative flex items-start group mb-1">
-                <div 
-                  className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
-                  onClick={(e) => handleCheckboxClick(index, e)}
-                >
-                  {activeLineIndex === index ? 
-                    <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
-                    <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
-                  }
-                </div>
-                <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
-                
-                {/* Dropdown Menu - Positioned at the right side */}
-                {activeLineIndex === index && (
+            noteLines.map((line, index) => 
+              line.trim() ? (
+                <div key={index} className="relative flex items-start group mb-1">
                   <div 
-                    ref={dropdownRef}
-                    className="absolute bg-white border rounded shadow-lg z-10 right-4"
-                    style={{ top: '-10px' }}
+                    className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
+                    onClick={(e) => handleCheckboxClick(index, e)}
                   >
-                    <button 
-                      onClick={() => handleRescue(index)} 
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                    >
-                      Rescue to Top
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(index)} 
-                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                    >
-                      Delete
-                    </button>
+                    {activeLineIndex === index ? 
+                      <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
+                      <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
+                    }
                   </div>
-                )}
-              </div>
-            ))
+                  <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
+                  
+                  {/* Dropdown Menu - Positioned at the right side */}
+                  {activeLineIndex === index && (
+                    <div 
+                      ref={dropdownRef}
+                      className="absolute bg-white border rounded shadow-lg z-10 right-4"
+                      style={{ top: '-10px' }}
+                    >
+                      <button 
+                        onClick={() => handleRescue(index)} 
+                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                      >
+                        Rescue to Top
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(index)} 
+                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div key={index} className="h-4"></div> // Space for empty lines without checkbox
+              )
+            )
           )}
         </div>
       </div>
