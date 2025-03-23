@@ -23,22 +23,6 @@ export default function KarpathyNotePage() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // Load example notes for testing
-  useEffect(() => {
-    if (isLoaded && isSignedIn && noteContent === '') {
-      const exampleNote = 
-`TODO for today:
-- ✅ morning exercise
-- write a blog post
-- do actual work
-
-Read: Abundance book?
-
-idea: World of ChatGPT`;
-      setNoteContent(exampleNote);
-    }
-  }, [isLoaded, isSignedIn, noteContent]);
-
   // Parse the noteContent into lines
   const noteLines = noteContent.split('\n');
 
@@ -215,42 +199,48 @@ idea: World of ChatGPT`;
       {/* Main Note with Checkbox Selection */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
-          {noteLines.map((line, index) => (
-            <div key={index} className="relative flex items-start group mb-1">
-              <div 
-                className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
-                onClick={(e) => handleCheckboxClick(index, e)}
-              >
-                {activeLineIndex === index ? 
-                  <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
-                  <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
-                }
-              </div>
-              <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
-              
-              {/* Dropdown Menu - Positioned at the right side */}
-              {activeLineIndex === index && (
-                <div 
-                  ref={dropdownRef}
-                  className="absolute bg-white border rounded shadow-lg z-10 right-4"
-                  style={{ top: '-10px' }}
-                >
-                  <button 
-                    onClick={() => handleRescue(index)} 
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Rescue to Top
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(index)} 
-                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
+          {noteLines.length === 0 ? (
+            <div className="text-gray-400 text-center py-8">
+              Your notes will appear here. Add a note to get started.
             </div>
-          ))}
+          ) : (
+            noteLines.map((line, index) => (
+              <div key={index} className="relative flex items-start group mb-1">
+                <div 
+                  className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
+                  onClick={(e) => handleCheckboxClick(index, e)}
+                >
+                  {activeLineIndex === index ? 
+                    <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
+                    <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
+                  }
+                </div>
+                <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
+                
+                {/* Dropdown Menu - Positioned at the right side */}
+                {activeLineIndex === index && (
+                  <div 
+                    ref={dropdownRef}
+                    className="absolute bg-white border rounded shadow-lg z-10 right-4"
+                    style={{ top: '-10px' }}
+                  >
+                    <button 
+                      onClick={() => handleRescue(index)} 
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                    >
+                      Rescue to Top
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(index)} 
+                      className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
       
@@ -265,12 +255,16 @@ idea: World of ChatGPT`;
             </div>
           ) : (
             <ul className="space-y-2">
-              {insights.map((insight, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="inline-block mr-2 text-gray-700">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
+              {insights.length === 0 ? (
+                <li>Add some notes to get insights.</li>
+              ) : (
+                insights.map((insight, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="inline-block mr-2 text-gray-700">•</span>
+                    <span>{insight}</span>
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </div>
