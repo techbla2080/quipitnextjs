@@ -72,7 +72,7 @@ export default function KarpathyNotePage() {
     }, 300);
   };
 
-  // Rescue a line to the top
+  // Rescue a line to the top - FIXED VERSION
   const handleRescue = (index: number): void => {
     const lines = noteContent.split('\n');
     let startIndex = index;
@@ -90,12 +90,12 @@ export default function KarpathyNotePage() {
     // Extract the paragraph
     const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
     
-    // Remove the paragraph from its current position
-    const beforeParagraph = lines.slice(0, startIndex);
-    const afterParagraph = lines.slice(endIndex + 1);
+    // Remove the paragraph from the array
+    lines.splice(startIndex, endIndex - startIndex + 1);
     
-    // Move it to the top
-    const newContent = paragraph + '\n' + beforeParagraph.concat(afterParagraph).join('\n');
+    // Create the new content with the paragraph at the top
+    const newContent = paragraph + '\n' + lines.join('\n');
+    
     setNoteContent(newContent);
     setActiveLineIndex(null);
   };
