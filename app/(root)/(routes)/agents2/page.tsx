@@ -72,33 +72,35 @@ export default function KarpathyNotePage() {
     }, 300);
   };
 
-  // Rescue a line to the top - FIXED VERSION
-  const handleRescue = (index: number): void => {
-    const lines = noteContent.split('\n');
-    let startIndex = index;
-    let endIndex = index;
-    
-    // Find the paragraph boundaries
-    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
-      startIndex--;
-    }
-    
-    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
-      endIndex++;
-    }
-    
-    // Extract the paragraph
-    const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
-    
-    // Remove the paragraph from the array
-    lines.splice(startIndex, endIndex - startIndex + 1);
-    
-    // Create the new content with the paragraph at the top
-    const newContent = paragraph + '\n' + lines.join('\n');
-    
-    setNoteContent(newContent);
-    setActiveLineIndex(null);
-  };
+// Rescue a line to the top
+const handleRescue = (index: number): void => {
+  const lines = noteContent.split('\n');
+  let startIndex = index;
+  let endIndex = index;
+  
+  // Find the paragraph boundaries
+  while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
+    startIndex--;
+  }
+  
+  while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
+    endIndex++;
+  }
+  
+  // Extract the paragraph
+  const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
+  
+  // Create a new array without the paragraph
+  const newLines = [
+    ...lines.slice(0, startIndex),
+    ...lines.slice(endIndex + 1)
+  ];
+  
+  // Move it to the top
+  const newContent = paragraph + '\n' + newLines.join('\n');
+  setNoteContent(newContent);
+  setActiveLineIndex(null);
+};
 
   // Delete a line
   const handleDelete = (index: number): void => {
