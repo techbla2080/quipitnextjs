@@ -1,30 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 
+interface NoteItem {
+  id: string;
+  content: string;
+  createdAt: Date;
+}
+
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [noteContent, setNoteContent] = useState<string>('');
+  const [noteItems, setNoteItems] = useState<NoteItem[]>([]);
   const [input, setInput] = useState<string>('');
-  const [selection, setSelection] = useState<{
-    start: number;
-    end: number;
-    text: string;
-  } | null>(null);
-  const [showContextMenu, setShowContextMenu] = useState<boolean>(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState<{
-    x: number;
-    y: number;
-  }>({ x: 0, y: 0 });
   const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-
   // Redirect if not signed in
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -34,97 +27,27 @@ export default function KarpathyNotePage() {
 
   // Load example notes for testing
   useEffect(() => {
-    if (isLoaded && isSignedIn && noteContent === '') {
-      const exampleNote = 
-`TODO for today:
-- ✅ morning exercise
-- ✅ write a blog post on note taking lol
-- do actual work
-
-Read: Abundance book?
-respond to Stephen
-
-set up https://bearblog.dev/
-
-idea: World of ChatGPT
-
-Human brain FLOPS assuming each synapse is ~1 FLOP:
-1e11 neurons * 1e4 synapses * 1e1 fires/s = 1e16 FLOPS (i.e. 10 petaflops)
-
-ffmpeg -r 24 -f image2 -s 512x512 -i out/frame%04d.jpg -vcodec libx264 -crf 10 -pix_fmt yuv420p test.mp4
-
-buy razors
-haircut
-Zac Bookman pod: "Real companies measure revenue"
-
-Fix youtube link on my website to llmc talk
-
-the teacher voice`;
-      setNoteContent(exampleNote);
-    }
-  }, [isLoaded, isSignedIn, noteContent]);
-
-  // Handle text selection
-  const handleTextSelect = (): void => {
-    if (textAreaRef.current) {
-      const start = textAreaRef.current.selectionStart;
-      const end = textAreaRef.current.selectionEnd;
-      
-      if (start !== end) {
-        // Find paragraph boundaries
-        const text = textAreaRef.current.value;
-        
-        // Find the start of the paragraph
-        let paragraphStart = start;
-        while (paragraphStart > 0 && text[paragraphStart - 1] !== '\n') {
-          paragraphStart--;
+    if (isLoaded && isSignedIn && noteItems.length === 0) {
+      const exampleItems = [
+        {
+          id: '1',
+          content: 'TODO for today:\n- ✅ morning exercise\n- write a blog post\n- do actual work',
+          createdAt: new Date(Date.now() - 3600000) // 1 hour ago
+        },
+        {
+          id: '2',
+          content: 'Read: Abundance book?',
+          createdAt: new Date(Date.now() - 7200000) // 2 hours ago
+        },
+        {
+          id: '3',
+          content: 'idea: World of ChatGPT',
+          createdAt: new Date(Date.now() - 10800000) // 3 hours ago
         }
-        
-        // Find the end of the paragraph
-        let paragraphEnd = end;
-        while (paragraphEnd < text.length && text[paragraphEnd] !== '\n') {
-          paragraphEnd++;
-        }
-        
-        setSelection({
-          start: paragraphStart,
-          end: paragraphEnd,
-          text: text.substring(paragraphStart, paragraphEnd)
-        });
-        
-        // Get the mouse position for the context menu
-        // This works better than using the selection coordinates
-        setContextMenuPosition({
-          x: window.event ? (window.event as MouseEvent).clientX : 0,
-          y: window.event ? (window.event as MouseEvent).clientY : 0
-        });
-        
-        setShowContextMenu(true);
-      } else {
-        setSelection(null);
-        setShowContextMenu(false);
-      }
+      ];
+      setNoteItems(exampleItems);
     }
-  };
-
-  // Handle click outside context menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (
-        contextMenuRef.current && 
-        !contextMenuRef.current.contains(event.target as Node) &&
-        textAreaRef.current &&
-        !textAreaRef.current.contains(event.target as Node)
-      ) {
-        setShowContextMenu(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  }, [isLoaded, isSignedIn, noteItems.length]);
 
   // Append a new note
   const handleAppend = (e: React.FormEvent): void => {
@@ -136,40 +59,34 @@ the teacher voice`;
     // Process with OpenAI (in a real implementation)
     // For this example, we'll just append without AI processing
     setTimeout(() => {
-      const newNote = input + '\n\n';
-      setNoteContent(newNote + noteContent);
+      const newNote: NoteItem = {
+        id: Date.now().toString(),
+        content: input,
+        createdAt: new Date(),
+      };
+      setNoteItems([newNote, ...noteItems]);
       setInput('');
       setIsProcessing(false);
     }, 300);
   };
 
-  // Rescue selected text (move to top)
-  const handleRescue = (): void => {
-    if (!selection) return;
+  // Rescue a note (move to top)
+  const handleRescue = (id: string): void => {
+    const note = noteItems.find(item => item.id === id);
+    if (!note) return;
     
-    const beforeSelection = noteContent.substring(0, selection.start);
-    const afterSelection = noteContent.substring(selection.end);
-    const selectedText = selection.text;
+    const newNote: NoteItem = {
+      id: Date.now().toString(),
+      content: note.content,
+      createdAt: new Date(),
+    };
     
-    // Remove the selected text and add it to the top
-    const newContent = selectedText + '\n\n' + beforeSelection + afterSelection;
-    setNoteContent(newContent);
-    setShowContextMenu(false);
-    setSelection(null);
+    setNoteItems([newNote, ...noteItems.filter(item => item.id !== id)]);
   };
 
-  // Delete selected text
-  const handleDelete = (): void => {
-    if (!selection) return;
-    
-    const beforeSelection = noteContent.substring(0, selection.start);
-    const afterSelection = noteContent.substring(selection.end);
-    
-    // Remove the selected text
-    const newContent = beforeSelection + afterSelection;
-    setNoteContent(newContent);
-    setShowContextMenu(false);
-    setSelection(null);
+  // Delete a note
+  const handleDelete = (id: string): void => {
+    setNoteItems(noteItems.filter(item => item.id !== id));
   };
 
   // Review mode - AI analysis
@@ -186,10 +103,8 @@ the teacher voice`;
     // Here we'll simulate the analysis
     setTimeout(() => {
       const generatedInsights = [
-        "You have several task-related items at the top of your note.",
-        "Consider scheduling time to read the Abundance book.",
-        "There are multiple technical references that might be useful to organize.",
-        "Personal errands (buy razors, haircut) could be grouped together."
+        "You have a TODO list at the top of your notes",
+        "Consider scheduling time to read the Abundance book"
       ];
       
       setInsights(generatedInsights);
@@ -234,8 +149,8 @@ the teacher voice`;
         </div>
       </form>
       
-      {/* Review Mode Toggle */}
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Your Notes</h2>
         <button
           onClick={handleReviewMode}
           className={`px-4 py-2 ${isReviewMode ? 'bg-gray-600' : 'bg-gray-800'} text-white rounded-lg hover:bg-gray-700 transition`}
@@ -245,41 +160,39 @@ the teacher voice`;
         </button>
       </div>
       
-      {/* Main Note Text Area */}
-      <div className="relative">
-        <textarea
-          ref={textAreaRef}
-          value={noteContent}
-          onChange={(e) => setNoteContent(e.target.value)}
-          onMouseUp={handleTextSelect}
-          onKeyUp={handleTextSelect}
-          className="w-full h-[70vh] p-4 border rounded-lg font-mono text-sm focus:outline-none resize-none whitespace-pre-wrap"
-          style={{ lineHeight: '1.5' }}
-        />
-        
-        {/* Contextual Menu - Fixed positioning */}
-        {showContextMenu && (
-          <div 
-            ref={contextMenuRef}
-            className="fixed bg-white border rounded-md shadow-lg z-50"
-            style={{ 
-              top: `${contextMenuPosition.y}px`, 
-              left: `${contextMenuPosition.x}px` 
-            }}
-          >
-            <button 
-              onClick={handleRescue} 
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-            >
-              Rescue to Top
-            </button>
-            <button 
-              onClick={handleDelete} 
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-            >
-              Delete
-            </button>
+      {/* Main Notes List - More user-friendly approach */}
+      <div className="space-y-3 mb-6">
+        {noteItems.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 border border-dashed rounded-lg">
+            Your notes will appear here. New notes will be at the top.
           </div>
+        ) : (
+          noteItems.map((note) => (
+            <div key={note.id} className="border rounded-lg p-4 bg-white">
+              <div className="whitespace-pre-wrap mb-2">{note.content}</div>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-gray-500">
+                  {note.createdAt.toLocaleString()}
+                </span>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleRescue(note.id)}
+                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                    title="Move to top"
+                  >
+                    Rescue
+                  </button>
+                  <button
+                    onClick={() => handleDelete(note.id)}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                    title="Remove note"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
       
