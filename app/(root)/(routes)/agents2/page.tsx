@@ -73,12 +73,16 @@ export default function KarpathyNotePage() {
   };
 
 // Rescue a line to the top
+// Add console logs to debug
 const handleRescue = (index: number): void => {
+  console.log("Rescuing line at index:", index);
   const lines = noteContent.split('\n');
+  console.log("Lines:", lines);
+  
   let startIndex = index;
   let endIndex = index;
   
-  // Find the paragraph boundaries
+  // Find paragraph boundaries
   while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
     startIndex--;
   }
@@ -87,17 +91,23 @@ const handleRescue = (index: number): void => {
     endIndex++;
   }
   
+  console.log("Paragraph boundaries:", startIndex, endIndex);
+  
   // Extract the paragraph
   const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
+  console.log("Paragraph to rescue:", paragraph);
   
   // Create a new array without the paragraph
   const newLines = [
     ...lines.slice(0, startIndex),
     ...lines.slice(endIndex + 1)
   ];
+  console.log("Remaining lines:", newLines);
   
   // Move it to the top
   const newContent = paragraph + '\n' + newLines.join('\n');
+  console.log("New content:", newContent);
+  
   setNoteContent(newContent);
   setActiveLineIndex(null);
 };
