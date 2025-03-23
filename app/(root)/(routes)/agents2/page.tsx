@@ -1,23 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 
-interface NoteItem {
-  id: string;
+interface Note {
   content: string;
-  createdAt: Date;
+  position: number;
 }
 
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [noteItems, setNoteItems] = useState<NoteItem[]>([]);
+  const [noteContent, setNoteContent] = useState<string>('');
   const [input, setInput] = useState<string>('');
+  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
   const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   // Redirect if not signed in
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -27,27 +31,54 @@ export default function KarpathyNotePage() {
 
   // Load example notes for testing
   useEffect(() => {
-    if (isLoaded && isSignedIn && noteItems.length === 0) {
-      const exampleItems = [
-        {
-          id: '1',
-          content: 'TODO for today:\n- ✅ morning exercise\n- write a blog post\n- do actual work',
-          createdAt: new Date(Date.now() - 3600000) // 1 hour ago
-        },
-        {
-          id: '2',
-          content: 'Read: Abundance book?',
-          createdAt: new Date(Date.now() - 7200000) // 2 hours ago
-        },
-        {
-          id: '3',
-          content: 'idea: World of ChatGPT',
-          createdAt: new Date(Date.now() - 10800000) // 3 hours ago
-        }
-      ];
-      setNoteItems(exampleItems);
+    if (isLoaded && isSignedIn && noteContent === '') {
+      const exampleNote = 
+`TODO for today:
+- ✅ morning exercise
+- write a blog post
+- do actual work
+
+Read: Abundance book?
+
+idea: World of ChatGPT`;
+      setNoteContent(exampleNote);
     }
-  }, [isLoaded, isSignedIn, noteItems.length]);
+  }, [isLoaded, isSignedIn, noteContent]);
+
+  // Parse the noteContent into lines
+  const noteLines = noteContent.split('\n');
+
+  // Handle click on selection box
+  const handleSelectionClick = (index: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const lineHeight = 24; // approximate line height in pixels
+    const linePosition = index * lineHeight + 60; // 60px offset for padding and header
+    
+    setActiveLineIndex(index);
+    setDropdownPosition({
+      top: linePosition,
+      left: event.clientX,
+    });
+  };
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setActiveLineIndex(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Append a new note
   const handleAppend = (e: React.FormEvent): void => {
@@ -59,34 +90,64 @@ export default function KarpathyNotePage() {
     // Process with OpenAI (in a real implementation)
     // For this example, we'll just append without AI processing
     setTimeout(() => {
-      const newNote: NoteItem = {
-        id: Date.now().toString(),
-        content: input,
-        createdAt: new Date(),
-      };
-      setNoteItems([newNote, ...noteItems]);
+      const newNote = input + '\n\n';
+      setNoteContent(newNote + noteContent);
       setInput('');
       setIsProcessing(false);
     }, 300);
   };
 
-  // Rescue a note (move to top)
-  const handleRescue = (id: string): void => {
-    const note = noteItems.find(item => item.id === id);
-    if (!note) return;
+  // Rescue a line to the top
+  const handleRescue = (index: number): void => {
+    const lines = noteContent.split('\n');
+    let startIndex = index;
+    let endIndex = index;
     
-    const newNote: NoteItem = {
-      id: Date.now().toString(),
-      content: note.content,
-      createdAt: new Date(),
-    };
+    // Find the paragraph boundaries
+    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
+      startIndex--;
+    }
     
-    setNoteItems([newNote, ...noteItems.filter(item => item.id !== id)]);
+    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
+      endIndex++;
+    }
+    
+    // Extract the paragraph
+    const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
+    
+    // Remove the paragraph from its current position
+    const beforeParagraph = lines.slice(0, startIndex);
+    const afterParagraph = lines.slice(endIndex + 1);
+    
+    // Move it to the top
+    const newContent = paragraph + '\n\n' + beforeParagraph.concat(afterParagraph).join('\n');
+    setNoteContent(newContent);
+    setActiveLineIndex(null);
   };
 
-  // Delete a note
-  const handleDelete = (id: string): void => {
-    setNoteItems(noteItems.filter(item => item.id !== id));
+  // Delete a line
+  const handleDelete = (index: number): void => {
+    const lines = noteContent.split('\n');
+    let startIndex = index;
+    let endIndex = index;
+    
+    // Find the paragraph boundaries
+    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
+      startIndex--;
+    }
+    
+    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
+      endIndex++;
+    }
+    
+    // Remove the paragraph
+    const newLines = [
+      ...lines.slice(0, startIndex),
+      ...lines.slice(endIndex + 1)
+    ];
+    
+    setNoteContent(newLines.join('\n'));
+    setActiveLineIndex(null);
   };
 
   // Review mode - AI analysis
@@ -149,8 +210,8 @@ export default function KarpathyNotePage() {
         </div>
       </form>
       
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Your Notes</h2>
+      {/* Review Mode Toggle */}
+      <div className="flex justify-end mb-4">
         <button
           onClick={handleReviewMode}
           className={`px-4 py-2 ${isReviewMode ? 'bg-gray-600' : 'bg-gray-800'} text-white rounded-lg hover:bg-gray-700 transition`}
@@ -160,39 +221,45 @@ export default function KarpathyNotePage() {
         </button>
       </div>
       
-      {/* Main Notes List - More user-friendly approach */}
-      <div className="space-y-3 mb-6">
-        {noteItems.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 border border-dashed rounded-lg">
-            Your notes will appear here. New notes will be at the top.
-          </div>
-        ) : (
-          noteItems.map((note) => (
-            <div key={note.id} className="border rounded-lg p-4 bg-white">
-              <div className="whitespace-pre-wrap mb-2">{note.content}</div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-gray-500">
-                  {note.createdAt.toLocaleString()}
-                </span>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleRescue(note.id)}
-                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-                    title="Move to top"
-                  >
-                    Rescue
-                  </button>
-                  <button
-                    onClick={() => handleDelete(note.id)}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                    title="Remove note"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+      {/* Main Note with Line Selection */}
+      <div className="relative border rounded-lg bg-white">
+        <div className="p-4">
+          {noteLines.map((line, index) => (
+            <div key={index} className="relative flex items-start group">
+              <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
+              <button 
+                className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-gray-400 hover:text-gray-700"
+                onClick={(e) => handleSelectionClick(index, e)}
+              >
+                ⋮
+              </button>
             </div>
-          ))
+          ))}
+        </div>
+        
+        {/* Dropdown Menu */}
+        {activeLineIndex !== null && (
+          <div 
+            ref={dropdownRef}
+            className="absolute bg-white border rounded shadow-lg z-10"
+            style={{ 
+              top: `${dropdownPosition.top}px`, 
+              left: `${dropdownPosition.left - 100}px`
+            }}
+          >
+            <button 
+              onClick={() => handleRescue(activeLineIndex)} 
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+            >
+              Rescue to Top
+            </button>
+            <button 
+              onClick={() => handleDelete(activeLineIndex)} 
+              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
       
