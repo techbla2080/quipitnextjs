@@ -4,11 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 
-interface Note {
-  content: string;
-  position: number;
-}
-
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [noteContent, setNoteContent] = useState<string>('');
@@ -17,7 +12,6 @@ export default function KarpathyNotePage() {
   const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -48,19 +42,16 @@ idea: World of ChatGPT`;
   // Parse the noteContent into lines
   const noteLines = noteContent.split('\n');
 
-  // Handle click on selection box
-  const handleSelectionClick = (index: number, event: React.MouseEvent) => {
+  // Handle click on checkbox
+  const handleCheckboxClick = (index: number, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     
-    const lineHeight = 24; // approximate line height in pixels
-    const linePosition = index * lineHeight + 60; // 60px offset for padding and header
-    
-    setActiveLineIndex(index);
-    setDropdownPosition({
-      top: linePosition,
-      left: event.clientX,
-    });
+    if (activeLineIndex === index) {
+      setActiveLineIndex(null);
+    } else {
+      setActiveLineIndex(index);
+    }
   };
 
   // Handle click outside dropdown
@@ -221,46 +212,46 @@ idea: World of ChatGPT`;
         </button>
       </div>
       
-      {/* Main Note with Line Selection */}
+      {/* Main Note with Checkbox Selection */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
           {noteLines.map((line, index) => (
-            <div key={index} className="relative flex items-start group">
-              <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
-              <button 
-                className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-gray-400 hover:text-gray-700"
-                onClick={(e) => handleSelectionClick(index, e)}
+            <div key={index} className="relative flex items-start group mb-1">
+              <div 
+                className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
+                onClick={(e) => handleCheckboxClick(index, e)}
               >
-                ⋮
-              </button>
+                {activeLineIndex === index ? 
+                  <div className="w-4 h-4 bg-blue-500 rounded-sm"></div> : 
+                  <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
+                }
+              </div>
+              <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
+              
+              {/* Dropdown Menu - Positioned at the right side */}
+              {activeLineIndex === index && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute bg-white border rounded shadow-lg z-10 right-4"
+                  style={{ top: '-10px' }}
+                >
+                  <button 
+                    onClick={() => handleRescue(index)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Rescue to Top
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(index)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        
-        {/* Dropdown Menu */}
-        {activeLineIndex !== null && (
-          <div 
-            ref={dropdownRef}
-            className="absolute bg-white border rounded shadow-lg z-10"
-            style={{ 
-              top: `${dropdownPosition.top}px`, 
-              left: `${dropdownPosition.left - 100}px`
-            }}
-          >
-            <button 
-              onClick={() => handleRescue(activeLineIndex)} 
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100"
-            >
-              Rescue to Top
-            </button>
-            <button 
-              onClick={() => handleDelete(activeLineIndex)} 
-              className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
-            >
-              Delete
-            </button>
-          </div>
-        )}
       </div>
       
       {/* Review Insights */}
