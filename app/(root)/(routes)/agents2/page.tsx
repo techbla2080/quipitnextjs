@@ -1,3 +1,4 @@
+// app/agent2/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -62,55 +63,54 @@ export default function KarpathyNotePage() {
     
     setIsProcessing(true);
     
-    // Process with OpenAI (in a real implementation)
-    // For this example, we'll just append without AI processing
+    // Process with OpenAI (simulated)
     setTimeout(() => {
-      const newNote = input + '\n'; // Just one newline instead of two
-      setNoteContent(newNote + noteContent);
+      const newNote = input + '\n'; // One newline after the input
+      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote; // Add an extra newline if noteContent exists
+      setNoteContent(updatedContent);
       setInput('');
       setIsProcessing(false);
     }, 300);
   };
 
-// Rescue a line to the top
-// Add console logs to debug
-const handleRescue = (index: number): void => {
-  console.log("Rescuing line at index:", index);
-  const lines = noteContent.split('\n');
-  console.log("Lines:", lines);
-  
-  let startIndex = index;
-  let endIndex = index;
-  
-  // Find paragraph boundaries
-  while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
-    startIndex--;
-  }
-  
-  while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
-    endIndex++;
-  }
-  
-  console.log("Paragraph boundaries:", startIndex, endIndex);
-  
-  // Extract the paragraph
-  const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
-  console.log("Paragraph to rescue:", paragraph);
-  
-  // Create a new array without the paragraph
-  const newLines = [
-    ...lines.slice(0, startIndex),
-    ...lines.slice(endIndex + 1)
-  ];
-  console.log("Remaining lines:", newLines);
-  
-  // Move it to the top
-  const newContent = paragraph + '\n' + newLines.join('\n');
-  console.log("New content:", newContent);
-  
-  setNoteContent(newContent);
-  setActiveLineIndex(null);
-};
+  // Rescue a line to the top
+  const handleRescue = (index: number): void => {
+    console.log("Rescuing line at index:", index);
+    const lines = noteContent.split('\n');
+    console.log("Lines:", lines);
+    
+    let startIndex = index;
+    let endIndex = index;
+    
+    // Find paragraph boundaries
+    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
+      startIndex--;
+    }
+    
+    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
+      endIndex++;
+    }
+    
+    console.log("Paragraph boundaries:", startIndex, endIndex);
+    
+    // Extract the paragraph
+    const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
+    console.log("Paragraph to rescue:", paragraph);
+    
+    // Create a new array without the paragraph
+    const newLines = [
+      ...lines.slice(0, startIndex),
+      ...lines.slice(endIndex + 1)
+    ];
+    console.log("Remaining lines:", newLines);
+    
+    // Move it to the top
+    const newContent = paragraph + '\n' + newLines.join('\n');
+    console.log("New content:", newContent);
+    
+    setNoteContent(newContent);
+    setActiveLineIndex(null);
+  };
 
   // Delete a line
   const handleDelete = (index: number): void => {
@@ -218,7 +218,7 @@ const handleRescue = (index: number): void => {
           ) : (
             noteLines.map((line, index) => 
               line.trim() ? (
-                <div key={index} className="relative flex items-start group mb-2">
+                <div key={`${index}-${line}`} className="relative flex items-start group mb-2">
                   <div 
                     className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
                     onClick={(e) => handleCheckboxClick(index, e)}
@@ -258,7 +258,7 @@ const handleRescue = (index: number): void => {
                   )}
                 </div>
               ) : (
-                <div key={index} className="h-2"></div> // Smaller space for empty lines
+                <div key={`${index}-empty`} className="h-2"></div>
               )
             )
           )}
