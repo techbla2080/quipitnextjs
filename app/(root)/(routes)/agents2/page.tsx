@@ -92,33 +92,19 @@ the teacher voice`;
           text: text.substring(paragraphStart, paragraphEnd)
         });
         
-        // Calculate position for context menu
-        const textAreaRect = textAreaRef.current.getBoundingClientRect();
-        const selectionRect = getSelectionCoords();
+        // Get the mouse position for the context menu
+        // This works better than using the selection coordinates
+        setContextMenuPosition({
+          x: window.event ? (window.event as MouseEvent).clientX : 0,
+          y: window.event ? (window.event as MouseEvent).clientY : 0
+        });
         
-        if (selectionRect) {
-          setContextMenuPosition({
-            x: selectionRect.right - textAreaRect.left,
-            y: selectionRect.bottom - textAreaRect.top
-          });
-          setShowContextMenu(true);
-        }
+        setShowContextMenu(true);
       } else {
         setSelection(null);
         setShowContextMenu(false);
       }
     }
-  };
-
-  // Get coordinates of text selection
-  const getSelectionCoords = (): DOMRect | null => {
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      return rect;
-    }
-    return null;
   };
 
   // Handle click outside context menu
@@ -271,13 +257,13 @@ the teacher voice`;
           style={{ lineHeight: '1.5' }}
         />
         
-        {/* Contextual Menu */}
+        {/* Contextual Menu - Fixed positioning */}
         {showContextMenu && (
           <div 
             ref={contextMenuRef}
-            className="absolute bg-white border rounded-md shadow-lg z-10"
+            className="fixed bg-white border rounded-md shadow-lg z-50"
             style={{ 
-              top: `${contextMenuPosition.y + 10}px`, 
+              top: `${contextMenuPosition.y}px`, 
               left: `${contextMenuPosition.x}px` 
             }}
           >
