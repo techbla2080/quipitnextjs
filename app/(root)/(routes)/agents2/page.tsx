@@ -6,17 +6,24 @@ import { redirect } from 'next/navigation';
 
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [noteContent, setNoteContent] = useState('');
-  const [input, setInput] = useState('');
-  const [selection, setSelection] = useState(null);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
-  const [isReviewMode, setIsReviewMode] = useState(false);
-  const [insights, setInsights] = useState([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [noteContent, setNoteContent] = useState<string>('');
+  const [input, setInput] = useState<string>('');
+  const [selection, setSelection] = useState<{
+    start: number;
+    end: number;
+    text: string;
+  } | null>(null);
+  const [showContextMenu, setShowContextMenu] = useState<boolean>(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{
+    x: number;
+    y: number;
+  }>({ x: 0, y: 0 });
+  const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
-  const textAreaRef = useRef(null);
-  const contextMenuRef = useRef(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   // Redirect if not signed in
   useEffect(() => {
@@ -58,7 +65,7 @@ the teacher voice`;
   }, [isLoaded, isSignedIn, noteContent]);
 
   // Handle text selection
-  const handleTextSelect = () => {
+  const handleTextSelect = (): void => {
     if (textAreaRef.current) {
       const start = textAreaRef.current.selectionStart;
       const end = textAreaRef.current.selectionEnd;
@@ -104,9 +111,9 @@ the teacher voice`;
   };
 
   // Get coordinates of text selection
-  const getSelectionCoords = () => {
+  const getSelectionCoords = (): DOMRect | null => {
     const selection = window.getSelection();
-    if (selection.rangeCount > 0) {
+    if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       return rect;
@@ -116,12 +123,12 @@ the teacher voice`;
 
   // Handle click outside context menu
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent): void => {
       if (
         contextMenuRef.current && 
-        !contextMenuRef.current.contains(event.target) &&
+        !contextMenuRef.current.contains(event.target as Node) &&
         textAreaRef.current &&
-        !textAreaRef.current.contains(event.target)
+        !textAreaRef.current.contains(event.target as Node)
       ) {
         setShowContextMenu(false);
       }
@@ -134,7 +141,7 @@ the teacher voice`;
   }, []);
 
   // Append a new note
-  const handleAppend = (e) => {
+  const handleAppend = (e: React.FormEvent): void => {
     e.preventDefault();
     if (!input.trim()) return;
     
@@ -151,7 +158,7 @@ the teacher voice`;
   };
 
   // Rescue selected text (move to top)
-  const handleRescue = () => {
+  const handleRescue = (): void => {
     if (!selection) return;
     
     const beforeSelection = noteContent.substring(0, selection.start);
@@ -166,7 +173,7 @@ the teacher voice`;
   };
 
   // Delete selected text
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     if (!selection) return;
     
     const beforeSelection = noteContent.substring(0, selection.start);
@@ -180,7 +187,7 @@ the teacher voice`;
   };
 
   // Review mode - AI analysis
-  const handleReviewMode = async () => {
+  const handleReviewMode = async (): Promise<void> => {
     if (isReviewMode) {
       setIsReviewMode(false);
       return;
