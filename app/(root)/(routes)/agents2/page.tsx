@@ -423,7 +423,7 @@ Question: ${queryInput}`,
         </button>
       </div>
       
-      {/* Main Note with Enhanced Display */}
+      {/* Main Note with Enhanced Display - Updated to match screenshot */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
           {noteLines.length === 0 ? (
@@ -431,61 +431,60 @@ Question: ${queryInput}`,
               Your notes will appear here. Add a note to get started.
             </div>
           ) : (
+            // Process notes in logical chunks
             noteLines.map((line, index) => 
               line.trim() ? (
-                <div key={`${index}-${line}`} className="relative mb-4 border-b pb-2">
-                  {/* Checkbox and Content */}
+                <div key={`${index}-${line}`} className="relative mb-6 pb-4">
                   <div className="flex items-start">
-                    {/* Checkbox */}
+                    {/* Single checkbox for the entire note */}
                     <div 
-                      className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0 flex items-center justify-center"
+                      className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0"
                       onClick={(e) => handleCheckboxClick(index, e)}
                     >
                       {activeLineIndex === index ? (
-                        <div className="w-5 h-5 border border-gray-500 rounded-sm flex items-center justify-center bg-gray-100">
+                        <div className="w-5 h-5 border border-gray-400 rounded-sm flex items-center justify-center bg-gray-50">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-4 h-4">
                             <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
                           </svg>
                         </div>
                       ) : (
-                        <div className="w-5 h-5 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
+                        <div className="w-5 h-5 border border-gray-300 rounded-sm"></div>
                       )}
                     </div>
                     
-                    {/* Content Section */}
+                    {/* Note content in simple vertical layout */}
                     <div className="flex-grow">
                       {/* Original Text */}
-                      <div className="mb-1">
-                        <div className="text-md font-medium">
+                      <div className="mb-2">
+                        <div className="text-md">
                           {line}
                         </div>
                       </div>
                       
-                      {/* AI Analysis - Adding it explicitly */}
+                      {/* AI Analysis */}
                       {liveSuggestions[index] && (
-                        <div className="mb-1 pl-2 border-l-2 border-blue-200">
-                          <div className="text-sm text-gray-600">
-                            <span className="font-medium text-xs text-blue-600">AI Analysis:</span> {liveSuggestions[index]}
+                        <div className="mb-2">
+                          <div className="text-md text-blue-600 font-medium">AI Analysis:</div>
+                          <div className="text-sm text-gray-700">
+                            {liveSuggestions[index]}
                           </div>
                         </div>
                       )}
                       
-                      {/* AI Tag - Enhancing how it's displayed */}
+                      {/* AI Tag - extract from note if present */}
                       {line.includes('**Tag:**') && (
-                        <div className="mt-1.5">
-                          <div className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
-                            <span className="text-xs text-gray-800">
-                              {line.split('**Tag:**')[1].trim()}
-                            </span>
-                          </div>
+                        <div className="mb-1">
+                          <span className="text-sm text-gray-700">
+                            {line.split('**Tag:**')[1].trim()}
+                          </span>
                         </div>
                       )}
                     </div>
                     
-                    {/* Actions button */}
-                    <div className="ml-2">
+                    {/* Actions button (three dots menu) */}
+                    <div>
                       <button 
-                        className="p-1 text-gray-500 hover:text-gray-700"
+                        className="p-1 text-gray-400 hover:text-gray-700"
                         onClick={(e) => handleCheckboxClick(index, e)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -515,6 +514,9 @@ Question: ${queryInput}`,
                       </button>
                     </div>
                   )}
+                  
+                  {/* Add subtle divider between notes */}
+                  <div className="border-b border-gray-100 mt-2"></div>
                 </div>
               ) : (
                 <div key={`${index}-empty`} className="h-2"></div>
