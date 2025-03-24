@@ -37,9 +37,6 @@ export default function KarpathyNotePage() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // Parse the noteContent into lines
-  const noteLines = noteContent.split('\n');
-
   // Live analysis of notes
   useEffect(() => {
     const analyzeNotes = async () => {
@@ -72,7 +69,7 @@ export default function KarpathyNotePage() {
         const suggestionLines = suggestionText.split('\n').filter((line: string) => line.trim());
         const newSuggestions: { [key: number]: string } = {};
         suggestionLines.forEach((line: string, idx: number) => {
-          if (noteLines[idx] && noteLines[idx].trim()) {
+          if (idx < noteContent.split('\n\n').length) {
             newSuggestions[idx] = line;
           }
         });
@@ -113,7 +110,7 @@ export default function KarpathyNotePage() {
     };
   }, []);
 
-  // Append a new note
+  // Append a new note with the updated three-part structure
   const handleAppend = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -121,17 +118,40 @@ export default function KarpathyNotePage() {
     setIsProcessing(true);
     
     try {
+      // Get AI-powered tag and analysis
       const response = await fetchOpenAI({
-        prompt: `Summarize this note and suggest a tag (e.g., "todo:", "watch:", "read:"):\n${input}`,
-        max_tokens: 50,
+        prompt: `For this note, provide: 1) A suggested tag (like "todo", "watch", "read"), 2) A brief analysis or insight about the note's content.
+        
+Note: ${input}
+
+Return in format:
+Tag: [your tag]
+Analysis: [your analysis]`,
+        max_tokens: 100,
       });
-      const summarizedNote = response.choices[0].text.trim();
-      const newNote = summarizedNote + '\n';
-      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
+      
+      // Extract tag and analysis from response
+      const aiResponse = response.choices[0].text.trim();
+      let tag = "general";
+      let analysis = "";
+      
+      // Parse the AI response
+      const tagMatch = aiResponse.match(/Tag: (.*?)(\n|$)/);
+      const analysisMatch = aiResponse.match(/Analysis: (.*)/s);
+      
+      if (tagMatch && tagMatch[1]) tag = tagMatch[1].trim();
+      if (analysisMatch && analysisMatch[1]) analysis = analysisMatch[1].trim();
+      
+      // Format the note with original input, AI analysis, and tag
+      const formattedNote = `${input}\nAI Analysis: ${analysis}\nTag: ${tag}`;
+      
+      // Add to notes
+      const updatedContent = noteContent ? formattedNote + '\n\n' + noteContent : formattedNote;
       setNoteContent(updatedContent);
       setInput('');
     } catch (error) {
       console.error('Error with OpenAI API:', error);
+      // Fallback to just adding the raw input
       const newNote = input + '\n';
       const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
       setNoteContent(updatedContent);
@@ -141,51 +161,26 @@ export default function KarpathyNotePage() {
     }
   };
 
-  // Rescue a line to the top
+  // Rescue a note to the top
   const handleRescue = (index: number): void => {
-    const lines = noteContent.split('\n');
-    let startIndex = index;
-    let endIndex = index;
+    const notes = noteContent.split('\n\n');
+    if (index >= notes.length) return;
     
-    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
-      startIndex--;
-    }
+    const noteToRescue = notes[index];
+    const otherNotes = notes.filter((_, i) => i !== index);
     
-    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
-      endIndex++;
-    }
-    
-    const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
-    const newLines = [
-      ...lines.slice(0, startIndex),
-      ...lines.slice(endIndex + 1)
-    ];
-    
-    const newContent = paragraph + '\n' + newLines.join('\n');
+    const newContent = [noteToRescue, ...otherNotes].join('\n\n');
     setNoteContent(newContent);
     setActiveLineIndex(null);
   };
 
-  // Delete a line
+  // Delete a note
   const handleDelete = (index: number): void => {
-    const lines = noteContent.split('\n');
-    let startIndex = index;
-    let endIndex = index;
+    const notes = noteContent.split('\n\n');
+    if (index >= notes.length) return;
     
-    while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
-      startIndex--;
-    }
-    
-    while (endIndex < lines.length - 1 && lines[endIndex + 1].trim() !== '') {
-      endIndex++;
-    }
-    
-    const newLines = [
-      ...lines.slice(0, startIndex),
-      ...lines.slice(endIndex + 1)
-    ];
-    
-    setNoteContent(newLines.join('\n'));
+    const updatedNotes = notes.filter((_, i) => i !== index);
+    setNoteContent(updatedNotes.join('\n\n'));
     setActiveLineIndex(null);
   };
 
@@ -253,7 +248,8 @@ Question: ${queryInput}`,
     setIsProcessing(true);
     try {
       if (suggestion.toLowerCase().includes('set a calendar event')) {
-        const note = noteLines[index];
+        const notes = noteContent.split('\n\n');
+        const note = notes[index];
         const response = await fetchOpenAI({
           prompt: `Extract the event details (e.g., time, description) from this note to set a calendar event:\n${note}`,
           max_tokens: 50,
@@ -262,7 +258,8 @@ Question: ${queryInput}`,
         console.log(`Simulating calendar event creation: ${eventDetails}`);
         setLiveSuggestions(prev => ({ ...prev, [index]: 'Event scheduled.' }));
       } else if (suggestion.toLowerCase().includes('add to to-do list')) {
-        const note = noteLines[index];
+        const notes = noteContent.split('\n\n');
+        const note = notes[index];
         console.log(`Simulating adding to to-do list: ${note}`);
         setLiveSuggestions(prev => ({ ...prev, [index]: 'Added to to-do list.' }));
       }
@@ -328,7 +325,7 @@ Question: ${queryInput}`,
           <div className="mb-4">
             <h3 className="text-md font-semibold">Current Context</h3>
             {activeLineIndex !== null ? (
-              <p className="text-gray-700">{noteLines[activeLineIndex]}</p>
+              <p className="text-gray-700">{noteContent.split('\n\n')[activeLineIndex]?.split('\n')[0] || 'No note selected'}</p>
             ) : (
               <p className="text-gray-700">All Notes</p>
             )}
@@ -423,25 +420,33 @@ Question: ${queryInput}`,
         </button>
       </div>
       
-      {/* Main Note with Enhanced Display - Updated to match screenshot */}
+      {/* Main Note Display with Exact Three-Part Structure */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
-          {noteLines.length === 0 ? (
+          {noteContent.trim() === '' ? (
             <div className="text-gray-400 text-center py-8">
               Your notes will appear here. Add a note to get started.
             </div>
           ) : (
-            // Process notes in logical chunks
-            noteLines.map((line, index) => 
-              line.trim() ? (
-                <div key={`${index}-${line}`} className="relative mb-6 pb-4">
+            // Split content into separate notes by double newlines
+            noteContent.split('\n\n').map((noteBlock, noteIndex) => {
+              // Split each note into its components (original text, analysis, tag)
+              const noteParts = noteBlock.split('\n');
+              
+              // Extract parts (first line is the original input)
+              const originalText = noteParts[0] || '';
+              const analysisLine = noteParts.find(line => line.startsWith('AI Analysis:')) || '';
+              const tagLine = noteParts.find(line => line.startsWith('Tag:')) || '';
+              
+              return originalText.trim() ? (
+                <div key={noteIndex} className="relative mb-4 pb-3 border-b border-gray-100">
                   <div className="flex items-start">
-                    {/* Single checkbox for the entire note */}
+                    {/* Checkbox */}
                     <div 
                       className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0"
-                      onClick={(e) => handleCheckboxClick(index, e)}
+                      onClick={(e) => handleCheckboxClick(noteIndex, e)}
                     >
-                      {activeLineIndex === index ? (
+                      {activeLineIndex === noteIndex ? (
                         <div className="w-5 h-5 border border-gray-400 rounded-sm flex items-center justify-center bg-gray-50">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-4 h-4">
                             <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
@@ -452,40 +457,33 @@ Question: ${queryInput}`,
                       )}
                     </div>
                     
-                    {/* Note content in simple vertical layout */}
+                    {/* Note Content - Exactly as specified */}
                     <div className="flex-grow">
-                      {/* Original Text */}
+                      {/* Part 1: Original Text */}
                       <div className="mb-2">
-                        <div className="text-md">
-                          {line}
-                        </div>
+                        {originalText}
                       </div>
                       
-                      {/* AI Analysis */}
-                      {liveSuggestions[index] && (
-                        <div className="mb-2">
-                          <div className="text-md text-blue-600 font-medium">AI Analysis:</div>
-                          <div className="text-sm text-gray-700">
-                            {liveSuggestions[index]}
-                          </div>
+                      {/* Part 2: AI Analysis */}
+                      {analysisLine && (
+                        <div className="mb-2 text-blue-600">
+                          {analysisLine}
                         </div>
                       )}
                       
-                      {/* AI Tag - extract from note if present */}
-                      {line.includes('**Tag:**') && (
-                        <div className="mb-1">
-                          <span className="text-sm text-gray-700">
-                            {line.split('**Tag:**')[1].trim()}
-                          </span>
+                      {/* Part 3: Tag */}
+                      {tagLine && (
+                        <div className="text-gray-700">
+                          {tagLine}
                         </div>
                       )}
                     </div>
                     
-                    {/* Actions button (three dots menu) */}
+                    {/* Actions button */}
                     <div>
                       <button 
                         className="p-1 text-gray-400 hover:text-gray-700"
-                        onClick={(e) => handleCheckboxClick(index, e)}
+                        onClick={(e) => handleCheckboxClick(noteIndex, e)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -495,33 +493,28 @@ Question: ${queryInput}`,
                   </div>
                   
                   {/* Dropdown Menu when active */}
-                  {activeLineIndex === index && (
+                  {activeLineIndex === noteIndex && (
                     <div 
                       ref={dropdownRef}
                       className="absolute bg-white border rounded shadow-lg z-10 right-0 top-8"
                     >
                       <button 
-                        onClick={() => handleRescue(index)} 
+                        onClick={() => handleRescue(noteIndex)} 
                         className="block w-full text-left px-4 py-2 hover:bg-gray-100"
                       >
                         Rescue to Top
                       </button>
                       <button 
-                        onClick={() => handleDelete(index)} 
+                        onClick={() => handleDelete(noteIndex)} 
                         className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
                       >
                         Delete
                       </button>
                     </div>
                   )}
-                  
-                  {/* Add subtle divider between notes */}
-                  <div className="border-b border-gray-100 mt-2"></div>
                 </div>
-              ) : (
-                <div key={`${index}-empty`} className="h-2"></div>
-              )
-            )
+              ) : null;
+            })
           )}
         </div>
       </div>
