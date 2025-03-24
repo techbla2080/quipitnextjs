@@ -4,18 +4,44 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
+import { fetchOpenAI } from '@/lib/api/openai';
+import { ChatOpenAI } from '@langchain/openai';
+import { ConversationChain } from 'langchain/chains';
+import { BufferMemory } from 'langchain/memory';
 
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [noteContent, setNoteContent] = useState<string>('');
   const [input, setInput] = useState<string>('');
+  const [queryInput, setQueryInput] = useState<string>('');
+  const [queryResponse, setQueryResponse] = useState<string>('');
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
   const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
   const [insights, setInsights] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [liveSuggestions, setLiveSuggestions] = useState<{ [key: number]: string }>({});
+  const [categories, setCategories] = useState<{ [key: string]: string[] }>({});
+  const [isHubOpen, setIsHubOpen] = useState<boolean>(false);
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // LangChain setup for memory and querying
+  const [chain, setChain] = useState<ConversationChain | null>(null);
+  useEffect(() => {
+    const llm = new ChatOpenAI({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0.7,
+    });
+    const memory = new BufferMemory();
+    const conversationChain = new ConversationChain({ llm, memory });
+    setChain(conversationChain);
+    
+    if (noteContent) {
+      memory.saveContext({ input: "Here are my notes:\n" + noteContent }, { output: "Understood, I have your notes." });
+    }
+  }, [noteContent]);
 
   // Redirect if not signed in
   useEffect(() => {
@@ -26,6 +52,50 @@ export default function KarpathyNotePage() {
 
   // Parse the noteContent into lines
   const noteLines = noteContent.split('\n');
+
+  // Live analysis of notes
+  useEffect(() => {
+    const analyzeNotes = async () => {
+      if (!noteContent.trim()) return;
+      
+      try {
+        // Categorize notes
+        const categoryResponse = await fetchOpenAI({
+          prompt: `Categorize these notes into groups (e.g., "Work", "Personal", "Research"):\n${noteContent}`,
+          max_tokens: 100,
+        });
+        const categoryText = categoryResponse.choices[0].text.trim();
+        const categoryLines = categoryText.split('\n').filter((line: string) => line.trim());
+        const newCategories: { [key: string]: string[] } = {};
+        categoryLines.forEach((line: string) => {
+          const [category, note] = line.split(': ').map((part: string) => part.trim());
+          if (category && note) {
+            if (!newCategories[category]) newCategories[category] = [];
+            newCategories[category].push(note);
+          }
+        });
+        setCategories(newCategories);
+
+        // Generate live suggestions
+        const suggestionResponse = await fetchOpenAI({
+          prompt: `For each note, provide a live suggestion (e.g., "Add to to-do list", "Set a calendar event"):\n${noteContent}`,
+          max_tokens: 150,
+        });
+        const suggestionText = suggestionResponse.choices[0].text.trim();
+        const suggestionLines = suggestionText.split('\n').filter((line: string) => line.trim());
+        const newSuggestions: { [key: number]: string } = {};
+        suggestionLines.forEach((line: string, idx: number) => {
+          if (noteLines[idx] && noteLines[idx].trim()) {
+            newSuggestions[idx] = line;
+          }
+        });
+        setLiveSuggestions(newSuggestions);
+      } catch (error) {
+        console.error('Error with live analysis:', error);
+      }
+    };
+    analyzeNotes();
+  }, [noteContent]);
 
   // Handle click on checkbox
   const handleCheckboxClick = (index: number, event: React.MouseEvent) => {
@@ -57,32 +127,39 @@ export default function KarpathyNotePage() {
   }, []);
 
   // Append a new note
-  const handleAppend = (e: React.FormEvent): void => {
+  const handleAppend = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!input.trim()) return;
     
     setIsProcessing(true);
     
-    // Process with OpenAI (simulated)
-    setTimeout(() => {
-      const newNote = input + '\n'; // One newline after the input
-      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote; // Add an extra newline if noteContent exists
+    try {
+      const response = await fetchOpenAI({
+        prompt: `Summarize this note and suggest a tag (e.g., "todo:", "watch:", "read:"):\n${input}`,
+        max_tokens: 50,
+      });
+      const summarizedNote = response.choices[0].text.trim();
+      const newNote = summarizedNote + '\n';
+      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
       setNoteContent(updatedContent);
       setInput('');
+    } catch (error) {
+      console.error('Error with OpenAI API:', error);
+      const newNote = input + '\n';
+      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
+      setNoteContent(updatedContent);
+      setInput('');
+    } finally {
       setIsProcessing(false);
-    }, 300);
+    }
   };
 
   // Rescue a line to the top
   const handleRescue = (index: number): void => {
-    console.log("Rescuing line at index:", index);
     const lines = noteContent.split('\n');
-    console.log("Lines:", lines);
-    
     let startIndex = index;
     let endIndex = index;
     
-    // Find paragraph boundaries
     while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
       startIndex--;
     }
@@ -91,23 +168,13 @@ export default function KarpathyNotePage() {
       endIndex++;
     }
     
-    console.log("Paragraph boundaries:", startIndex, endIndex);
-    
-    // Extract the paragraph
     const paragraph = lines.slice(startIndex, endIndex + 1).join('\n');
-    console.log("Paragraph to rescue:", paragraph);
-    
-    // Create a new array without the paragraph
     const newLines = [
       ...lines.slice(0, startIndex),
       ...lines.slice(endIndex + 1)
     ];
-    console.log("Remaining lines:", newLines);
     
-    // Move it to the top
     const newContent = paragraph + '\n' + newLines.join('\n');
-    console.log("New content:", newContent);
-    
     setNoteContent(newContent);
     setActiveLineIndex(null);
   };
@@ -118,7 +185,6 @@ export default function KarpathyNotePage() {
     let startIndex = index;
     let endIndex = index;
     
-    // Find the paragraph boundaries
     while (startIndex > 0 && lines[startIndex - 1].trim() !== '') {
       startIndex--;
     }
@@ -127,7 +193,6 @@ export default function KarpathyNotePage() {
       endIndex++;
     }
     
-    // Remove the paragraph
     const newLines = [
       ...lines.slice(0, startIndex),
       ...lines.slice(endIndex + 1)
@@ -147,17 +212,72 @@ export default function KarpathyNotePage() {
     setIsProcessing(true);
     setIsReviewMode(true);
     
-    // In a real implementation, this would call OpenAI
-    // Here we'll simulate the analysis
-    setTimeout(() => {
-      const generatedInsights = [
-        "You have a TODO list at the top of your notes",
-        "Consider scheduling time to read the Abundance book"
-      ];
+    try {
+      const noteContents = noteContent.trim();
+      if (!noteContents) {
+        setInsights(['Add some notes to get insights.']);
+        setIsProcessing(false);
+        return;
+      }
       
-      setInsights(generatedInsights);
+      const response = await fetchOpenAI({
+        prompt: `Analyze these notes and provide actionable insights. Identify tasks, reminders, events, recurring themes, and suggest actions (e.g., set a calendar event, prioritize tasks, group related notes):\n${noteContents}`,
+        max_tokens: 150,
+      });
+      const generatedInsights = response.choices[0].text.trim().split('\n').filter((insight: string) => insight.trim());
+      setInsights(generatedInsights.length > 0 ? generatedInsights : ['No significant insights found.']);
+    } catch (error) {
+      console.error('Error with OpenAI API:', error);
+      setInsights(['Unable to generate insights due to an error.']);
+    } finally {
       setIsProcessing(false);
-    }, 1000);
+    }
+  };
+
+  // Handle natural language query
+  const handleQuery = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!queryInput.trim() || !chain) return;
+    
+    setIsProcessing(true);
+    setQueryResponse('');
+    
+    try {
+      const response = await chain.call({ input: queryInput });
+      setQueryResponse(response.response);
+    } catch (error) {
+      console.error('Error with LangChain query:', error);
+      setQueryResponse('Unable to process query due to an error.');
+    } finally {
+      setIsProcessing(false);
+      setQueryInput('');
+    }
+  };
+
+  // Handle live suggestion actions
+  const handleSuggestionAction = async (index: number, suggestion: string) => {
+    setIsProcessing(true);
+    try {
+      if (suggestion.toLowerCase().includes('set a calendar event')) {
+        const note = noteLines[index];
+        const response = await fetchOpenAI({
+          prompt: `Extract the event details (e.g., time, description) from this note to set a calendar event:\n${note}`,
+          max_tokens: 50,
+        });
+        const eventDetails = response.choices[0].text.trim();
+        console.log(`Simulating calendar event creation: ${eventDetails}`);
+        setLiveSuggestions(prev => ({ ...prev, [index]: 'Event scheduled.' }));
+      } else if (suggestion.toLowerCase().includes('add to to-do list')) {
+        const note = noteLines[index];
+        console.log(`Simulating adding to to-do list: ${note}`);
+        setLiveSuggestions(prev => ({ ...prev, [index]: 'Added to to-do list.' }));
+      }
+    } catch (error) {
+      console.error('Error handling suggestion:', error);
+      setLiveSuggestions(prev => ({ ...prev, [index]: 'Error processing suggestion.' }));
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!isLoaded || !isSignedIn) {
@@ -196,6 +316,107 @@ export default function KarpathyNotePage() {
           </button>
         </div>
       </form>
+      
+      {/* Action Hub Floating Button with Floating Effect */}
+      <button
+        onClick={() => setIsHubOpen(!isHubOpen)}
+        className="fixed bottom-4 right-4 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 transition animate-float"
+      >
+        {isHubOpen ? 'Close Hub' : 'Action Hub'}
+      </button>
+      
+      {/* Action Hub Panel */}
+      {isHubOpen && (
+        <div className="fixed bottom-16 right-4 w-80 bg-white border rounded-lg shadow-lg p-4">
+          <h2 className="text-lg font-bold mb-4">Action Hub</h2>
+          
+          {/* Current Context */}
+          <div className="mb-4">
+            <h3 className="text-md font-semibold">Current Context</h3>
+            {activeLineIndex !== null ? (
+              <p className="text-gray-700">{noteLines[activeLineIndex]}</p>
+            ) : (
+              <p className="text-gray-700">All Notes</p>
+            )}
+          </div>
+          
+          {/* Live Suggestions */}
+          <div className="mb-4">
+            <h3 className="text-md font-semibold">Suggestions</h3>
+            {activeLineIndex !== null && liveSuggestions[activeLineIndex] ? (
+              <div className="flex items-center">
+                <p className="text-gray-700">{liveSuggestions[activeLineIndex]}</p>
+                {(liveSuggestions[activeLineIndex].toLowerCase().includes('set a calendar event') || liveSuggestions[activeLineIndex].toLowerCase().includes('add to to-do list')) && (
+                  <button
+                    onClick={() => handleSuggestionAction(activeLineIndex, liveSuggestions[activeLineIndex])}
+                    className="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    Confirm
+                  </button>
+                )}
+              </div>
+            ) : (
+              Object.entries(liveSuggestions).map(([idx, suggestion]) => (
+                <div key={idx} className="flex items-center mb-2">
+                  <p className="text-gray-700">{suggestion}</p>
+                  {(suggestion.toLowerCase().includes('set a calendar event') || suggestion.toLowerCase().includes('add to to-do list')) && (
+                    <button
+                      onClick={() => handleSuggestionAction(Number(idx), suggestion)}
+                      className="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                    >
+                      Confirm
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Categories */}
+          {Object.keys(categories).length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-md font-semibold">Categories</h3>
+              {Object.entries(categories).map(([category, notes]) => (
+                <div key={category} className="mb-2">
+                  <h4 className="text-sm font-medium">{category}</h4>
+                  <ul className="space-y-1">
+                    {notes.map((note, idx) => (
+                      <li key={idx} className="text-gray-700 text-sm">• {note}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Query Notes */}
+          <form onSubmit={handleQuery} className="mb-4">
+            <textarea
+              value={queryInput}
+              onChange={(e) => setQueryInput(e.target.value)}
+              placeholder="Ask about your notes (e.g., 'What are my tasks?')"
+              className="w-full p-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400"
+              rows={2}
+              disabled={isProcessing}
+            />
+            <button 
+              type="submit" 
+              className={`w-full mt-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Processing...' : 'Query Notes'}
+            </button>
+          </form>
+          
+          {/* Query Response */}
+          {queryResponse && (
+            <div className="p-2 border rounded-lg bg-gray-50">
+              <h3 className="text-md font-semibold">Query Response</h3>
+              <p>{queryResponse}</p>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Review Mode Toggle */}
       <div className="flex justify-end mb-4">
