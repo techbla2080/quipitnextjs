@@ -423,7 +423,7 @@ Question: ${queryInput}`,
         </button>
       </div>
       
-      {/* Main Note with Checkbox Selection - Skip Empty Lines */}
+      {/* Main Note with Enhanced Display */}
       <div className="relative border rounded-lg bg-white">
         <div className="p-4">
           {noteLines.length === 0 ? (
@@ -433,29 +433,73 @@ Question: ${queryInput}`,
           ) : (
             noteLines.map((line, index) => 
               line.trim() ? (
-                <div key={`${index}-${line}`} className="relative flex items-start group mb-2">
-                  <div 
-                    className="cursor-pointer mr-2 w-6 h-6 flex items-center justify-center"
-                    onClick={(e) => handleCheckboxClick(index, e)}
-                  >
-                    {activeLineIndex === index ? (
-                      <div className="w-4 h-4 border border-gray-500 rounded-sm flex items-center justify-center bg-gray-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-3 h-3">
-                          <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
-                        </svg>
+                <div key={`${index}-${line}`} className="relative mb-4 border-b pb-2">
+                  {/* Checkbox and Content */}
+                  <div className="flex items-start">
+                    {/* Checkbox */}
+                    <div 
+                      className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0 flex items-center justify-center"
+                      onClick={(e) => handleCheckboxClick(index, e)}
+                    >
+                      {activeLineIndex === index ? (
+                        <div className="w-5 h-5 border border-gray-500 rounded-sm flex items-center justify-center bg-gray-100">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-4 h-4">
+                            <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
+                      )}
+                    </div>
+                    
+                    {/* Content Section */}
+                    <div className="flex-grow">
+                      {/* Original Text */}
+                      <div className="mb-1">
+                        <div className="text-md font-medium">
+                          {line}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="w-4 h-4 border border-gray-300 rounded-sm group-hover:border-gray-500"></div>
-                    )}
+                      
+                      {/* AI Analysis - Adding it explicitly */}
+                      {liveSuggestions[index] && (
+                        <div className="mb-1 pl-2 border-l-2 border-blue-200">
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium text-xs text-blue-600">AI Analysis:</span> {liveSuggestions[index]}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* AI Tag - Enhancing how it's displayed */}
+                      {line.includes('**Tag:**') && (
+                        <div className="mt-1.5">
+                          <div className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                            <span className="text-xs text-gray-800">
+                              {line.split('**Tag:**')[1].trim()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Actions button */}
+                    <div className="ml-2">
+                      <button 
+                        className="p-1 text-gray-500 hover:text-gray-700"
+                        onClick={(e) => handleCheckboxClick(index, e)}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-grow whitespace-pre-wrap py-1">{line}</div>
                   
-                  {/* Dropdown Menu - Positioned at the right side */}
+                  {/* Dropdown Menu when active */}
                   {activeLineIndex === index && (
                     <div 
                       ref={dropdownRef}
-                      className="absolute bg-white border rounded shadow-lg z-10 right-4"
-                      style={{ top: '-10px' }}
+                      className="absolute bg-white border rounded shadow-lg z-10 right-0 top-8"
                     >
                       <button 
                         onClick={() => handleRescue(index)} 
