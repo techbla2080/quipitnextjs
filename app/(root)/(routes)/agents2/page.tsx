@@ -37,7 +37,7 @@ export default function KarpathyNotePage() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // Live analysis of notes
+  /* Commenting out Live analysis of notes
   useEffect(() => {
     const analyzeNotes = async () => {
       if (!noteContent.trim()) return;
@@ -80,6 +80,7 @@ export default function KarpathyNotePage() {
     };
     analyzeNotes();
   }, [noteContent]);
+  */
 
   // Handle click on checkbox
   const handleCheckboxClick = (index: number, event: React.MouseEvent) => {
@@ -184,7 +185,7 @@ Analysis: [your analysis]`,
     setActiveLineIndex(null);
   };
 
-  // Review mode - AI analysis
+  /* Commenting out Review mode
   const handleReviewMode = async (): Promise<void> => {
     if (isReviewMode) {
       setIsReviewMode(false);
@@ -215,8 +216,9 @@ Analysis: [your analysis]`,
       setIsProcessing(false);
     }
   };
+  */
 
-  // Handle natural language query
+  /* Commenting out Natural language query
   const handleQuery = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!queryInput.trim()) return;
@@ -242,8 +244,9 @@ Question: ${queryInput}`,
       setQueryInput('');
     }
   };
+  */
 
-  // Handle live suggestion actions
+  /* Commenting out Live suggestion actions
   const handleSuggestionAction = async (index: number, suggestion: string) => {
     setIsProcessing(true);
     try {
@@ -270,6 +273,7 @@ Question: ${queryInput}`,
       setIsProcessing(false);
     }
   };
+  */
 
   if (!isLoaded || !isSignedIn) {
     return (
@@ -308,20 +312,20 @@ Question: ${queryInput}`,
         </div>
       </form>
       
-      {/* Action Hub Floating Button with Floating Effect */}
+      {/* Action Hub Floating Button - Commented out
       <button
         onClick={() => setIsHubOpen(!isHubOpen)}
         className="fixed bottom-4 right-4 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 transition animate-float"
       >
         {isHubOpen ? 'Close Hub' : 'Action Hub'}
       </button>
+      */}
       
-      {/* Action Hub Panel */}
+      {/* Action Hub Panel - Commented out
       {isHubOpen && (
         <div className="fixed bottom-16 right-4 w-80 bg-white border rounded-lg shadow-lg p-4">
           <h2 className="text-lg font-bold mb-4">Action Hub</h2>
           
-          {/* Current Context */}
           <div className="mb-4">
             <h3 className="text-md font-semibold">Current Context</h3>
             {activeLineIndex !== null ? (
@@ -331,7 +335,6 @@ Question: ${queryInput}`,
             )}
           </div>
           
-          {/* Live Suggestions */}
           <div className="mb-4">
             <h3 className="text-md font-semibold">Suggestions</h3>
             {activeLineIndex !== null && liveSuggestions[activeLineIndex] ? (
@@ -363,7 +366,6 @@ Question: ${queryInput}`,
             )}
           </div>
           
-          {/* Categories */}
           {Object.keys(categories).length > 0 && (
             <div className="mb-4">
               <h3 className="text-md font-semibold">Categories</h3>
@@ -380,7 +382,6 @@ Question: ${queryInput}`,
             </div>
           )}
           
-          {/* Query Notes */}
           <form onSubmit={handleQuery} className="mb-4">
             <textarea
               value={queryInput}
@@ -399,7 +400,6 @@ Question: ${queryInput}`,
             </button>
           </form>
           
-          {/* Query Response */}
           {queryResponse && (
             <div className="p-2 border rounded-lg bg-gray-50">
               <h3 className="text-md font-semibold">Query Response</h3>
@@ -408,8 +408,9 @@ Question: ${queryInput}`,
           )}
         </div>
       )}
+      */}
       
-      {/* Review Mode Toggle */}
+      {/* Review Mode Toggle - Commented out
       <div className="flex justify-end mb-4">
         <button
           onClick={handleReviewMode}
@@ -419,6 +420,7 @@ Question: ${queryInput}`,
           {isReviewMode ? 'Exit Review' : 'Review Notes'}
         </button>
       </div>
+      */}
       
       {/* Main Note Display with Exact Three-Part Structure */}
       <div className="relative border rounded-lg bg-white">
@@ -519,7 +521,7 @@ Question: ${queryInput}`,
         </div>
       </div>
       
-      {/* Review Insights */}
+      {/* Review Insights - Commented out
       {isReviewMode && (
         <div className="mt-6 p-5 border rounded-lg bg-gray-50">
           <h2 className="text-xl font-bold mb-4">Review Insights</h2>
@@ -544,6 +546,7 @@ Question: ${queryInput}`,
           )}
         </div>
       )}
+      */}
       
       <div className="mt-4 text-center text-xs text-gray-500">
         <p>
