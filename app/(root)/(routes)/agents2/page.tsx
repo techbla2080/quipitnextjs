@@ -1,13 +1,9 @@
-// app/agent2/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import { fetchOpenAI } from '@/lib/api/openai';
-import { ChatOpenAI } from '@langchain/openai';
-import { ConversationChain } from 'langchain/chains';
-import { BufferMemory } from 'langchain/memory';
 
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -22,24 +18,15 @@ export default function KarpathyNotePage() {
   const [liveSuggestions, setLiveSuggestions] = useState<{ [key: number]: string }>({});
   const [categories, setCategories] = useState<{ [key: string]: string[] }>({});
   const [isHubOpen, setIsHubOpen] = useState<boolean>(false);
+  const [noteMemory, setNoteMemory] = useState<string>('');
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // LangChain setup for memory and querying
-  const [chain, setChain] = useState<ConversationChain | null>(null);
+  // Update noteMemory when noteContent changes
   useEffect(() => {
-    const llm = new ChatOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0.7,
-    });
-    const memory = new BufferMemory();
-    const conversationChain = new ConversationChain({ llm, memory });
-    setChain(conversationChain);
-    
     if (noteContent) {
-      memory.saveContext({ input: "Here are my notes:\n" + noteContent }, { output: "Understood, I have your notes." });
+      setNoteMemory(noteContent);
     }
   }, [noteContent]);
 
@@ -237,16 +224,23 @@ export default function KarpathyNotePage() {
   // Handle natural language query
   const handleQuery = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!queryInput.trim() || !chain) return;
+    if (!queryInput.trim()) return;
     
     setIsProcessing(true);
     setQueryResponse('');
     
     try {
-      const response = await chain.call({ input: queryInput });
-      setQueryResponse(response.response);
+      const response = await fetchOpenAI({
+        prompt: `Based on these notes, please answer the following question:
+Notes:
+${noteMemory}
+Question: ${queryInput}`,
+        max_tokens: 150,
+      });
+      
+      setQueryResponse(response.choices[0].text.trim());
     } catch (error) {
-      console.error('Error with LangChain query:', error);
+      console.error('Error with query:', error);
       setQueryResponse('Unable to process query due to an error.');
     } finally {
       setIsProcessing(false);
