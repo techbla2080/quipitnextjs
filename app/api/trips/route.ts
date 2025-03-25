@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 import { User } from '@/models/User';  // Add this line
 
+
 export async function GET() {
   try {
     const { userId } = auth();
