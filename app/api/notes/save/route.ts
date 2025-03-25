@@ -1,24 +1,21 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import Note from '@/models/Note';
 import { auth } from '@clerk/nextjs/server';
+import mongoose from 'mongoose';
+import Note from '@/models/Note';
 
 export async function POST(request: Request) {
   try {
-    // Get data from request body
-    const body = await request.json();
-    let { userId, title, content, timestamp, noteId } = body;
-    
-    // If userId is not provided, try to get it from auth
-    if (!userId) {
-      const { userId: authUserId } = auth();
-      userId = authUserId;
-    }
+    // Get the note data from the request body
+    const { noteId, title, content } = await request.json();
 
+    // Get user ID from Clerk auth
+    const { userId } = auth();
+    
     if (!userId) {
       return NextResponse.json(
-        { success: false, error: 'User ID is required' },
-        { status: 400 }
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
       );
     }
 
@@ -31,57 +28,55 @@ export async function POST(request: Request) {
 
     // Connect to MongoDB
     await connectDB();
-    
-    // Create note document
-    const noteDoc = {
-      userId,
-      title: title || 'Untitled Note',
-      content,
-      timestamp: timestamp || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
 
-    let result;
+    let note;
 
-    // If noteId is provided, update existing note
+    // If noteId is provided, try to update the existing note
     if (noteId) {
-      try {
-        result = await Note.findByIdAndUpdate(
-          noteId,
-          noteDoc,
-          { new: true, upsert: true }
+      // Find the existing note
+      note = await Note.findOne({ _id: noteId, userId });
+      
+      if (note) {
+        // Add the current content to versions array
+        note.versions.push({
+          content: note.content,
+          timestamp: note.updatedAt
+        });
+        
+        // Update the note with new content
+        note.title = title || note.title;
+        note.content = content;
+        note.updatedAt = new Date().toISOString();
+        
+        // Save the updated note
+        await note.save();
+      } else {
+        // No note found with this ID and userId
+        return NextResponse.json(
+          { success: false, error: 'Note not found or unauthorized' },
+          { status: 404 }
         );
-        
-        return NextResponse.json({ 
-          success: true, 
-          id: result._id.toString(),
-          noteId: result._id.toString(),
-          message: 'Note updated successfully' 
-        });
-      } catch (updateError) {
-        console.error('Update error:', updateError);
-        
-        // If update fails, create a new note
-        result = await Note.create(noteDoc);
-        
-        return NextResponse.json({ 
-          success: true, 
-          id: result._id.toString(),
-          noteId: result._id.toString(),
-          message: 'Note created successfully' 
-        });
       }
     } else {
-      // Insert new note
-      result = await Note.create(noteDoc);
-      
-      return NextResponse.json({ 
-        success: true, 
-        id: result._id.toString(),
-        noteId: result._id.toString(),
-        message: 'Note created successfully' 
+      // Create a new note if no noteId is provided
+      note = new Note({
+        userId,
+        title: title || 'Untitled Note',
+        content,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        versions: [] // Start with empty versions array
       });
+      
+      await note.save();
     }
+
+    return NextResponse.json({ 
+      success: true, 
+      note,
+      message: noteId ? 'Note updated successfully' : 'Note created successfully'
+    });
+    
   } catch (error) {
     console.error('Error saving note:', error);
     return NextResponse.json(

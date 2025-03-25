@@ -1,6 +1,18 @@
 import mongoose from 'mongoose';
 
-// Define the schema
+// Define schema for version history
+const VersionSchema = new mongoose.Schema({
+  content: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: String,
+    default: () => new Date().toISOString()
+  }
+});
+
+// Define the note schema
 const NoteSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -14,37 +26,20 @@ const NoteSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Content is required']
   },
-  timestamp: {
+  createdAt: {
     type: String,
     default: () => new Date().toISOString()
   },
   updatedAt: {
     type: String,
     default: () => new Date().toISOString()
-  }
+  },
+  // Store all versions/edits of this note
+  versions: [VersionSchema]
 });
 
-// Create an index for faster queries
+// Create indexes for faster queries
 NoteSchema.index({ userId: 1 });
-
-// Simple method for updating existing notes
-NoteSchema.statics.findByIdAndUpdate = async function(id, userId, updateData) {
-  // First try to find the note
-  const note = await this.findOne({ _id: id, userId });
-  
-  if (!note) {
-    return null;
-  }
-  
-  // Update the note
-  Object.assign(note, {
-    ...updateData,
-    updatedAt: new Date().toISOString()
-  });
-  
-  // Save it back to the database
-  return await note.save();
-};
 
 // Check if the model exists already to prevent recompilation
 const Note = mongoose.models.Note || mongoose.model('Note', NoteSchema);
