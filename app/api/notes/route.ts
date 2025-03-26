@@ -1,13 +1,13 @@
+// app/api/notes/route.ts
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { auth } from '@clerk/nextjs/server';
-import mongoose from 'mongoose';
 import Note from '@/models/Note';
 
 export async function POST(request: Request) {
   try {
     // Get the note data from the request body
-    const { noteId, title, content } = await request.json();
+    const { content } = await request.json();
 
     // Get user ID from Clerk auth
     const { userId } = auth();
@@ -29,51 +29,77 @@ export async function POST(request: Request) {
     // Connect to MongoDB
     await connectDB();
 
-    let note;
+    // Find the user's existing note document
+    let note = await Note.findOne({ userId });
 
-    // If noteId is provided, try to update the existing note
-    if (noteId) {
-      // Find the existing note
-      note = await Note.findOne({ _id: noteId, userId });
-      
-      if (note) {
-        // Update the existing note
-        note.title = title || note.title;
-        note.content = content;
-        note.updatedAt = new Date().toISOString();
-        
-        // Save the updated note (maintaining the same document)
-        await note.save();
-      } else {
-        // No note found with this ID and userId
-        return NextResponse.json(
-          { success: false, error: 'Note not found or unauthorized' },
-          { status: 404 }
-        );
-      }
+    const timestamp = new Date().toISOString();
+    
+    if (note) {
+      // Store the current content in the versions array
+      note.versions.push({
+        content: note.content,
+        timestamp: timestamp,
+      });
+
+      // Append the new content to the existing note with a timestamp separator
+      const updatedContent = `${note.content}\n\n--- Entry added on ${timestamp} ---\n\n${content}`;
+      note.content = updatedContent;
+      note.updatedAt = timestamp;
+      await note.save();
     } else {
-      // Create a new note if no noteId is provided
+      // Create a new note document if none exists for the user
       note = new Note({
         userId,
-        title: title || 'Untitled Note',
-        content,
-        timestamp: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        title: 'DropThought Notes',
+        content: content,
+        timestamp: timestamp,
+        updatedAt: timestamp,
+        versions: [], // No versions yet for a new document
       });
-      
       await note.save();
     }
 
     return NextResponse.json({ 
       success: true, 
       note,
-      message: noteId ? 'Note updated successfully' : 'Note created successfully'
+      message: 'Note updated successfully',
     });
     
   } catch (error) {
     console.error('Error saving note:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to save note' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    // Get user ID from Clerk auth
+    const { userId } = auth();
+    if (!userId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Connect to MongoDB
+    await connectDB();
+    
+    // Find the user's note document
+    const note = await Note.findOne({ userId }).lean();
+
+    if (!note) {
+      return NextResponse.json(
+        { success: false, error: 'Note not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, note });
+  } catch (error) {
+    console.error('Error fetching note:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch note' },
       { status: 500 }
     );
   }
