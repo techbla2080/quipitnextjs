@@ -1,4 +1,3 @@
-// app/agent2/page.tsx
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -6,51 +5,35 @@ import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import { fetchOpenAI } from '@/lib/api/openai';
 
-// Define the type for a note entry
-interface NoteEntry {
-  originalText: string;
-  analysis: string;
-  tag: string;
-  timestamp: string;
-}
-
-// Define the type for a note document
-interface Note {
-  _id: string;
-  userId: string;
-  title: string;
-  entries: NoteEntry[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Define the type for a pending note entry
-interface PendingNote {
-  noteId?: string;
-  title?: string;
-  originalText: string;
-  analysis: string;
-  tag: string;
-  timestamp?: string;
-}
-
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
-  const [notes, setNotes] = useState<Note[]>([]); // Array of note documents
+  const [noteContent, setNoteContent] = useState<string>('');
   const [input, setInput] = useState<string>('');
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null); // ID of the note being edited
+  const [queryInput, setQueryInput] = useState<string>('');
+  const [queryResponse, setQueryResponse] = useState<string>('');
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
+  const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
+  const [insights, setInsights] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [liveSuggestions, setLiveSuggestions] = useState<{ [key: number]: string }>({});
+  const [categories, setCategories] = useState<{ [key: string]: string[] }>({});
+  const [isHubOpen, setIsHubOpen] = useState<boolean>(false);
+  const [noteMemory, setNoteMemory] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<string>('');
+  const [savedNotes, setSavedNotes] = useState<any[]>([]);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isCreatingNewNote, setIsCreatingNewNote] = useState<boolean>(false);
-  const [newNoteTitle, setNewNoteTitle] = useState<string>('');
-
+  
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingNoteRef = useRef<PendingNote | null>(null);
+  const lastSavedContentRef = useRef<string>('');
+
+  // Update noteMemory when noteContent changes
+  useEffect(() => {
+    if (noteContent) {
+      setNoteMemory(noteContent);
+    }
+  }, [noteContent]);
 
   // Redirect if not signed in
   useEffect(() => {
@@ -59,39 +42,16 @@ export default function KarpathyNotePage() {
     }
   }, [isLoaded, isSignedIn]);
 
-  // Fetch the user's notes on mount
+  // Fetch saved notes when component mounts
   useEffect(() => {
-    const fetchNotes = async () => {
-      if (!isSignedIn || !user?.id) return;
-
-      try {
-        const response = await fetch('/api/notes');
-        if (!response.ok) {
-          throw new Error('Failed to fetch notes');
-        }
-        const data = await response.json();
-        if (data.success && data.notes) {
-          setNotes(data.notes);
-          // Set the first note as active if there are any notes
-          if (data.notes.length > 0) {
-            setActiveNoteId(data.notes[0]._id);
-          }
-        } else {
-          throw new Error(data.error || 'Failed to fetch notes');
-        }
-      } catch (error) {
-        console.error('Error fetching notes:', error);
-        setErrorMessage('Failed to load notes. Please check your internet connection and try again.');
-      }
-    };
-    if (isSignedIn) {
-      fetchNotes();
+    if (isSignedIn && user?.id) {
+      fetchSavedNotes();
     }
   }, [isSignedIn, user?.id]);
 
-  // Auto-save functionality for pending note
+  // Auto-save functionality
   useEffect(() => {
-    if (!isSignedIn || !user?.id || !pendingNoteRef.current) {
+    if (!isSignedIn || !user?.id || !noteContent.trim() || noteContent === lastSavedContentRef.current) {
       return;
     }
 
@@ -104,77 +64,15 @@ export default function KarpathyNotePage() {
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
         setSaveStatus('Saving...');
+        await saveNotesToBackend();
+        setSaveStatus('All changes saved');
+        lastSavedContentRef.current = noteContent;
         
-        if (!pendingNoteRef.current) return;
-        
-        const { noteId, originalText, analysis, tag, timestamp } = pendingNoteRef.current;
-        
-        // Create appropriate request body based on whether this is a new note or an update
-        let requestBody;
-        
-        if (noteId) {
-          // For existing note, include noteId and entry data
-          requestBody = { 
-            noteId, 
-            entry: {
-              originalText, 
-              analysis, 
-              tag,
-              timestamp: timestamp || new Date().toISOString()
-            }
-          };
-        } else {
-          // For new note, include title and entry data
-          requestBody = { 
-            title: newNoteTitle || 'Untitled Note', 
-            entry: {
-              originalText, 
-              analysis, 
-              tag,
-              timestamp: timestamp || new Date().toISOString()
-            }
-          };
-        }
-
-        const response = await fetch('/api/notes', {
-          method: noteId ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save note');
-        }
-
-        const data = await response.json();
-        if (data.success) {
-          setSaveStatus('All changes saved');
-          // Update the notes state
-          setNotes((prevNotes) => {
-            const updatedNotes = [...prevNotes];
-            if (noteId) {
-              // Update existing note
-              const noteIndex = updatedNotes.findIndex(note => note._id === noteId);
-              if (noteIndex !== -1) {
-                updatedNotes[noteIndex] = data.note;
-              }
-            } else {
-              // Add new note
-              updatedNotes.unshift(data.note);
-              setActiveNoteId(data.note._id);
-              setIsCreatingNewNote(false);
-              setNewNoteTitle('');
-            }
-            return updatedNotes;
-          });
-          pendingNoteRef.current = null; // Clear the pending note
-        } else {
-          throw new Error(data.error || 'Failed to save note');
-        }
+        // Refresh the list of saved notes
+        fetchSavedNotes();
       } catch (error) {
         console.error('Auto-save failed:', error);
         setSaveStatus('Save failed');
-        setErrorMessage('Failed to save note. Please check your internet connection and try again.');
       }
     }, 5000); // 5 seconds delay
 
@@ -184,9 +82,91 @@ export default function KarpathyNotePage() {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [isSignedIn, user?.id, newNoteTitle]);
+  }, [noteContent, isSignedIn, user?.id]);
 
-  // Append a new note entry
+  // Function to fetch saved notes
+  const fetchSavedNotes = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`/api/notes?userId=${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch notes');
+      }
+      
+      const data = await response.json();
+      if (data.success && data.notes) {
+        setSavedNotes(data.notes);
+      }
+    } catch (error) {
+      console.error('Error fetching saved notes:', error);
+    }
+  };
+
+  // Function to save notes to backend
+  const saveNotesToBackend = async () => {
+    if (!user?.id || !noteContent.trim()) return;
+
+    // Extract the title from the first line or use a default
+    const firstLine = noteContent.split('\n')[0];
+    const title = firstLine?.trim().substring(0, 50) || 'Untitled Note';
+    
+    const noteData = {
+      userId: user.id,
+      title,
+      content: noteContent,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('/api/notes/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(noteData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save note');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error saving note:', error);
+      throw error;
+    }
+  };
+
+  // Function to load a saved note
+  const loadSavedNote = async (noteId: string) => {
+    try {
+      setSaveStatus('Loading...');
+      const response = await fetch(`/api/notes/${noteId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load note');
+      }
+      
+      const data = await response.json();
+      if (data.success && data.note) {
+        setNoteContent(data.note.content);
+        lastSavedContentRef.current = data.note.content;
+        setSaveStatus('Note loaded');
+      }
+    } catch (error) {
+      console.error('Error loading note:', error);
+      setSaveStatus('Failed to load');
+    }
+  };
+
+  // Function to create a new note
+  const createNewNote = () => {
+    lastSavedContentRef.current = '';
+    setNoteContent('');
+    setSaveStatus('');
+    setInput('');
+  };
+
+  // Append a new note with the updated three-part structure
   const handleAppend = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -218,176 +198,51 @@ Analysis: [your analysis]`,
       if (tagMatch && tagMatch[1]) tag = tagMatch[1].trim();
       if (analysisMatch && analysisMatch[1]) analysis = analysisMatch[1].trim();
       
-      const timestamp = new Date().toISOString();
+      // Format the note with original input, AI analysis, and tag
+      const formattedNote = `${input}\nAI Analysis: ${analysis}\nTag: ${tag}`;
       
-      // Create a properly typed PendingNote object
-      pendingNoteRef.current = {
-        noteId: activeNoteId || undefined,
-        title: newNoteTitle || undefined,
-        originalText: input,
-        analysis,
-        tag,
-        timestamp
-      };
-      
-      // Add to notes immediately for display
-      const formattedNote: NoteEntry = {
-        originalText: input,
-        analysis,
-        tag,
-        timestamp,
-      };
-      
-      setNotes((prevNotes) => {
-        const updatedNotes = [...prevNotes];
-        if (activeNoteId) {
-          // Add to existing note
-          const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-          if (noteIndex !== -1) {
-            updatedNotes[noteIndex].entries.unshift(formattedNote);
-            updatedNotes[noteIndex].updatedAt = timestamp;
-          }
-        } else {
-          // This case is handled by the auto-save, but we can display it temporarily
-          const tempNote: Note = {
-            _id: 'temp',
-            userId: user?.id || '',
-            title: newNoteTitle || 'Untitled Note',
-            entries: [formattedNote],
-            createdAt: timestamp,
-            updatedAt: timestamp
-          };
-          updatedNotes.unshift(tempNote);
-        }
-        return updatedNotes;
-      });
-      
+      // Add to notes
+      const updatedContent = noteContent ? formattedNote + '\n\n' + noteContent : formattedNote;
+      setNoteContent(updatedContent);
       setInput('');
+      
+      // Trigger save status update
       setSaveStatus('Changes pending...');
     } catch (error) {
       console.error('Error with OpenAI API:', error);
       // Fallback to just adding the raw input
-      const timestamp = new Date().toISOString();
-      const formattedNote: NoteEntry = {
-        originalText: input,
-        analysis: '',
-        tag: 'general',
-        timestamp,
-      };
-      
-      setNotes((prevNotes) => {
-        const updatedNotes = [...prevNotes];
-        if (activeNoteId) {
-          const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-          if (noteIndex !== -1) {
-            updatedNotes[noteIndex].entries.unshift(formattedNote);
-            updatedNotes[noteIndex].updatedAt = timestamp;
-          }
-        } else {
-          const tempNote: Note = {
-            _id: 'temp',
-            userId: user?.id || '',
-            title: newNoteTitle || 'Untitled Note',
-            entries: [formattedNote],
-            createdAt: timestamp,
-            updatedAt: timestamp
-          };
-          updatedNotes.unshift(tempNote);
-        }
-        return updatedNotes;
-      });
-      
+      const newNote = input + '\n';
+      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
+      setNoteContent(updatedContent);
       setInput('');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Rescue a note entry to the top
-  const handleRescue = (entryIndex: number): void => {
-    if (!activeNoteId) return;
-
-    setNotes((prevNotes) => {
-      const updatedNotes = [...prevNotes];
-      const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-      if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
-      
-      const entryToRescue = updatedNotes[noteIndex].entries[entryIndex];
-      const otherEntries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
-      
-      updatedNotes[noteIndex].entries = [entryToRescue, ...otherEntries];
-      updatedNotes[noteIndex].updatedAt = new Date().toISOString();
-      return updatedNotes;
-    });
+  // Rescue a note to the top
+  const handleRescue = (index: number): void => {
+    const notes = noteContent.split('\n\n');
+    if (index >= notes.length) return;
     
-    // Send PATCH request to update on server
-    if (activeNoteId) {
-      fetch('/api/notes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          noteId: activeNoteId,
-          operation: 'rescue',
-          entryIndex
-        }),
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to update note on server');
-        }
-        return response.json();
-      }).then(data => {
-        if (data.success) {
-          setSaveStatus('Changes saved');
-        }
-      }).catch(error => {
-        console.error('Error rescuing entry:', error);
-        setErrorMessage('Failed to rescue entry. Please try again.');
-      });
-    }
+    const noteToRescue = notes[index];
+    const otherNotes = notes.filter((_, i) => i !== index);
     
+    const newContent = [noteToRescue, ...otherNotes].join('\n\n');
+    setNoteContent(newContent);
     setActiveLineIndex(null);
+    setSaveStatus('Changes pending...');
   };
 
-  // Delete a note entry
-  const handleDelete = (entryIndex: number): void => {
-    if (!activeNoteId) return;
-
-    setNotes((prevNotes) => {
-      const updatedNotes = [...prevNotes];
-      const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-      if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
-      
-      updatedNotes[noteIndex].entries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
-      updatedNotes[noteIndex].updatedAt = new Date().toISOString();
-      return updatedNotes;
-    });
+  // Delete a note
+  const handleDelete = (index: number): void => {
+    const notes = noteContent.split('\n\n');
+    if (index >= notes.length) return;
     
-    // Send PATCH request to update on server
-    if (activeNoteId) {
-      fetch('/api/notes', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          noteId: activeNoteId,
-          operation: 'delete',
-          entryIndex
-        }),
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to update note on server');
-        }
-        return response.json();
-      }).then(data => {
-        if (data.success) {
-          setSaveStatus('Changes saved');
-        }
-      }).catch(error => {
-        console.error('Error deleting entry:', error);
-        setErrorMessage('Failed to delete entry. Please try again.');
-      });
-    }
-    
+    const updatedNotes = notes.filter((_, i) => i !== index);
+    setNoteContent(updatedNotes.join('\n\n'));
     setActiveLineIndex(null);
+    setSaveStatus('Changes pending...');
   };
 
   // Handle click on checkbox
@@ -419,7 +274,7 @@ Analysis: [your analysis]`,
     };
   }, []);
 
-  // Format timestamp for display
+  // Format time for display
   const formatTime = (timestamp: string) => {
     try {
       const date = new Date(timestamp);
@@ -438,8 +293,6 @@ Analysis: [your analysis]`,
     );
   }
 
-  const activeNote = notes.find(note => note._id === activeNoteId);
-
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar for saved notes */}
@@ -448,12 +301,7 @@ Analysis: [your analysis]`,
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold dark:text-white">Saved Notes</h2>
             <button 
-              onClick={() => {
-                setIsCreatingNewNote(true);
-                setActiveNoteId(null);
-                setInput('');
-                setNewNoteTitle('');
-              }}
+              onClick={createNewNote}
               className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
             >
               New
@@ -461,22 +309,18 @@ Analysis: [your analysis]`,
           </div>
           
           <div className="space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
-            {notes.length === 0 ? (
+            {savedNotes.length === 0 ? (
               <p className="text-gray-500 text-sm">No saved notes yet.</p>
             ) : (
-              notes.map((note) => (
+              savedNotes.map((note) => (
                 <div 
-                  key={note._id} 
-                  onClick={() => {
-                    setActiveNoteId(note._id);
-                    setIsCreatingNewNote(false);
-                    setInput('');
-                  }}
-                  className={`p-2 border rounded cursor-pointer ${activeNoteId === note._id ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                  key={note.id} 
+                  onClick={() => loadSavedNote(note.id)}
+                  className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 >
                   <div className="font-medium text-sm truncate dark:text-white">{note.title}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatTime(note.updatedAt)}
+                    {formatTime(note.timestamp)}
                   </div>
                 </div>
               ))
@@ -510,86 +354,54 @@ Analysis: [your analysis]`,
             <p className="text-gray-600 dark:text-gray-400">Inspired by Andrej Karpathy's append-and-review method</p>
           </div>
           
-          {/* Display error message if any */}
-          {errorMessage && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-              {errorMessage}
-            </div>
-          )}
-          
           {/* Append Form */}
-          {isCreatingNewNote ? (
-            <div className="mb-6">
-              <input
-                type="text"
-                value={newNoteTitle}
-                onChange={(e) => setNewNoteTitle(e.target.value)}
-                placeholder="Enter note title..."
-                className="w-full p-3 mb-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-              />
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Add the first entry for this note..."
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                rows={2}
+          <form onSubmit={handleAppend} className="mb-6">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Add a new note..."
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+              rows={2}
+              disabled={isProcessing}
+            />
+            <div className="flex justify-end mt-2">
+              <button 
+                type="submit" 
+                className={`px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''} dark:bg-gray-700 dark:hover:bg-gray-600`}
                 disabled={isProcessing}
-              />
-              <div className="flex justify-end mt-2">
-                <button 
-                  onClick={handleAppend}
-                  className={`px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition ${isProcessing || !newNoteTitle.trim() || !input.trim() ? 'opacity-50 cursor-not-allowed' : ''} dark:bg-gray-700 dark:hover:bg-gray-600`}
-                  disabled={isProcessing || !newNoteTitle.trim() || !input.trim()}
-                >
-                  {isProcessing ? 'Adding...' : 'Create Note'}
-                </button>
-              </div>
+              >
+                {isProcessing ? 'Adding...' : 'Add to Top'}
+              </button>
             </div>
-          ) : activeNoteId ? (
-            <form onSubmit={handleAppend} className="mb-6">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Add a new entry to this note..."
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                rows={2}
-                disabled={isProcessing}
-              />
-              <div className="flex justify-end mt-2">
-                <button 
-                  type="submit" 
-                  className={`px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition ${isProcessing || !input.trim() ? 'opacity-50 cursor-not-allowed' : ''} dark:bg-gray-700 dark:hover:bg-gray-600`}
-                  disabled={isProcessing || !input.trim()}
-                >
-                  {isProcessing ? 'Adding...' : 'Add to Top'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="text-gray-400 text-center py-8 dark:text-gray-500">
-              Select a note from the sidebar or create a new one to start adding entries.
-            </div>
-          )}
+          </form>
           
           {/* Main Note Display with Exact Three-Part Structure */}
-          {activeNote && (
-            <div className="relative border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
-              <div className="p-4">
-                <h3 className="text-lg font-semibold mb-4 dark:text-white">{activeNote.title}</h3>
-                {activeNote.entries.length === 0 ? (
-                  <div className="text-gray-400 text-center py-8 dark:text-gray-500">
-                    No entries yet. Add an entry to get started.
-                  </div>
-                ) : (
-                  activeNote.entries.map((entry: NoteEntry, entryIndex: number) => (
-                    <div key={entryIndex} className="relative mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
+          <div className="relative border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
+            <div className="p-4">
+              {noteContent.trim() === '' ? (
+                <div className="text-gray-400 text-center py-8 dark:text-gray-500">
+                  Your notes will appear here. Add a note to get started.
+                </div>
+              ) : (
+                // Split content into separate notes by double newlines
+                noteContent.split('\n\n').map((noteBlock, noteIndex) => {
+                  // Split each note into its components (original text, analysis, tag)
+                  const noteParts = noteBlock.split('\n');
+                  
+                  // Extract parts (first line is the original input)
+                  const originalText = noteParts[0] || '';
+                  const analysisLine = noteParts.find(line => line.startsWith('AI Analysis:')) || '';
+                  const tagLine = noteParts.find(line => line.startsWith('Tag:')) || '';
+                  
+                  return originalText.trim() ? (
+                    <div key={noteIndex} className="relative mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
                       <div className="flex items-start">
                         {/* Checkbox */}
                         <div 
                           className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0"
-                          onClick={(e) => handleCheckboxClick(entryIndex, e)}
+                          onClick={(e) => handleCheckboxClick(noteIndex, e)}
                         >
-                          {activeLineIndex === entryIndex ? (
+                          {activeLineIndex === noteIndex ? (
                             <div className="w-5 h-5 border border-gray-400 rounded-sm flex items-center justify-center bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-4 h-4">
                                 <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
@@ -605,33 +417,30 @@ Analysis: [your analysis]`,
                           {/* Part 1: Original Text */}
                           <div className="mb-2">
                             <div className="text-md dark:text-white">
-                              {entry.originalText}
+                              {originalText}
                             </div>
                           </div>
                           
                           {/* Part 2: AI Analysis */}
-                          {entry.analysis && (
+                          {analysisLine && (
                             <div className="mb-2 text-blue-600 dark:text-blue-400">
-                              AI Analysis: {entry.analysis}
+                              {analysisLine}
                             </div>
                           )}
                           
                           {/* Part 3: Tag */}
-                          {entry.tag && (
+                          {tagLine && (
                             <div className="text-gray-700 dark:text-gray-400">
-                              Tag: {entry.tag}
+                              {tagLine}
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {formatTime(entry.timestamp)}
-                          </div>
                         </div>
                         
                         {/* Actions button */}
                         <div>
                           <button 
                             className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                            onClick={(e) => handleCheckboxClick(entryIndex, e)}
+                            onClick={(e) => handleCheckboxClick(noteIndex, e)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -641,19 +450,19 @@ Analysis: [your analysis]`,
                       </div>
                       
                       {/* Dropdown Menu when active */}
-                      {activeLineIndex === entryIndex && (
+                      {activeLineIndex === noteIndex && (
                         <div 
                           ref={dropdownRef}
                           className="absolute bg-white dark:bg-gray-800 border rounded shadow-lg z-10 right-0 top-8 dark:border-gray-700"
                         >
                           <button 
-                            onClick={() => handleRescue(entryIndex)} 
+                            onClick={() => handleRescue(noteIndex)} 
                             className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
                           >
                             Rescue to Top
                           </button>
                           <button 
-                            onClick={() => handleDelete(entryIndex)} 
+                            onClick={() => handleDelete(noteIndex)} 
                             className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
                           >
                             Delete
@@ -661,11 +470,11 @@ Analysis: [your analysis]`,
                         </div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ) : null;
+                })
+              )}
             </div>
-          )}
+          </div>
           
           <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
             <p>
