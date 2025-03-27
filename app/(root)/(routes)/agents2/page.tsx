@@ -119,7 +119,7 @@ export default function KarpathyNotePage() {
     };
 
     try {
-      const response = await fetch('/api/notes/save', {
+      const response = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(noteData)
@@ -485,4 +485,4 @@ Analysis: [your analysis]`,
       </div>
     </div>
   );
-}
+} 
