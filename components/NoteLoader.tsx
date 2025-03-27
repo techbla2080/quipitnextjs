@@ -24,7 +24,7 @@ const NoteLoader: React.FC<NoteLoaderProps> = ({
         try {
           console.log("Loading note from URL with ID:", noteId);
           // Fetch the specific note
-          const response = await fetch(`/api/notes/${noteId}`);
+          const response = await fetch(`/api/notes?id=${noteId}`);
           
           if (!response.ok) {
             throw new Error('Failed to fetch note');
