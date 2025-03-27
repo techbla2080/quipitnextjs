@@ -106,36 +106,39 @@ export default function KarpathyNotePage() {
   // Function to save notes to backend
   const saveNotesToBackend = async () => {
     if (!user?.id || !noteContent.trim()) return;
-
+  
     // Extract the title from the first line or use a default
     const firstLine = noteContent.split('\n')[0];
     const title = firstLine?.trim().substring(0, 50) || 'Untitled Note';
     
+    // Create properly structured data for the API
     const noteData = {
-      userId: user.id,
-      title,
-      content: noteContent,
-      timestamp: new Date().toISOString()
+      title: title,
+      entry: {
+        originalText: noteContent,
+        analysis: '', // You can generate AI analysis here if needed
+        tag: 'general',
+        timestamp: new Date().toISOString()
+      }
     };
-
+  
     try {
       const response = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(noteData)
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to save note');
       }
-
+  
       return await response.json();
     } catch (error) {
       console.error('Error saving note:', error);
       throw error;
     }
   };
-
   // Function to load a saved note
   const loadSavedNote = async (noteId: string) => {
     try {
