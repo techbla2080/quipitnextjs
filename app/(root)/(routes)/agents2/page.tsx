@@ -322,6 +322,7 @@ Analysis: [your analysis]`,
         isSignedIn={isSignedIn}
         setActiveNoteId={setActiveNoteId}
         setNotes={setNotes}
+        setNoteContent={setNoteContent}
       />
       {/* Sidebar for saved notes */}
       {showSidebar && (
