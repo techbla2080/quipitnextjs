@@ -1,20 +1,35 @@
 // models/Note.ts
 import mongoose from 'mongoose';
 
+const NoteEntrySchema = new mongoose.Schema({
+  originalText: {
+    type: String,
+    required: [true, 'Original text is required'],
+  },
+  analysis: {
+    type: String,
+    default: '',
+  },
+  tag: {
+    type: String,
+    default: 'general',
+  },
+  timestamp: {
+    type: String,
+    default: () => new Date().toISOString(),
+  },
+});
+
 const NoteSchema = new mongoose.Schema({
   userId: {
     type: String,
     required: [true, 'User ID is required'],
-    unique: true, // Ensure only one document per user
   },
   title: {
     type: String,
-    default: 'DropThought Notes',
+    required: [true, 'Title is required'],
   },
-  content: {
-    type: String,
-    required: [true, 'Content is required'],
-  },
+  entries: [NoteEntrySchema], // Array of note entries
   createdAt: {
     type: String,
     default: () => new Date().toISOString(),
@@ -24,8 +39,6 @@ const NoteSchema = new mongoose.Schema({
     default: () => new Date().toISOString(),
   },
 });
-
-NoteSchema.index({ userId: 1 });
 
 const Note = mongoose.models.Note || mongoose.model('Note', NoteSchema);
 
