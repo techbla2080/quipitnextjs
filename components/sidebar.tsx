@@ -9,6 +9,9 @@ import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion"; // For Quipit icon animation
 import Link from "next/link"; // For Quipit icon link
+// At the top of your file with other imports
+import SavedNotesSection from '@/components/SavedNotesSection';
+
 
 interface TripApiResponse {
   _id: string;
@@ -375,6 +378,10 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               <p className="px-4 text-sm text-gray-500">No saved trips</p>
             )}
           </div>
+          <SavedNotesSection 
+            isNavigating={isNavigating}
+            setIsNavigating={setIsNavigating}
+          />
         </div>
       </div>
     </div>
