@@ -4,9 +4,27 @@ import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import { fetchOpenAI } from '@/lib/api/openai';
+import NoteLoader from '@/components/NoteLoader';
+
+interface Note {
+  _id: string;
+  userId: string;
+  title: string;
+  entries: {
+    originalText: string;
+    analysis: string;
+    tag: string;
+    timestamp: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+  content?: string; // Optional, for backward compatibility
+}
 
 export default function KarpathyNotePage() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState<string>('');
   const [input, setInput] = useState<string>('');
   const [queryInput, setQueryInput] = useState<string>('');
@@ -296,8 +314,15 @@ Analysis: [your analysis]`,
     );
   }
 
+
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+            <NoteLoader 
+        isSignedIn={isSignedIn}
+        setActiveNoteId={setActiveNoteId}
+        setNotes={setNotes}
+      />
       {/* Sidebar for saved notes */}
       {showSidebar && (
         <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4">
