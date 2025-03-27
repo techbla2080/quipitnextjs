@@ -104,10 +104,10 @@ export default function KarpathyNotePage() {
     autoSaveTimerRef.current = setTimeout(async () => {
       try {
         setSaveStatus('Saving...');
-        const pendingNote = pendingNoteRef.current;
-        if (!pendingNote) return;
         
-        const { noteId, title, originalText, analysis, tag, timestamp } = pendingNote;
+        if (!pendingNoteRef.current) return;
+        
+        const { noteId, originalText, analysis, tag, timestamp } = pendingNoteRef.current;
         
         // Create appropriate request body based on whether this is a new note or an update
         let requestBody;
@@ -126,7 +126,7 @@ export default function KarpathyNotePage() {
         } else {
           // For new note, include title and entry data
           requestBody = { 
-            title: title || newNoteTitle || 'Untitled Note', 
+            title: newNoteTitle || 'Untitled Note', 
             entry: {
               originalText, 
               analysis, 
@@ -221,7 +221,7 @@ Analysis: [your analysis]`,
       const timestamp = new Date().toISOString();
       
       // Create a properly typed PendingNote object
-      const pendingNote: PendingNote = {
+      pendingNoteRef.current = {
         noteId: activeNoteId || undefined,
         title: newNoteTitle || undefined,
         originalText: input,
@@ -229,9 +229,6 @@ Analysis: [your analysis]`,
         tag,
         timestamp
       };
-      
-      // Store the note entry in pendingNoteRef for auto-saving
-      pendingNoteRef.current = pendingNote;
       
       // Add to notes immediately for display
       const formattedNote: NoteEntry = {
@@ -307,26 +304,25 @@ Analysis: [your analysis]`,
   };
 
   // Rescue a note entry to the top
-  const handleRescue = async (entryIndex: number): Promise<void> => {
+  const handleRescue = (entryIndex: number): void => {
     if (!activeNoteId) return;
 
-    try {
-      // Update UI optimistically
-      setNotes((prevNotes) => {
-        const updatedNotes = [...prevNotes];
-        const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-        if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
-        
-        const entryToRescue = updatedNotes[noteIndex].entries[entryIndex];
-        const otherEntries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
-        
-        updatedNotes[noteIndex].entries = [entryToRescue, ...otherEntries];
-        updatedNotes[noteIndex].updatedAt = new Date().toISOString();
-        return updatedNotes;
-      });
+    setNotes((prevNotes) => {
+      const updatedNotes = [...prevNotes];
+      const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
+      if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
       
-      // Send PATCH request to update on server
-      const response = await fetch('/api/notes', {
+      const entryToRescue = updatedNotes[noteIndex].entries[entryIndex];
+      const otherEntries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
+      
+      updatedNotes[noteIndex].entries = [entryToRescue, ...otherEntries];
+      updatedNotes[noteIndex].updatedAt = new Date().toISOString();
+      return updatedNotes;
+    });
+    
+    // Send PATCH request to update on server
+    if (activeNoteId) {
+      fetch('/api/notes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -334,43 +330,41 @@ Analysis: [your analysis]`,
           operation: 'rescue',
           entryIndex
         }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update note on server');
+        }
+        return response.json();
+      }).then(data => {
+        if (data.success) {
+          setSaveStatus('Changes saved');
+        }
+      }).catch(error => {
+        console.error('Error rescuing entry:', error);
+        setErrorMessage('Failed to rescue entry. Please try again.');
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update note on server');
-      }
-      
-      // Update with server response if needed
-      const data = await response.json();
-      if (data.success) {
-        setSaveStatus('Changes saved');
-      }
-    } catch (error) {
-      console.error('Error rescuing entry:', error);
-      setErrorMessage('Failed to rescue entry. Please try again.');
     }
     
     setActiveLineIndex(null);
   };
 
   // Delete a note entry
-  const handleDelete = async (entryIndex: number): Promise<void> => {
+  const handleDelete = (entryIndex: number): void => {
     if (!activeNoteId) return;
 
-    try {
-      // Update UI optimistically
-      setNotes((prevNotes) => {
-        const updatedNotes = [...prevNotes];
-        const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
-        if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
-        
-        updatedNotes[noteIndex].entries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
-        updatedNotes[noteIndex].updatedAt = new Date().toISOString();
-        return updatedNotes;
-      });
+    setNotes((prevNotes) => {
+      const updatedNotes = [...prevNotes];
+      const noteIndex = updatedNotes.findIndex(note => note._id === activeNoteId);
+      if (noteIndex === -1 || entryIndex >= updatedNotes[noteIndex].entries.length) return prevNotes;
       
-      // Send PATCH request to update on server
-      const response = await fetch('/api/notes', {
+      updatedNotes[noteIndex].entries = updatedNotes[noteIndex].entries.filter((_, i) => i !== entryIndex);
+      updatedNotes[noteIndex].updatedAt = new Date().toISOString();
+      return updatedNotes;
+    });
+    
+    // Send PATCH request to update on server
+    if (activeNoteId) {
+      fetch('/api/notes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -378,20 +372,19 @@ Analysis: [your analysis]`,
           operation: 'delete',
           entryIndex
         }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update note on server');
+        }
+        return response.json();
+      }).then(data => {
+        if (data.success) {
+          setSaveStatus('Changes saved');
+        }
+      }).catch(error => {
+        console.error('Error deleting entry:', error);
+        setErrorMessage('Failed to delete entry. Please try again.');
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to update note on server');
-      }
-      
-      // Update with server response if needed
-      const data = await response.json();
-      if (data.success) {
-        setSaveStatus('Changes saved');
-      }
-    } catch (error) {
-      console.error('Error deleting entry:', error);
-      setErrorMessage('Failed to delete entry. Please try again.');
     }
     
     setActiveLineIndex(null);
