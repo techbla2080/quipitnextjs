@@ -6,16 +6,19 @@ import { redirect } from 'next/navigation';
 import { fetchOpenAI } from '@/lib/api/openai';
 import NoteLoader from '@/components/NoteLoader';
 
+// Define the entry type to avoid 'any' type errors
+interface NoteEntry {
+  originalText: string;
+  analysis: string;
+  tag: string;
+  timestamp: string;
+}
+
 interface Note {
   _id: string;
   userId: string;
   title: string;
-  entries: {
-    originalText: string;
-    analysis: string;
-    tag: string;
-    timestamp: string;
-  }[];
+  entries: NoteEntry[]; // Use the defined NoteEntry type
   createdAt: string;
   updatedAt: string;
   content?: string; // Optional, for backward compatibility
@@ -38,7 +41,7 @@ export default function KarpathyNotePage() {
   const [isHubOpen, setIsHubOpen] = useState<boolean>(false);
   const [noteMemory, setNoteMemory] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<string>('');
-  const [savedNotes, setSavedNotes] = useState<any[]>([]);
+  const [savedNotes, setSavedNotes] = useState<Note[]>([]);
   const [showSidebar, setShowSidebar] = useState<boolean>(true);
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -124,39 +127,80 @@ export default function KarpathyNotePage() {
   // Function to save notes to backend
   const saveNotesToBackend = async () => {
     if (!user?.id || !noteContent.trim()) return;
-  
+
     // Extract the title from the first line or use a default
-    const firstLine = noteContent.split('\n')[0];
-    const title = firstLine?.trim().substring(0, 50) || 'Untitled Note';
+    const contentParts = noteContent.split('\n\n');
+    const firstEntryParts = contentParts[0].split('\n');
+    const title = firstEntryParts[0]?.trim().substring(0, 50) || 'Untitled Note';
     
-    // Create properly structured data for the API
-    const noteData = {
-      title: title,
-      entry: {
-        originalText: noteContent,
-        analysis: '', // You can generate AI analysis here if needed
-        tag: 'general',
+    // Parse each note block into properly structured entries
+    const entries: NoteEntry[] = contentParts.map(part => {
+      const lines = part.split('\n');
+      const originalText = lines[0] || '';
+      
+      // Find analysis line
+      const analysisLine = lines.find(line => line.startsWith('AI Analysis:')) || '';
+      const analysis = analysisLine.replace('AI Analysis:', '').trim();
+      
+      // Find tag line
+      const tagLine = lines.find(line => line.startsWith('Tag:')) || '';
+      const tag = tagLine.replace('Tag:', '').trim() || 'general';
+      
+      return {
+        originalText,
+        analysis,
+        tag,
         timestamp: new Date().toISOString()
-      }
-    };
-  
+      };
+    });
+
     try {
-      const response = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(noteData)
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to save note');
+      if (activeNoteId) {
+        // If updating an existing note
+        const response = await fetch('/api/notes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noteId: activeNoteId,
+            entry: entries[0] // Now properly typed
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update note');
+        }
+        
+        return await response.json();
+      } else {
+        // If creating a new note
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            entry: entries[0] // Now properly typed
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save note');
+        }
+        
+        const data = await response.json();
+        
+        // If this was a new note, set the activeNoteId
+        if (data.success && data.note) {
+          setActiveNoteId(data.note._id);
+        }
+        
+        return data;
       }
-  
-      return await response.json();
     } catch (error) {
       console.error('Error saving note:', error);
       throw error;
     }
   };
+
   // Function to load a saved note
   const loadSavedNote = async (noteId: string) => {
     try {
@@ -169,8 +213,16 @@ export default function KarpathyNotePage() {
       
       const data = await response.json();
       if (data.success && data.note) {
-        setNoteContent(data.note.content);
-        lastSavedContentRef.current = data.note.content;
+        // Set the active note ID
+        setActiveNoteId(noteId);
+        
+        // Format the entries into the three-part structure for display
+        const formattedContent = data.note.entries.map((entry: NoteEntry) => {
+          return `${entry.originalText}\nAI Analysis: ${entry.analysis}\nTag: ${entry.tag}`;
+        }).join('\n\n');
+        
+        setNoteContent(formattedContent);
+        lastSavedContentRef.current = formattedContent;
         setSaveStatus('Note loaded');
       }
     } catch (error) {
@@ -183,6 +235,7 @@ export default function KarpathyNotePage() {
   const createNewNote = () => {
     lastSavedContentRef.current = '';
     setNoteContent('');
+    setActiveNoteId(null);
     setSaveStatus('');
     setInput('');
   };
@@ -242,28 +295,94 @@ Analysis: [your analysis]`,
   };
 
   // Rescue a note to the top
-  const handleRescue = (index: number): void => {
-    const notes = noteContent.split('\n\n');
-    if (index >= notes.length) return;
-    
-    const noteToRescue = notes[index];
-    const otherNotes = notes.filter((_, i) => i !== index);
-    
-    const newContent = [noteToRescue, ...otherNotes].join('\n\n');
-    setNoteContent(newContent);
-    setActiveLineIndex(null);
-    setSaveStatus('Changes pending...');
+  const handleRescue = async (index: number): Promise<void> => {
+    if (!activeNoteId) {
+      // If no active note ID, use the current approach of manipulating the content
+      const notes = noteContent.split('\n\n');
+      if (index >= notes.length) return;
+      
+      const noteToRescue = notes[index];
+      const otherNotes = notes.filter((_, i) => i !== index);
+      
+      const newContent = [noteToRescue, ...otherNotes].join('\n\n');
+      setNoteContent(newContent);
+      setActiveLineIndex(null);
+      setSaveStatus('Changes pending...');
+    } else {
+      // Use the PATCH endpoint to rescue an entry
+      try {
+        setSaveStatus('Updating...');
+        const response = await fetch('/api/notes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noteId: activeNoteId,
+            operation: 'rescue',
+            entryIndex: index
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to rescue note entry');
+        }
+        
+        // Update the note content after successful rescue
+        const data = await response.json();
+        if (data.success && data.note) {
+          // Update the note content to reflect the changes
+          loadSavedNote(activeNoteId);
+        }
+        
+        setSaveStatus('Changes saved');
+      } catch (error) {
+        console.error('Error rescuing note entry:', error);
+        setSaveStatus('Failed to update');
+      }
+    }
   };
 
   // Delete a note
-  const handleDelete = (index: number): void => {
-    const notes = noteContent.split('\n\n');
-    if (index >= notes.length) return;
-    
-    const updatedNotes = notes.filter((_, i) => i !== index);
-    setNoteContent(updatedNotes.join('\n\n'));
-    setActiveLineIndex(null);
-    setSaveStatus('Changes pending...');
+  const handleDelete = async (index: number): Promise<void> => {
+    if (!activeNoteId) {
+      // If no active note ID, use the current approach of manipulating the content
+      const notes = noteContent.split('\n\n');
+      if (index >= notes.length) return;
+      
+      const updatedNotes = notes.filter((_, i) => i !== index);
+      setNoteContent(updatedNotes.join('\n\n'));
+      setActiveLineIndex(null);
+      setSaveStatus('Changes pending...');
+    } else {
+      // Use the PATCH endpoint to delete an entry
+      try {
+        setSaveStatus('Updating...');
+        const response = await fetch('/api/notes', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noteId: activeNoteId,
+            operation: 'delete',
+            entryIndex: index
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete note entry');
+        }
+        
+        // Update the note content after successful deletion
+        const data = await response.json();
+        if (data.success && data.note) {
+          // Update the note content to reflect the changes
+          loadSavedNote(activeNoteId);
+        }
+        
+        setSaveStatus('Changes saved');
+      } catch (error) {
+        console.error('Error deleting note entry:', error);
+        setSaveStatus('Failed to update');
+      }
+    }
   };
 
   // Handle click on checkbox
@@ -314,11 +433,9 @@ Analysis: [your analysis]`,
     );
   }
 
-
-
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-            <NoteLoader 
+      <NoteLoader 
         isSignedIn={isSignedIn}
         setActiveNoteId={setActiveNoteId}
         setNotes={setNotes}
@@ -343,13 +460,13 @@ Analysis: [your analysis]`,
             ) : (
               savedNotes.map((note) => (
                 <div 
-                  key={note.id} 
-                  onClick={() => loadSavedNote(note.id)}
+                  key={note._id} 
+                  onClick={() => loadSavedNote(note._id)}
                   className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                 >
                   <div className="font-medium text-sm truncate dark:text-white">{note.title}</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatTime(note.timestamp)}
+                    {formatTime(note.updatedAt)}
                   </div>
                 </div>
               ))
@@ -514,4 +631,4 @@ Analysis: [your analysis]`,
       </div>
     </div>
   );
-} 
+}
