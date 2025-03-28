@@ -202,34 +202,52 @@ export default function KarpathyNotePage() {
   };
 
   // Function to load a saved note
-  const loadSavedNote = async (noteId: string) => {
-    try {
-      setSaveStatus('Loading...');
-      const response = await fetch(`/api/notes/${noteId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to load note');
-      }
-      
-      const data = await response.json();
-      if (data.success && data.note) {
-        // Set the active note ID
-        setActiveNoteId(noteId);
-        
-        // Format the entries into the three-part structure for display
-        const formattedContent = data.note.entries.map((entry: NoteEntry) => {
-          return `${entry.originalText}\nAI Analysis: ${entry.analysis}\nTag: ${entry.tag}`;
-        }).join('\n\n');
-        
-        setNoteContent(formattedContent);
-        lastSavedContentRef.current = formattedContent;
-        setSaveStatus('Note loaded');
-      }
-    } catch (error) {
-      console.error('Error loading note:', error);
-      setSaveStatus('Failed to load');
+// Function to load a saved note
+const loadSavedNote = async (noteId: string) => {
+  try {
+    setSaveStatus('Loading...');
+    console.log(`Loading note with ID: ${noteId}`);
+    
+    const response = await fetch(`/api/notes/${noteId}`);
+    
+    if (!response.ok) {
+      console.error(`Failed to load note: ${response.status} ${response.statusText}`);
+      throw new Error('Failed to load note');
     }
-  };
+    
+    const data = await response.json();
+    console.log('Loaded note data:', data);
+    
+    if (data.success && data.note) {
+      // Set the active note ID
+      setActiveNoteId(noteId);
+      
+      if (!data.note.entries || data.note.entries.length === 0) {
+        console.warn('Note has no entries');
+        setNoteContent('');
+        setSaveStatus('Note loaded (empty)');
+        return;
+      }
+      
+      // Format the entries into the three-part structure for display
+      const formattedContent = data.note.entries.map((entry: NoteEntry) => {
+        console.log('Processing entry:', entry);
+        return `${entry.originalText || ''}\nAI Analysis: ${entry.analysis || ''}\nTag: ${entry.tag || 'general'}`;
+      }).join('\n\n');
+      
+      console.log('Formatted content:', formattedContent);
+      setNoteContent(formattedContent);
+      lastSavedContentRef.current = formattedContent;
+      setSaveStatus('Note loaded');
+    } else {
+      console.error('Invalid note data format:', data);
+      setSaveStatus('Failed to load: invalid data');
+    }
+  } catch (error) {
+    console.error('Error loading note:', error);
+    setSaveStatus('Failed to load');
+  }
+};
 
   // Function to create a new note
   const createNewNote = () => {
