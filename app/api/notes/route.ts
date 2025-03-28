@@ -1,4 +1,3 @@
-// app/api/notes/route.ts
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import { auth } from '@clerk/nextjs/server';
@@ -51,8 +50,8 @@ NoteSchema.index({ userId: 1 });
 // Use mongoose model (with caching to prevent recompilation)
 const Note = mongoose.models.Note || mongoose.model('Note', NoteSchema);
 
-// GET handler to retrieve all notes for a user
-export async function GET() {
+// GET handler to retrieve notes (all or single)
+export async function GET(request: Request) {
   try {
     // Connect to the database
     await connectDB();
@@ -63,16 +62,31 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Fetch all notes for this user, sorted by updatedAt (newest first)
-    const notes = await Note.find({ userId }).sort({ updatedAt: -1 });
+    // Check if we're requesting a specific note
+    const url = new URL(request.url);
+    const noteId = url.searchParams.get('id');
     
+    if (noteId) {
+      // Return a specific note
+      console.log(`Fetching note with ID: ${noteId}`);
+      const note = await Note.findOne({ _id: noteId, userId });
+      
+      if (!note) {
+        console.log('Note not found');
+        return NextResponse.json({ success: false, error: 'Note not found' }, { status: 404 });
+      }
+      
+      console.log('Note found:', note);
+      return NextResponse.json({ success: true, note });
+    }
+    
+    // Return all notes
+    console.log('Fetching all notes for user');
+    const notes = await Note.find({ userId }).sort({ updatedAt: -1 });
     return NextResponse.json({ success: true, notes });
   } catch (error) {
     console.error('Error fetching notes:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch notes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to fetch notes' }, { status: 500 });
   }
 }
 

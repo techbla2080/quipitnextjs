@@ -203,12 +203,14 @@ export default function KarpathyNotePage() {
 
   // Function to load a saved note
 // Function to load a saved note
+// Function to load a saved note
 const loadSavedNote = async (noteId: string) => {
   try {
     setSaveStatus('Loading...');
     console.log(`Loading note with ID: ${noteId}`);
     
-    const response = await fetch(`/api/notes/${noteId}`);
+    // Use the query parameter approach
+    const response = await fetch(`/api/notes?id=${noteId}`);
     
     if (!response.ok) {
       console.error(`Failed to load note: ${response.status} ${response.statusText}`);
