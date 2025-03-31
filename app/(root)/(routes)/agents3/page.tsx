@@ -1,3 +1,5 @@
+"use client";
+
 // pages/agents/3.tsx
 import { useState } from 'react';
 import Tree from '@/components/Tree';
