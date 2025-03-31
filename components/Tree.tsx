@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef } from 'react';
 
 interface TreeProps {
@@ -26,6 +28,33 @@ export default function Tree({ points, level }: TreeProps) {
     ctx.beginPath();
     ctx.arc(100, 50, 30, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Add some decoration based on level
+    if (level > 1) {
+      // Add more branches/leaves as level increases
+      ctx.fillStyle = 'darkgreen';
+      ctx.beginPath();
+      ctx.arc(85, 60, 15, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(115, 60, 15, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    if (level > 3) {
+      // Add some fruits/flowers at higher levels
+      ctx.fillStyle = 'red';
+      for (let i = 0; i < Math.min(level, 8); i++) {
+        const angle = (i / Math.min(level, 8)) * Math.PI * 2;
+        const x = 100 + Math.cos(angle) * 25;
+        const y = 50 + Math.sin(angle) * 25;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }, [points, level]);
 
   return (
@@ -36,4 +65,4 @@ export default function Tree({ points, level }: TreeProps) {
       </p>
     </div>
   );
-} 
+}

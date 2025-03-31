@@ -1,3 +1,5 @@
+"use client";
+
 interface DashboardProps {
   completedTasks: number;
   pendingTasks: number;

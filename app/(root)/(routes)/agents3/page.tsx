@@ -1,10 +1,9 @@
 "use client";
 
-// pages/agents/3.tsx
 import { useState } from 'react';
 import Tree from '@/components/Tree';
 import FocusTimer from '@/components/FocusTimer';
-import Dashboard from '@/components/DashBoard'
+import Dashboard from '@/components/DashBoard';
 
 interface Task {
   id: string;
