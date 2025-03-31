@@ -8,7 +8,9 @@ interface FocusTimerProps {
 }
 
 export default function FocusTimer({ taskId, onComplete }: FocusTimerProps) {
-  const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
+  // Default to 25 minutes (25 * 60 seconds)
+  // For testing purposes, you might want to use a shorter time like 10 seconds
+  const [time, setTime] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
 
@@ -22,7 +24,7 @@ export default function FocusTimer({ taskId, onComplete }: FocusTimerProps) {
       setRunning(false);
       onComplete();
       setSessions(s => s + 1);
-      setTime(25 * 60);
+      setTime(25 * 60); // Reset timer
     }
     
     return () => clearInterval(timer);
@@ -36,17 +38,19 @@ export default function FocusTimer({ taskId, onComplete }: FocusTimerProps) {
   };
 
   return (
-    <div className="mt-2 flex items-center">
-      <div className="mr-4">
-        <p className="text-2xl font-mono">{formatTime()}</p>
-        <p className="text-xs text-gray-500">Sessions: {sessions}</p>
+    <div className="mt-3 flex items-center">
+      <div className="mr-4 bg-gray-100 dark:bg-gray-900 rounded-lg px-3 py-2">
+        <p className="text-xl font-mono">{formatTime()}</p>
+        {sessions > 0 && (
+          <p className="text-xs text-gray-500">Sessions: {sessions}</p>
+        )}
       </div>
       <button 
         onClick={() => setRunning(!running)} 
-        className={`px-3 py-1 rounded-md ${
+        className={`px-4 py-2 rounded-lg transition-colors ${
           running 
-            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-            : 'bg-green-100 text-green-700 hover:bg-green-200'
+            ? 'bg-red-600 text-white hover:bg-red-700' 
+            : 'bg-green-600 text-white hover:bg-green-700'
         }`}
       >
         {running ? 'Pause' : 'Start Focus'}
