@@ -24,17 +24,24 @@ interface Forest {
 export default function Forest({ userId }: ForestProps) {
   const [forests, setForests] = useState<Forest[]>([]);
   const [message, setMessage] = useState('');
-  const [chat, setChat] =  = useSate<Forest[] | undefined>(chat);
-  const [chat, setChat] = useState<string[]>([]);
+  const [chat, setChat] = useState<string[]>([]); // Fixed: Single declaration with correct type
 
   useEffect(() => {
-    fetch(`/api/forests?userId=${userId}`).then(res => res.json()).then(data => setForests(data));
+    // Fetch forests for the user
+    fetch(`/api/forests?userId=${userId}`)
+      .then(res => res.json())
+      .then(data => setForests(data))
+      .catch(err => console.error('Failed to fetch forests:', err));
+
+    // Socket.io setup
     socket.on('connect', () => {
       socket.emit('join', '1');
     });
     socket.on('message', (msg: string) => {
       setChat(c => [...c, msg]);
     });
+
+    // Cleanup socket listener
     return () => {
       socket.off('message');
     };
@@ -47,7 +54,7 @@ export default function Forest({ userId }: ForestProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, forestId: forests[0]?._id, message }),
-      });
+      }).catch(err => console.error('Failed to send message:', err));
       setMessage('');
     }
   };
