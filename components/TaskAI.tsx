@@ -11,11 +11,17 @@ interface Task {
   category?: 'creative' | 'analytical' | 'physical';
 }
 
+interface Message {
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: number;
+}
+
 export default function TaskAI({ task }: { task: Task }) {
   const [message, setMessage] = useState('');
-  const [conversation, setConversation] = useState<{text: string, sender: 'user' | 'ai', timestamp: number}[]>([]);
+  const [conversation, setConversation] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Initial AI greeting when component mounts
   useEffect(() => {
     async function getInitialResponse() {
@@ -28,51 +34,51 @@ export default function TaskAI({ task }: { task: Task }) {
           Keep your response under 100 words and be encouraging.`,
           max_tokens: 150,
         });
-        
-        setConversation([{
+
+        const aiMessage: Message = {
           text: response.choices[0].text,
           sender: 'ai',
-          timestamp: Date.now()
-        }]);
+          timestamp: Date.now(),
+        };
+
+        setConversation([aiMessage]);
       } catch (error) {
         console.error('Error getting AI response:', error);
-        setConversation([{
+        const fallbackMessage: Message = {
           text: "I'm your Growth Spirit for this task. I'm here to help you break it down and complete it efficiently.",
           sender: 'ai',
-          timestamp: Date.now()
-        }]);
+          timestamp: Date.now(),
+        };
+        setConversation([fallbackMessage]);
       } finally {
         setLoading(false);
       }
     }
-    
+
     getInitialResponse();
   }, [task]);
-  
+
   const sendMessage = async () => {
     if (!message.trim() || loading) return;
-    
+
     // Add user message to conversation
-    const updatedConversation = [
-      ...conversation,
-      {
-        text: message,
-        sender: 'user',
-        timestamp: Date.now()
-      }
-    ];
-    
+    const userMessage: Message = {
+      text: message,
+      sender: 'user',
+      timestamp: Date.now(),
+    };
+
+    const updatedConversation = [...conversation, userMessage];
     setConversation(updatedConversation);
-    const userMessage = message;
     setMessage('');
     setLoading(true);
-    
+
     try {
       // Create conversation history for context
       const conversationHistory = updatedConversation
         .map(msg => `${msg.sender === 'user' ? 'User' : 'Growth Spirit'}: ${msg.text}`)
         .join('\n');
-      
+
       const response = await fetchOpenAI({
         prompt: `${conversationHistory}
         
@@ -83,30 +89,27 @@ export default function TaskAI({ task }: { task: Task }) {
         Respond directly to the user's last message with practical guidance.`,
         max_tokens: 200,
       });
-      
-      setConversation([
-        ...updatedConversation,
-        {
-          text: response.choices[0].text,
-          sender: 'ai',
-          timestamp: Date.now()
-        }
-      ]);
+
+      const aiResponse: Message = {
+        text: response.choices[0].text,
+        sender: 'ai',
+        timestamp: Date.now(),
+      };
+
+      setConversation([...updatedConversation, aiResponse]);
     } catch (error) {
       console.error('Error getting AI response:', error);
-      setConversation([
-        ...updatedConversation,
-        {
-          text: "I'm sorry, I couldn't generate a response right now. Let's continue helping with your task.",
-          sender: 'ai',
-          timestamp: Date.now()
-        }
-      ]);
+      const errorMessage: Message = {
+        text: "I'm sorry, I couldn't generate a response right now. Let's continue helping with your task.",
+        sender: 'ai',
+        timestamp: Date.now(),
+      };
+      setConversation([...updatedConversation, errorMessage]);
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="bg-gray-900/50 backdrop-blur-sm border-t border-white/5 p-4">
       <h4 className="text-emerald-400 font-medium mb-3 flex items-center">
@@ -116,7 +119,7 @@ export default function TaskAI({ task }: { task: Task }) {
         </svg>
         Growth Spirit
       </h4>
-      
+
       <div className="h-48 overflow-y-auto mb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-600">
         {conversation.map((msg, index) => (
           <div
@@ -135,7 +138,7 @@ export default function TaskAI({ task }: { task: Task }) {
             </p>
           </div>
         ))}
-        
+
         {loading && (
           <div className="bg-white/10 rounded-lg p-3 text-white inline-block">
             <div className="flex space-x-1">
@@ -146,7 +149,7 @@ export default function TaskAI({ task }: { task: Task }) {
           </div>
         )}
       </div>
-      
+
       <div className="flex">
         <input
           value={message}
