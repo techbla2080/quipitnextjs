@@ -82,4 +82,4 @@ export default function Forest({ userId }: ForestProps) {
       )}
     </div>
   );
-}
+}   
