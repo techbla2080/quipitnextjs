@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskCard from '@/components/TaskCard';
+import TaskFilters from '@/components/TaskFilters';
 import { Task } from '@/types';
 import { fetchOpenAI } from '@/lib/api/openai';
 
@@ -13,6 +14,11 @@ export default function TaskFlow() {
   const [taskDescription, setTaskDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+  
+  // Filter and sort state
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'priority'>('newest');
   
   // Sample initial tasks
   const [tasks, setTasks] = useState<Task[]>([
@@ -51,13 +57,42 @@ export default function TaskFlow() {
     }
   ]);
   
+  // Sample available tags (in a real app, you would generate this from tasks)
+  const availableTags = ['Design', 'Work', 'Research', 'Coding', 'Documentation', 'Meeting', 'Urgent'];
+  
   // Refs
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Filter tasks
+  const filteredTasks = tasks.filter(task => {
+    // Filter by tag
+    const matchesTag = filterTag === null || (task.tags && task.tags.includes(filterTag));
+    
+    // Filter by search term
+    const matchesSearch = searchTerm === '' || 
+      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return matchesTag && matchesSearch;
+  });
+  
+  // Sort tasks
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (sortBy === 'newest') {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    } else if (sortBy === 'oldest') {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    } else if (sortBy === 'priority') {
+      const priorityValue = { high: 3, medium: 2, low: 1 };
+      return (priorityValue[b.priority || 'low'] || 0) - (priorityValue[a.priority || 'low'] || 0);
+    }
+    return 0;
+  });
+  
   // Group tasks by status
-  const pendingTasks = tasks.filter(task => task.status === 'pending');
-  const inProgressTasks = tasks.filter(task => task.status === 'in-progress');
-  const completedTasks = tasks.filter(task => task.status === 'done');
+  const pendingTasks = sortedTasks.filter(task => task.status === 'pending');
+  const inProgressTasks = sortedTasks.filter(task => task.status === 'in-progress');
+  const completedTasks = sortedTasks.filter(task => task.status === 'done');
   
   // Show notification
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -280,6 +315,17 @@ export default function TaskFlow() {
           </motion.button>
         </div>
       </form>
+      
+      {/* Task Filters */}
+      <TaskFilters
+        availableTags={availableTags}
+        filterTag={filterTag}
+        setFilterTag={setFilterTag}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+      />
       
       {/* Task Lists */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
