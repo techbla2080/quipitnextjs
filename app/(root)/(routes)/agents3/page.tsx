@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskCard from '@/components/TaskCard';
 import TaskFilters from '@/components/TaskFilters';
+import MetricsDashboard from '@/components/MetricsDashboard';
 import { Task } from '@/types';
 import { fetchOpenAI } from '@/lib/api/openai';
 
@@ -419,6 +420,9 @@ export default function TaskFlow() {
           </div>
         </div>
       </div>
+      
+      {/* Metrics Dashboard */}
+      <MetricsDashboard tasks={tasks} />
       
       {/* CSS for particle animation */}
       <style jsx global>{`

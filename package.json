@@ -63,6 +63,7 @@
     "react-markdown": "^9.0.1",
     "react-spinners": "^0.14.1",
     "react-use": "^17.6.0",
+    "recharts": "^2.15.2",
     "replicate": "^0.29.4",
     "resend": "^4.1.2",
     "socket.io-client": "^4.8.1",
