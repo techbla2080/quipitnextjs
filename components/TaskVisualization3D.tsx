@@ -1,8 +1,20 @@
-// components/TaskVisualization3D.tsx
 import React, { useRef, useEffect, useState } from 'react';
-import { Task } from '@/types';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+// Ensure we have proper type definition for Task
+interface Task {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  status: 'pending' | 'in-progress' | 'done';
+  category?: 'creative' | 'analytical' | 'routine';
+  priority?: 'low' | 'medium' | 'high';
+  due_date?: string;
+  created_at: string;
+  tags?: string[];
+}
 
 interface TaskVisualization3DProps {
   tasks: Task[];
@@ -554,6 +566,7 @@ const TaskVisualization3D: React.FC<TaskVisualization3DProps> = ({ tasks }) => {
           new THREE.Color(0x50FFFF)  // Cyan (pending)
         ];
         
+        // FIX: Modified color interpolation code
         for (let i = 0; i < segments; i++) {
           const startIdx = Math.floor((points.length / segments) * i);
           const endIdx = Math.floor((points.length / segments) * (i + 1));
@@ -562,11 +575,24 @@ const TaskVisualization3D: React.FC<TaskVisualization3DProps> = ({ tasks }) => {
             const segmentPoints = points.slice(startIdx, endIdx);
             const segmentGeometry = new THREE.BufferGeometry().setFromPoints(segmentPoints);
             
-            // Interpolate between colors
-            const startColor = colors[Math.floor(i * colors.length / segments)];
-            const endColor = colors[Math.floor((i + 1) * colors.length / segments)];
-            const lerpAmount = (i % (segments / colors.length)) / (segments / colors.length);
-            const segmentColor = new THREE.Color().lerpColors(startColor, endColor, lerpAmount);
+            // Get index safely with boundary checks
+            const startColorIndex = Math.min(Math.floor(i * colors.length / segments), colors.length - 1);
+            const endColorIndex = Math.min(Math.floor((i + 1) * colors.length / segments), colors.length - 1);
+            
+            // Use default color if index is invalid
+            const startColor = colors[startColorIndex] || new THREE.Color(0xFFFFFF);
+            const endColor = colors[endColorIndex] || new THREE.Color(0xFFFFFF);
+            
+            // Use a single color if there's any issue with lerp
+            let segmentColor;
+            try {
+              const lerpAmount = (i % (segments / colors.length)) / (segments / colors.length);
+              // Fix for THREE.js version compatibility
+              segmentColor = new THREE.Color().copy(startColor).lerp(endColor, lerpAmount);
+            } catch (e) {
+              console.warn("Color interpolation failed, using fallback color");
+              segmentColor = new THREE.Color(0xCCCCCC); // Fallback to light gray
+            }
             
             const material = new THREE.LineBasicMaterial({
               color: segmentColor,
