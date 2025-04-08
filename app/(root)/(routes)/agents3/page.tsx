@@ -20,6 +20,10 @@ export default function TaskFlow() {
   const [filterTag, setFilterTag] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'priority'>('newest');
+
+  // Focus mode state
+  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   
   // Sample initial tasks
   const [tasks, setTasks] = useState<Task[]>([
@@ -94,6 +98,11 @@ export default function TaskFlow() {
   const pendingTasks = sortedTasks.filter(task => task.status === 'pending');
   const inProgressTasks = sortedTasks.filter(task => task.status === 'in-progress');
   const completedTasks = sortedTasks.filter(task => task.status === 'done');
+  
+  // Function to get the focused task (for cleaner code)
+  const getFocusedTask = () => {
+    return tasks.find(task => task.id === focusedTaskId);
+  };
   
   // Show notification
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -183,6 +192,13 @@ export default function TaskFlow() {
   const deleteTask = (taskId: string) => {
     const updatedTasks = tasks.filter(task => task.id !== taskId);
     setTasks(updatedTasks);
+    
+    // If deleting the focused task, exit focus mode
+    if (focusedTaskId === taskId) {
+      setIsFocusMode(false);
+      setFocusedTaskId(null);
+    }
+    
     showNotification('Task deleted', 'info');
   };
   
@@ -195,9 +211,13 @@ export default function TaskFlow() {
     showNotification('Task updated', 'success');
   };
   
-  const createParticleEffect = (type: 'add' | 'complete' = 'complete') => {
+  const createParticleEffect = (type: 'add' | 'complete' | 'focus' = 'complete') => {
     // Color based on type
-    const color = type === 'add' ? 'rgba(80, 255, 150, 0.8)' : 'rgba(80, 255, 255, 0.8)';
+    const color = type === 'add' 
+      ? 'rgba(80, 255, 150, 0.8)'  // Green for add
+      : type === 'focus'
+      ? 'rgba(255, 95, 217, 0.8)'  // Purple for focus
+      : 'rgba(80, 255, 255, 0.8)'; // Cyan for complete
     
     // Create particles
     for (let i = 0; i < 10; i++) {
@@ -229,8 +249,20 @@ export default function TaskFlow() {
   };
   
   const focusOnTask = (taskId: string) => {
-    // Will implement focus mode in Phase 3
-    showNotification('Focus mode coming soon!', 'info');
+    if (focusedTaskId === taskId && isFocusMode) {
+      // Clicking on the already focused task will exit focus mode
+      setFocusedTaskId(null);
+      setIsFocusMode(false);
+      showNotification('Exited focus mode', 'info');
+    } else {
+      // Enter focus mode on the selected task
+      setFocusedTaskId(taskId);
+      setIsFocusMode(true);
+      showNotification('Focus mode activated', 'info');
+      
+      // Create focus effect animation
+      createParticleEffect('focus');
+    }
   };
   
   return (
@@ -328,98 +360,255 @@ export default function TaskFlow() {
         setSortBy={setSortBy}
       />
       
-      {/* Task Lists */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {/* To Do column */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-neon-cyan">
-            To Do <span className="text-sm text-gray-400">({pendingTasks.length})</span>
-          </h2>
-          <div className="space-y-4">
-            <AnimatePresence>
-              {pendingTasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onStatusChange={updateTaskStatus}
-                  onFocus={focusOnTask}
-                  onDelete={deleteTask}
-                  onEdit={editTask}
-                />
-              ))}
-              {pendingTasks.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
-                >
-                  No pending tasks
-                </motion.div>
-              )}
-            </AnimatePresence>
+      {/* Task Lists - conditionally render normal view or focus mode */}
+      {!isFocusMode ? (
+        // Normal kanban board view
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {/* To Do column */}
+          <div>
+            <h2 className="text-xl font-bold mb-4 text-neon-cyan">
+              To Do <span className="text-sm text-gray-400">({pendingTasks.length})</span>
+            </h2>
+            <div className="space-y-4">
+              <AnimatePresence>
+                {pendingTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onStatusChange={updateTaskStatus}
+                    onFocus={focusOnTask}
+                    onDelete={deleteTask}
+                    onEdit={editTask}
+                  />
+                ))}
+                {pendingTasks.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.7 }}
+                    className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
+                  >
+                    No pending tasks
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          
+          {/* In Progress column */}
+          <div>
+            <h2 className="text-xl font-bold mb-4 text-neon-purple">
+              In Progress <span className="text-sm text-gray-400">({inProgressTasks.length})</span>
+            </h2>
+            <div className="space-y-4">
+              <AnimatePresence>
+                {inProgressTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onStatusChange={updateTaskStatus}
+                    onFocus={focusOnTask}
+                    onDelete={deleteTask}
+                    onEdit={editTask}
+                  />
+                ))}
+                {inProgressTasks.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.7 }}
+                    className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
+                  >
+                    No tasks in progress
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          
+          {/* Completed column */}
+          <div>
+            <h2 className="text-xl font-bold mb-4 text-neon-green">
+              Completed <span className="text-sm text-gray-400">({completedTasks.length})</span>
+            </h2>
+            <div className="space-y-4">
+              <AnimatePresence>
+                {completedTasks.map(task => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onStatusChange={updateTaskStatus}
+                    onFocus={focusOnTask}
+                    onDelete={deleteTask}
+                    onEdit={editTask}
+                  />
+                ))}
+                {completedTasks.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.7 }}
+                    className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
+                  >
+                    No completed tasks
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-        
-        {/* In Progress column */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-neon-purple">
-            In Progress <span className="text-sm text-gray-400">({inProgressTasks.length})</span>
-          </h2>
-          <div className="space-y-4">
-            <AnimatePresence>
-              {inProgressTasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onStatusChange={updateTaskStatus}
-                  onFocus={focusOnTask}
-                  onDelete={deleteTask}
-                  onEdit={editTask}
-                />
-              ))}
-              {inProgressTasks.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
+      ) : (
+        // Focus mode - enhanced view of the selected task
+        <motion.div 
+          className="max-w-4xl mx-auto"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {getFocusedTask() && (
+            <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 overflow-hidden shadow-[0_0_30px_rgba(80,255,255,0.15)]">
+              {/* Header */}
+              <div className="bg-gray-900/60 px-6 py-4 flex justify-between items-center border-b border-gray-700/50">
+                <h2 className="text-2xl font-bold text-white">Task Details</h2>
+                <button
+                  onClick={() => setIsFocusMode(false)}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors"
                 >
-                  No tasks in progress
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-        
-        {/* Completed column */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-neon-green">
-            Completed <span className="text-sm text-gray-400">({completedTasks.length})</span>
-          </h2>
-          <div className="space-y-4">
-            <AnimatePresence>
-              {completedTasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onStatusChange={updateTaskStatus}
-                  onFocus={focusOnTask}
-                  onDelete={deleteTask}
-                  onEdit={editTask}
-                />
-              ))}
-              {completedTasks.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  className="p-4 bg-gray-800/30 text-gray-400 rounded-lg text-center"
-                >
-                  No completed tasks
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
+                  Exit Focus
+                </button>
+              </div>
+              
+              {/* Task content */}
+              <div className="p-6">
+                {/* Title */}
+                <div className="mb-6">
+                  <h3 className="text-3xl font-bold mb-4 text-white">{getFocusedTask()?.title}</h3>
+                  
+                  {/* Status Badge */}
+                  <div className="flex space-x-4 mb-6">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      getFocusedTask()?.status === 'pending'
+                        ? 'bg-neon-cyan/20 text-neon-cyan'
+                        : getFocusedTask()?.status === 'in-progress'
+                        ? 'bg-neon-purple/20 text-neon-purple'
+                        : 'bg-neon-green/20 text-neon-green'
+                    }`}>
+                      {getFocusedTask()?.status === 'pending'
+                        ? 'To Do'
+                        : getFocusedTask()?.status === 'in-progress'
+                        ? 'In Progress'
+                        : 'Completed'}
+                    </span>
+                    
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-white`}>
+                      {getFocusedTask()?.category}
+                    </span>
+                    
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      getFocusedTask()?.priority === 'high'
+                        ? 'bg-red-500/20 text-red-400'
+                        : getFocusedTask()?.priority === 'medium'
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {getFocusedTask()?.priority} priority
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Description */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-medium text-gray-300 mb-2">Description</h4>
+                  <p className="text-gray-400 bg-gray-800/30 p-4 rounded-lg">
+                    {getFocusedTask()?.description || 'No description provided.'}
+                  </p>
+                </div>
+                
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {/* Tags */}
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-300 mb-2">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(getFocusedTask()?.tags ?? []).length > 0 ? (
+                        (getFocusedTask()?.tags ?? []).map(tag => (
+                          <span 
+                            key={tag} 
+                            className="px-3 py-1 bg-gray-800/80 text-gray-300 rounded-full text-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-500">No tags</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Creation Date */}
+                  <div>
+                    <h4 className="text-lg font-medium text-gray-300 mb-2">Created</h4>
+                    <p className="text-gray-400">
+                      {getFocusedTask()?.created_at 
+                        ? new Date(getFocusedTask()?.created_at || '').toLocaleString() 
+                        : 'Unknown date'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="border-t border-gray-700/50 pt-6">
+                  <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                    {/* Status Change Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'pending')}
+                        className={`px-4 py-2 rounded-md transition-colors ${
+                          getFocusedTask()?.status === 'pending'
+                            ? 'bg-neon-cyan/20 border border-neon-cyan text-neon-cyan'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        To Do
+                      </button>
+                      <button
+                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'in-progress')}
+                        className={`px-4 py-2 rounded-md transition-colors ${
+                          getFocusedTask()?.status === 'in-progress'
+                            ? 'bg-neon-purple/20 border border-neon-purple text-neon-purple'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        In Progress
+                      </button>
+                      <button
+                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'done')}
+                        className={`px-4 py-2 rounded-md transition-colors ${
+                          getFocusedTask()?.status === 'done'
+                            ? 'bg-neon-green/20 border border-neon-green text-neon-green'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        Completed
+                      </button>
+                    </div>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => {
+                        if (focusedTaskId) {
+                          deleteTask(focusedTaskId);
+                          setIsFocusMode(false);
+                        }
+                      }}
+                      className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-md hover:bg-red-500/30 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
       
       {/* Visualization Tabs (combined 2D and 3D) */}
       <VisualizationTabs tasks={tasks} />
