@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskCard from '@/components/TaskCard';
 import TaskFilters from '@/components/TaskFilters';
 import VisualizationTabs from '@/components/VisualizationsTab';
+import AIAgentChat from '@/components/AIAgentChat';
 import { Task } from '@/types';
 import { fetchOpenAI } from '@/lib/api/openai';
 
@@ -63,7 +64,7 @@ export default function TaskFlow() {
   ]);
   
   // Sample available tags (in a real app, you would generate this from tasks)
-  const availableTags = ['Design', 'Work', 'Research', 'Coding', 'Documentation', 'Meeting', 'Urgent'];
+  const availableTags = ['Design', 'Work', 'Research', 'Coding', 'Documentation', 'Meeting', 'Urgent', 'AI-reviewed', 'discussed'];
   
   // Refs
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -455,155 +456,173 @@ export default function TaskFlow() {
           </div>
         </div>
       ) : (
-        // Focus mode - enhanced view of the selected task
+        // Focus mode - enhanced view of the selected task with AI agent
         <motion.div 
-          className="max-w-4xl mx-auto"
+          className="max-w-6xl mx-auto"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
           {getFocusedTask() && (
-            <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 overflow-hidden shadow-[0_0_30px_rgba(80,255,255,0.15)]">
-              {/* Header */}
-              <div className="bg-gray-900/60 px-6 py-4 flex justify-between items-center border-b border-gray-700/50">
-                <h2 className="text-2xl font-bold text-white">Task Details</h2>
-                <button
-                  onClick={() => setIsFocusMode(false)}
-                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors"
-                >
-                  Exit Focus
-                </button>
-              </div>
-              
-              {/* Task content */}
-              <div className="p-6">
-                {/* Title */}
-                <div className="mb-6">
-                  <h3 className="text-3xl font-bold mb-4 text-white">{getFocusedTask()?.title}</h3>
-                  
-                  {/* Status Badge */}
-                  <div className="flex space-x-4 mb-6">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      getFocusedTask()?.status === 'pending'
-                        ? 'bg-neon-cyan/20 text-neon-cyan'
-                        : getFocusedTask()?.status === 'in-progress'
-                        ? 'bg-neon-purple/20 text-neon-purple'
-                        : 'bg-neon-green/20 text-neon-green'
-                    }`}>
-                      {getFocusedTask()?.status === 'pending'
-                        ? 'To Do'
-                        : getFocusedTask()?.status === 'in-progress'
-                        ? 'In Progress'
-                        : 'Completed'}
-                    </span>
-                    
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-white`}>
-                      {getFocusedTask()?.category}
-                    </span>
-                    
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      getFocusedTask()?.priority === 'high'
-                        ? 'bg-red-500/20 text-red-400'
-                        : getFocusedTask()?.priority === 'medium'
-                        ? 'bg-yellow-500/20 text-yellow-400'
-                        : 'bg-blue-500/20 text-blue-400'
-                    }`}>
-                      {getFocusedTask()?.priority} priority
-                    </span>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left column - Task details */}
+              <div className="bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 overflow-hidden shadow-[0_0_30px_rgba(80,255,255,0.15)]">
+                {/* Header */}
+                <div className="bg-gray-900/60 px-6 py-4 flex justify-between items-center border-b border-gray-700/50">
+                  <h2 className="text-2xl font-bold text-white">Task Details</h2>
+                  <button
+                    onClick={() => setIsFocusMode(false)}
+                    className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-white transition-colors"
+                  >
+                    Exit Focus
+                  </button>
                 </div>
                 
-                {/* Description */}
-                <div className="mb-8">
-                  <h4 className="text-lg font-medium text-gray-300 mb-2">Description</h4>
-                  <p className="text-gray-400 bg-gray-800/30 p-4 rounded-lg">
-                    {getFocusedTask()?.description || 'No description provided.'}
-                  </p>
-                </div>
-                
-                {/* Details Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {/* Tags */}
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-300 mb-2">Tags</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {(getFocusedTask()?.tags ?? []).length > 0 ? (
-                        (getFocusedTask()?.tags ?? []).map(tag => (
-                          <span 
-                            key={tag} 
-                            className="px-3 py-1 bg-gray-800/80 text-gray-300 rounded-full text-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-gray-500">No tags</span>
-                      )}
+                {/* Task content */}
+                <div className="p-6">
+                  {/* Title */}
+                  <div className="mb-6">
+                    <h3 className="text-3xl font-bold mb-4 text-white">{getFocusedTask()?.title}</h3>
+                    
+                    {/* Status Badge */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        getFocusedTask()?.status === 'pending'
+                          ? 'bg-neon-cyan/20 text-neon-cyan'
+                          : getFocusedTask()?.status === 'in-progress'
+                          ? 'bg-neon-purple/20 text-neon-purple'
+                          : 'bg-neon-green/20 text-neon-green'
+                      }`}>
+                        {getFocusedTask()?.status === 'pending'
+                          ? 'To Do'
+                          : getFocusedTask()?.status === 'in-progress'
+                          ? 'In Progress'
+                          : 'Completed'}
+                      </span>
+                      
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-white`}>
+                        {getFocusedTask()?.category}
+                      </span>
+                      
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        getFocusedTask()?.priority === 'high'
+                          ? 'bg-red-500/20 text-red-400'
+                          : getFocusedTask()?.priority === 'medium'
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {getFocusedTask()?.priority} priority
+                      </span>
                     </div>
                   </div>
                   
-                  {/* Creation Date */}
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-300 mb-2">Created</h4>
-                    <p className="text-gray-400">
-                      {getFocusedTask()?.created_at 
-                        ? new Date(getFocusedTask()?.created_at || '').toLocaleString() 
-                        : 'Unknown date'}
+                  {/* Description */}
+                  <div className="mb-8">
+                    <h4 className="text-lg font-medium text-gray-300 mb-2">Description</h4>
+                    <p className="text-gray-400 bg-gray-800/30 p-4 rounded-lg">
+                      {getFocusedTask()?.description || 'No description provided.'}
                     </p>
                   </div>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="border-t border-gray-700/50 pt-6">
-                  <div className="flex flex-col md:flex-row md:justify-between gap-4">
-                    {/* Status Change Buttons */}
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'pending')}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                          getFocusedTask()?.status === 'pending'
-                            ? 'bg-neon-cyan/20 border border-neon-cyan text-neon-cyan'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        To Do
-                      </button>
-                      <button
-                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'in-progress')}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                          getFocusedTask()?.status === 'in-progress'
-                            ? 'bg-neon-purple/20 border border-neon-purple text-neon-purple'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        In Progress
-                      </button>
-                      <button
-                        onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'done')}
-                        className={`px-4 py-2 rounded-md transition-colors ${
-                          getFocusedTask()?.status === 'done'
-                            ? 'bg-neon-green/20 border border-neon-green text-neon-green'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                      >
-                        Completed
-                      </button>
+                  
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    {/* Tags */}
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-300 mb-2">Tags</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(getFocusedTask()?.tags ?? []).length > 0 ? (
+                          (getFocusedTask()?.tags ?? []).map(tag => (
+                            <span 
+                              key={tag} 
+                              className="px-3 py-1 bg-gray-800/80 text-gray-300 rounded-full text-sm"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500">No tags</span>
+                        )}
+                      </div>
                     </div>
                     
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => {
-                        if (focusedTaskId) {
-                          deleteTask(focusedTaskId);
-                          setIsFocusMode(false);
-                        }
-                      }}
-                      className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-md hover:bg-red-500/30 transition-colors"
-                    >
-                      Delete
-                    </button>
+                    {/* Creation Date */}
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-300 mb-2">Created</h4>
+                      <p className="text-gray-400">
+                        {getFocusedTask()?.created_at 
+                          ? new Date(getFocusedTask()?.created_at || '').toLocaleString() 
+                          : 'Unknown date'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="border-t border-gray-700/50 pt-6">
+                    <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                      {/* Status Change Buttons */}
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'pending')}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            getFocusedTask()?.status === 'pending'
+                              ? 'bg-neon-cyan/20 border border-neon-cyan text-neon-cyan'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          To Do
+                        </button>
+                        <button
+                          onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'in-progress')}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            getFocusedTask()?.status === 'in-progress'
+                              ? 'bg-neon-purple/20 border border-neon-purple text-neon-purple'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          In Progress
+                        </button>
+                        <button
+                          onClick={() => focusedTaskId && updateTaskStatus(focusedTaskId, 'done')}
+                          className={`px-4 py-2 rounded-md transition-colors ${
+                            getFocusedTask()?.status === 'done'
+                              ? 'bg-neon-green/20 border border-neon-green text-neon-green'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          Completed
+                        </button>
+                      </div>
+                      
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => {
+                          if (focusedTaskId) {
+                            deleteTask(focusedTaskId);
+                            setIsFocusMode(false);
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-md hover:bg-red-500/30 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Right column - AI Agent Chat */}
+              <div className="h-[calc(100vh-12rem)] flex flex-col">
+                {getFocusedTask() && (
+                  <AIAgentChat 
+                    task={getFocusedTask()!} 
+                    onTaskUpdate={(updates) => {
+                      if (focusedTaskId) {
+                        editTask(focusedTaskId, updates);
+                        showNotification('Task updated by AI assistant', 'success');
+                      }
+                    }} 
+                  />
+                )}
               </div>
             </div>
           )}
