@@ -168,8 +168,8 @@ export default function SubscriptionPage() {
             <li>✔️ Advanced features</li>
           </ul>
           <button
-            className="bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800 transition"
-            onClick={() => openPaddleCheckout(PREMIUM_PRODUCT_ID)}
+            className="bg-blue-700 text-white px-6 py-2 rounded opacity-60 cursor-not-allowed"
+            disabled
           >
             Coming Soon
           </button>
