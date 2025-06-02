@@ -1,654 +1,577 @@
+// app/room-dreamer/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
-import { fetchOpenAI } from '@/lib/api/openai';
-import NoteLoader from '@/components/NoteLoader';
+import { useState, useRef, useEffect } from 'react';
+import { Sidebar } from "@/components/sidebar";
+import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
+import { useAuth } from "@clerk/nextjs";
 
-// Define the entry type to avoid 'any' type errors
-interface NoteEntry {
-  originalText: string;
-  analysis: string;
-  tag: string;
-  timestamp: string;
+type SavedImage = { image_url: string; category: string };
+
+type ModelType = '3d-interior-creator' | 'product-designer' | 'recipe-generator' | 'travel-visuals';
+
+const MODEL_OPTIONS = [
+  { value: '3d-interior-creator', label: '3D Interior Creator' },
+  { value: 'product-designer', label: 'Product Designer' },
+  { value: 'recipe-generator', label: 'Recipe Generator' },
+  { value: 'travel-visuals', label: 'Travel Visuals' },
+];
+
+interface ItineraryImage {
+  day: number;
+  imageUrl: string;
+  prompt: string;
 }
 
-interface Note {
-  _id: string;
-  userId: string;
-  title: string;
-  entries: NoteEntry[]; // Use the defined NoteEntry type
-  createdAt: string;
-  updatedAt: string;
-  content?: string; // Optional, for backward compatibility
-}
+const STYLE_OPTIONS = [
+  { value: 'Minimalist Japanese', label: 'Minimalist Japanese' },
+  { value: 'Scandinavian', label: 'Scandinavian' },
+  { value: 'Mid-Century Modern', label: 'Mid-Century Modern' },
+  { value: 'Industrial', label: 'Industrial' },
+  { value: 'Bohemian', label: 'Bohemian' },
+  { value: 'Modern Farmhouse', label: 'Modern Farmhouse' },
+  { value: 'Art Deco', label: 'Art Deco' },
+  { value: 'Coastal', label: 'Coastal' },
+];
 
-export default function KarpathyNotePage() {
-  const { isLoaded, isSignedIn, user } = useUser();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
-  const [noteContent, setNoteContent] = useState<string>('');
-  const [input, setInput] = useState<string>('');
-  const [queryInput, setQueryInput] = useState<string>('');
-  const [queryResponse, setQueryResponse] = useState<string>('');
-  const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
-  const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
-  const [insights, setInsights] = useState<string[]>([]);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [liveSuggestions, setLiveSuggestions] = useState<{ [key: number]: string }>({});
-  const [categories, setCategories] = useState<{ [key: string]: string[] }>({});
-  const [isHubOpen, setIsHubOpen] = useState<boolean>(false);
-  const [noteMemory, setNoteMemory] = useState<string>('');
-  const [saveStatus, setSaveStatus] = useState<string>('');
-  const [savedNotes, setSavedNotes] = useState<Note[]>([]);
-  const [showSidebar, setShowSidebar] = useState<boolean>(true);
-  
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedContentRef = useRef<string>('');
+const QUALITY_OPTIONS = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'ultra', label: 'Ultra' },
+];
 
-  // Update noteMemory when noteContent changes
-  useEffect(() => {
-    if (noteContent) {
-      setNoteMemory(noteContent);
-    }
-  }, [noteContent]);
+const PRODUCT_TYPES = [
+  { value: 'chair', label: 'Chair' },
+  { value: 'lamp', label: 'Lamp' },
+  { value: 'table', label: 'Table' },
+  { value: 'sofa', label: 'Sofa' },
+  { value: 'bed', label: 'Bed' },
+  { value: 'shelf', label: 'Shelf' },
+  { value: 'desk', label: 'Desk' },
+  { value: 'cabinet', label: 'Cabinet' },
+];
 
-  // Redirect if not signed in
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      redirect('/sign-in');
-    }
-  }, [isLoaded, isSignedIn]);
-
-  // Fetch saved notes when component mounts
-  useEffect(() => {
-    if (isSignedIn && user?.id) {
-      fetchSavedNotes();
-    }
-  }, [isSignedIn, user?.id]);
-
-  // Auto-save functionality
-  useEffect(() => {
-    if (!isSignedIn || !user?.id || !noteContent.trim() || noteContent === lastSavedContentRef.current) {
-      return;
-    }
-
-    // Clear existing timer if there is one
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-
-    // Set a new timer for auto-save
-    autoSaveTimerRef.current = setTimeout(async () => {
-      try {
-        setSaveStatus('Saving...');
-        await saveNotesToBackend();
-        setSaveStatus('All changes saved');
-        lastSavedContentRef.current = noteContent;
-        
-        // Refresh the list of saved notes
-        fetchSavedNotes();
-      } catch (error) {
-        console.error('Auto-save failed:', error);
-        setSaveStatus('Save failed');
-      }
-    }, 5000); // 5 seconds delay
-
-    // Cleanup function
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [noteContent, isSignedIn, user?.id]);
-
-  // Function to fetch saved notes
-  const fetchSavedNotes = async () => {
-    if (!user?.id) return;
-
-    try {
-      const response = await fetch(`/api/notes?userId=${user.id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch notes');
-      }
-      
-      const data = await response.json();
-      if (data.success && data.notes) {
-        setSavedNotes(data.notes);
-      }
-    } catch (error) {
-      console.error('Error fetching saved notes:', error);
-    }
-  };
-
-  // Function to save notes to backend
-  const saveNotesToBackend = async () => {
-    if (!user?.id || !noteContent.trim()) return;
-
-    // Extract the title from the first line or use a default
-    const contentParts = noteContent.split('\n\n');
-    const firstEntryParts = contentParts[0].split('\n');
-    const title = firstEntryParts[0]?.trim().substring(0, 50) || 'Untitled Note';
-    
-    // Parse each note block into properly structured entries
-    const entries: NoteEntry[] = contentParts.map(part => {
-      const lines = part.split('\n');
-      const originalText = lines[0] || '';
-      
-      // Find analysis line
-      const analysisLine = lines.find(line => line.startsWith('AI Analysis:')) || '';
-      const analysis = analysisLine.replace('AI Analysis:', '').trim();
-      
-      // Find tag line
-      const tagLine = lines.find(line => line.startsWith('Tag:')) || '';
-      const tag = tagLine.replace('Tag:', '').trim() || 'general';
-      
-      return {
-        originalText,
-        analysis,
-        tag,
-        timestamp: new Date().toISOString()
-      };
-    });
-
-    try {
-      if (activeNoteId) {
-        // If updating an existing note
-        const response = await fetch('/api/notes', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            noteId: activeNoteId,
-            entry: entries[0] // Now properly typed
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update note');
-        }
-        
-        return await response.json();
-      } else {
-        // If creating a new note
-        const response = await fetch('/api/notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            entry: entries[0] // Now properly typed
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save note');
-        }
-        
-        const data = await response.json();
-        
-        // If this was a new note, set the activeNoteId
-        if (data.success && data.note) {
-          setActiveNoteId(data.note._id);
-        }
-        
-        return data;
-      }
-    } catch (error) {
-      console.error('Error saving note:', error);
-      throw error;
-    }
-  };
-
-  // Function to load a saved note
-// Function to load a saved note
-// Function to load a saved note
-const loadSavedNote = async (noteId: string) => {
-  try {
-    setSaveStatus('Loading...');
-    console.log(`Loading note with ID: ${noteId}`);
-    
-    // Use the query parameter approach
-    const response = await fetch(`/api/notes?id=${noteId}`);
-    
-    if (!response.ok) {
-      console.error(`Failed to load note: ${response.status} ${response.statusText}`);
-      throw new Error('Failed to load note');
-    }
-    
-    const data = await response.json();
-    console.log('Loaded note data:', data);
-    
-    if (data.success && data.note) {
-      // Set the active note ID
-      setActiveNoteId(noteId);
-      
-      if (!data.note.entries || data.note.entries.length === 0) {
-        console.warn('Note has no entries');
-        setNoteContent('');
-        setSaveStatus('Note loaded (empty)');
-        return;
-      }
-      
-      // Format the entries into the three-part structure for display
-      const formattedContent = data.note.entries.map((entry: NoteEntry) => {
-        console.log('Processing entry:', entry);
-        return `${entry.originalText || ''}\nAI Analysis: ${entry.analysis || ''}\nTag: ${entry.tag || 'general'}`;
-      }).join('\n\n');
-      
-      console.log('Formatted content:', formattedContent);
-      setNoteContent(formattedContent);
-      lastSavedContentRef.current = formattedContent;
-      setSaveStatus('Note loaded');
-    } else {
-      console.error('Invalid note data format:', data);
-      setSaveStatus('Failed to load: invalid data');
-    }
-  } catch (error) {
-    console.error('Error loading note:', error);
-    setSaveStatus('Failed to load');
-  }
+// Add mapping for function names and catchlines
+const FUNCTION_INFO: Record<string, { name: string; catchline: string }> = {
+  '3d-interior-creator': {
+    name: '3D Interior Creator',
+    catchline: 'Transform your space with AI-powered 3D interior designs!'
+  },
+  'product-designer': {
+    name: 'Product Designer',
+    catchline: 'Design unique products with the help of generative AI.'
+  },
+  'recipe-generator': {
+    name: 'Recipe Generator',
+    catchline: 'Discover new recipes and culinary inspiration instantly!'
+  },
+  'travel-visuals': {
+    name: 'Travel Visuals',
+    catchline: 'Visualize your dream itinerary with AI-generated images.'
+  },
 };
 
-  // Function to create a new note
-  const createNewNote = () => {
-    lastSavedContentRef.current = '';
-    setNoteContent('');
-    setActiveNoteId(null);
-    setSaveStatus('');
-    setInput('');
-  };
+export default function Agents2Page() {
+  const [selectedModel, setSelectedModel] = useState<ModelType>('3d-interior-creator');
+  const [roomImage, setRoomImage] = useState<string | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0].value);
+  const [selectedQuality, setSelectedQuality] = useState(QUALITY_OPTIONS[0].value);
+  const [productType, setProductType] = useState(PRODUCT_TYPES[0].value);
+  const [prompt, setPrompt] = useState('');
+  const [dishName, setDishName] = useState('');
+  const [recipePrompt, setRecipePrompt] = useState('');
+  const [generatedRecipe, setGeneratedRecipe] = useState<string | null>(null);
+  const [generatedRecipeImage, setGeneratedRecipeImage] = useState<string | null>(null);
+  const [travelLocation, setTravelLocation] = useState('');
+  const [travelStartDate, setTravelStartDate] = useState('');
+  const [travelEndDate, setTravelEndDate] = useState('');
+  const [travelStyle, setTravelStyle] = useState('photorealistic');
+  const [itineraryImages, setItineraryImages] = useState<ItineraryImage[]>([]);
+  const [isTravelLoading, setIsTravelLoading] = useState(false);
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const [selectedSidebarImage, setSelectedSidebarImage] = useState<string | null>(null);
+  const { userId } = useAuth();
 
-  // Append a new note with the updated three-part structure
-  const handleAppend = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    
-    setIsProcessing(true);
-    
-    try {
-      // Get AI-powered tag and analysis
-      const response = await fetchOpenAI({
-        prompt: `For this note, provide: 1) A suggested tag (like "todo", "watch", "read"), 2) A brief analysis or insight about the note's content.
-        
-Note: ${input}
-
-Return in format:
-Tag: [your tag]
-Analysis: [your analysis]`,
-        max_tokens: 100,
-      });
-      
-      // Extract tag and analysis from response
-      const aiResponse = response.choices[0].text.trim();
-      let tag = "general";
-      let analysis = "";
-      
-      // Parse the AI response
-      const tagMatch = aiResponse.match(/Tag: (.*?)(\n|$)/);
-      const analysisMatch = aiResponse.match(/Analysis: (.*)/s);
-      
-      if (tagMatch && tagMatch[1]) tag = tagMatch[1].trim();
-      if (analysisMatch && analysisMatch[1]) analysis = analysisMatch[1].trim();
-      
-      // Format the note with original input, AI analysis, and tag
-      const formattedNote = `${input}\nAI Analysis: ${analysis}\nTag: ${tag}`;
-      
-      // Add to notes
-      const updatedContent = noteContent ? formattedNote + '\n\n' + noteContent : formattedNote;
-      setNoteContent(updatedContent);
-      setInput('');
-      
-      // Trigger save status update
-      setSaveStatus('Changes pending...');
-    } catch (error) {
-      console.error('Error with OpenAI API:', error);
-      // Fallback to just adding the raw input
-      const newNote = input + '\n';
-      const updatedContent = noteContent ? newNote + '\n' + noteContent : newNote;
-      setNoteContent(updatedContent);
-      setInput('');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Rescue a note to the top
-  const handleRescue = async (index: number): Promise<void> => {
-    if (!activeNoteId) {
-      // If no active note ID, use the current approach of manipulating the content
-      const notes = noteContent.split('\n\n');
-      if (index >= notes.length) return;
-      
-      const noteToRescue = notes[index];
-      const otherNotes = notes.filter((_, i) => i !== index);
-      
-      const newContent = [noteToRescue, ...otherNotes].join('\n\n');
-      setNoteContent(newContent);
-      setActiveLineIndex(null);
-      setSaveStatus('Changes pending...');
-    } else {
-      // Use the PATCH endpoint to rescue an entry
-      try {
-        setSaveStatus('Updating...');
-        const response = await fetch('/api/notes', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            noteId: activeNoteId,
-            operation: 'rescue',
-            entryIndex: index
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to rescue note entry');
-        }
-        
-        // Update the note content after successful rescue
-        const data = await response.json();
-        if (data.success && data.note) {
-          // Update the note content to reflect the changes
-          loadSavedNote(activeNoteId);
-        }
-        
-        setSaveStatus('Changes saved');
-      } catch (error) {
-        console.error('Error rescuing note entry:', error);
-        setSaveStatus('Failed to update');
-      }
-    }
-  };
-
-  // Delete a note
-  const handleDelete = async (index: number): Promise<void> => {
-    if (!activeNoteId) {
-      // If no active note ID, use the current approach of manipulating the content
-      const notes = noteContent.split('\n\n');
-      if (index >= notes.length) return;
-      
-      const updatedNotes = notes.filter((_, i) => i !== index);
-      setNoteContent(updatedNotes.join('\n\n'));
-      setActiveLineIndex(null);
-      setSaveStatus('Changes pending...');
-    } else {
-      // Use the PATCH endpoint to delete an entry
-      try {
-        setSaveStatus('Updating...');
-        const response = await fetch('/api/notes', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            noteId: activeNoteId,
-            operation: 'delete',
-            entryIndex: index
-          })
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to delete note entry');
-        }
-        
-        // Update the note content after successful deletion
-        const data = await response.json();
-        if (data.success && data.note) {
-          // Update the note content to reflect the changes
-          loadSavedNote(activeNoteId);
-        }
-        
-        setSaveStatus('Changes saved');
-      } catch (error) {
-        console.error('Error deleting note entry:', error);
-        setSaveStatus('Failed to update');
-      }
-    }
-  };
-
-  // Handle click on checkbox
-  const handleCheckboxClick = (index: number, event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    if (activeLineIndex === index) {
-      setActiveLineIndex(null);
-    } else {
-      setActiveLineIndex(index);
-    }
-  };
-
-  // Handle click outside dropdown
+  // Add this useEffect to fetch saved images on component mount
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent): void => {
-      if (
-        dropdownRef.current && 
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setActiveLineIndex(null);
+    const fetchSavedImages = async () => {
+      try {
+        const response = await fetch('/api/saved-images');
+        if (!response.ok) throw new Error('Failed to fetch saved images');
+        
+        const data = await response.json();
+        if (data.success && data.result.images) {
+          setSavedImages(data.result.images);
+        }
+      } catch (error) {
+        console.error('Error in fetchSavedImages:', error);
       }
     };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
-  // Format time for display
-  const formatTime = (timestamp: string) => {
+    fetchSavedImages();
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) setRoomImage(event.target.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Generate image (API endpoint can be dynamic based on model)
+  const generateImage = async () => {
+    setIsGenerating(true);
+
     try {
-      const date = new Date(timestamp);
-      return date.toLocaleString();
-    } catch (e) {
-      return 'Unknown time';
+      let formData = new FormData();
+      let endpoint = '';
+      switch (selectedModel) {
+        case '3d-interior-creator': {
+          if (!roomImage) return;
+          const arr = roomImage.split(',');
+          const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/png';
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) u8arr[n] = bstr.charCodeAt(n);
+          const blob = new Blob([u8arr], { type: mime });
+          const imageFile = new File([blob], 'input-image.png', { type: 'image/png' });
+
+          formData.append('image', imageFile);
+          formData.append('style', selectedStyle);
+          formData.append('quality', selectedQuality);
+          endpoint = '/api/generate-room';
+          break;
+        }
+        case 'product-designer': {
+          if (!productType || !selectedStyle || !prompt.trim()) {
+            alert('Please fill out all fields for Product Designer.');
+            setIsGenerating(false);
+            return;
+          }
+          formData.append('productType', productType);
+          formData.append('designStyle', selectedStyle);
+          formData.append('prompt', prompt);
+          endpoint = '/api/generate-product';
+          break;
+        }
+        case 'recipe-generator': {
+          formData.append('dishName', dishName);
+          formData.append('prompt', recipePrompt);
+          endpoint = '/api/generate-recipe-image';
+          break;
+        }
+        case 'travel-visuals': {
+          formData.append('location', travelLocation);
+          formData.append('startDate', travelStartDate);
+          formData.append('endDate', travelEndDate);
+          formData.append('style', travelStyle);
+          endpoint = '/api/generate-itinerary-visuals';
+          break;
+        }
+      }
+
+      if (!endpoint) throw new Error('No endpoint selected');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to process image');
+      const data = await response.json();
+      
+      if (data.success) {
+        const newImageUrl = data.result?.imageBase64
+          ? `data:image/png;base64,${data.result.imageBase64}`
+          : data.result?.imageUrl || null;
+        setGeneratedImage(newImageUrl);
+
+        // Handle recipe text if present
+        if (data.result.recipe) {
+          setGeneratedRecipe(data.result.recipe);
+        }
+
+        // --- AUTOSAVE LOGIC: always run after generation ---
+        if (newImageUrl) {
+          let category = '';
+          let type = '';
+          switch (selectedModel) {
+            case '3d-interior-creator':
+              category = selectedStyle;
+              type = 'generate-room';
+              break;
+            case 'product-designer':
+              category = productType;
+              type = 'generate-product';
+              break;
+            case 'recipe-generator':
+              category = 'Recipe';
+              type = 'generate-recipe';
+              break;
+            case 'travel-visuals':
+              category = 'Travel Visual';
+              type = 'generate-itinerary';
+              break;
+          }
+
+          // Save to Supabase
+          const { error } = await supabase
+            .from('saved_images')
+            .insert([
+              {
+                image_url: newImageUrl,
+                category,
+                type,
+                user_id: userId,
+              }
+            ]);
+          if (!error) {
+            setSavedImages(prev => [{ image_url: newImageUrl, category, type }, ...prev]);
+          }
+        }
+        // --- END AUTOSAVE LOGIC ---
+      }
+    } catch (error) {
+      alert('Error processing image');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-t-2 border-purple-500 rounded-full animate-spin"></div>
-        <p className="ml-2">Loading...</p>
-      </div>
-    );
-  }
+  const generateRecipe = async () => {
+    setIsGenerating(true);
+    setGeneratedRecipe(null);
+    setGeneratedRecipeImage(null);
+    try {
+      const formData = new FormData();
+      formData.append('dishName', dishName);
+      formData.append('prompt', recipePrompt);
+      const response = await fetch('/api/generate-recipe-image', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Failed to generate recipe');
+      const data = await response.json();
+      
+      // Get the image URL directly from the response
+      const recipeImageUrl = data.result?.imageBase64 ? `data:image/png;base64,${data.result.imageBase64}` : null;
+      
+      // Update states
+      setGeneratedRecipe(data.result?.recipe || null);
+      setGeneratedRecipeImage(recipeImageUrl);
+
+      // Autosave if we have an image
+      if (recipeImageUrl) {
+        const { error } = await supabase
+          .from('saved_images')
+          .insert([
+            {
+              image_url: recipeImageUrl,
+              category: 'Recipe',
+              type: 'generate-recipe',
+              user_id: userId,
+            }
+          ]);
+        if (!error) {
+          setSavedImages(prev => [{ image_url: recipeImageUrl, category: 'Recipe', type: 'generate-recipe' }, ...prev]);
+        }
+      }
+    } catch (error) {
+      alert('Error generating recipe');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateTravelVisuals = async () => {
+    setIsTravelLoading(true);
+    setItineraryImages([]);
+    try {
+      const formData = new FormData();
+      formData.append('location', travelLocation);
+      formData.append('startDate', travelStartDate);
+      formData.append('endDate', travelEndDate);
+      formData.append('style', travelStyle);
+      const response = await fetch('/api/generate-itinerary-visuals', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Failed to generate itinerary visuals');
+      const data = await response.json();
+      setItineraryImages(data.results || []);
+
+      for (const item of data.results || []) {
+        const { error } = await supabase
+          .from('saved_images')
+          .insert([
+            {
+              image_url: item.imageUrl,
+              category: 'Travel Visual',
+              type: 'generate-itinerary',
+              user_id: userId,
+            }
+          ]);
+        if (!error) {
+          setSavedImages(prev => [{ image_url: item.imageUrl, category: 'Travel Visual', type: 'generate-itinerary' }, ...prev]);
+        }
+      }
+    } catch (error) {
+      alert('Error generating travel visuals');
+    } finally {
+      setIsTravelLoading(false);
+    }
+  };
+
+  // Reset
+  const reset = () => {
+    setRoomImage(null);
+    setGeneratedImage(null);
+  };
+
+  // Remove image from sidebar
+  const handleRemoveImage = (img: string) => {
+    setSavedImages(savedImages.filter(i => i.image_url !== img));
+    if (selectedSidebarImage === img) setSelectedSidebarImage(null);
+  };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <NoteLoader 
-        isSignedIn={isSignedIn}
-        setActiveNoteId={setActiveNoteId}
-        setNotes={setNotes}
-        setNoteContent={setNoteContent}
-      />
-      {/* Sidebar for saved notes */}
-      {showSidebar && (
-        <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold dark:text-white">Saved Notes</h2>
-            <button 
-              onClick={createNewNote}
-              className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-            >
-              New
-            </button>
-          </div>
-          
-          <div className="space-y-2 max-h-[calc(100vh-8rem)] overflow-y-auto">
-            {savedNotes.length === 0 ? (
-              <p className="text-gray-500 text-sm">No saved notes yet.</p>
-            ) : (
-              savedNotes.map((note) => (
-                <div 
-                  key={note._id} 
-                  onClick={() => loadSavedNote(note._id)}
-                  className="p-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                >
-                  <div className="font-medium text-sm truncate dark:text-white">{note.title}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatTime(note.updatedAt)}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <Sidebar isPro={false} />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col items-center justify-center py-8 relative bg-gradient-to-b from-gray-50 to-gray-100">
+        {/* Function Name and Catchline */}
+        <div className="mb-8 text-center z-10">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {FUNCTION_INFO[selectedModel]?.name || ''}
+          </h1>
+          <p className="text-gray-500 text-base font-medium">
+            {FUNCTION_INFO[selectedModel]?.catchline || ''}
+          </p>
         </div>
-      )}
-      
-      {/* Main content */}
-      <div className={`flex-1 flex flex-col ${showSidebar ? 'ml-0' : ''} transition-all duration-300 overflow-auto`}>
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <button
-              onClick={() => setShowSidebar(!showSidebar)}
-              className="mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <h1 className="text-2xl font-semibold dark:text-white">DropThought</h1>
-          </div>
-          
-          <div className="flex items-center">
-            <span className="text-sm text-gray-500 mr-2">{saveStatus}</span>
-          </div>
-        </div>
-        
-        <div className="p-4 max-w-4xl mx-auto w-full">
-          <div className="mb-6">
-            <p className="text-gray-600 dark:text-gray-400">Inspired by Andrej Karpathy's append-and-review method</p>
-          </div>
-          
-          {/* Append Form */}
-          <form onSubmit={handleAppend} className="mb-6">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Add a new note..."
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-              rows={2}
-              disabled={isProcessing}
-            />
-            <div className="flex justify-end mt-2">
-              <button 
-                type="submit" 
-                className={`px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''} dark:bg-gray-700 dark:hover:bg-gray-600`}
-                disabled={isProcessing}
+        {/* Centered Dropdowns */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6 justify-center z-10">
+          <select
+            value={selectedModel}
+            onChange={e => setSelectedModel(e.target.value as ModelType)}
+            className="text-base px-4 py-2 rounded-lg shadow border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 font-medium"
+          >
+            {MODEL_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          {/* Only show style and quality dropdowns for 3D Interior Creator and similar models */}
+          {selectedModel === '3d-interior-creator' && (
+            <>
+              <select
+                value={selectedStyle}
+                onChange={e => setSelectedStyle(e.target.value)}
+                className="text-base px-4 py-2 rounded-lg shadow border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 font-medium"
               >
-                {isProcessing ? 'Adding...' : 'Add to Top'}
+                {STYLE_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              <select
+                value={selectedQuality}
+                onChange={e => setSelectedQuality(e.target.value)}
+                className="text-base px-4 py-2 rounded-lg shadow border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 font-medium"
+              >
+                {QUALITY_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+        {/* Main UI for selected model */}
+        <div className="relative bg-white/70 backdrop-blur-md rounded-2xl shadow-xl p-10 w-full max-w-lg flex flex-col items-center border border-gray-200 z-10" style={{boxShadow: '0 4px 32px 0 rgba(80,80,180,0.10)'}}>
+          {selectedModel === 'recipe-generator' && (
+            <div className="w-full mb-4 flex flex-col items-center">
+              <input
+                type="text"
+                value={dishName}
+                onChange={e => setDishName(e.target.value)}
+                placeholder="Dish Name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-2"
+              />
+              <textarea
+                value={recipePrompt}
+                onChange={e => setRecipePrompt(e.target.value)}
+                placeholder="Extra details (optional)"
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-2"
+              />
+              <button
+                onClick={generateRecipe}
+                disabled={isGenerating}
+                className="mt-2 bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
+              >
+                {isGenerating ? 'Generating...' : 'Generate Recipe'}
               </button>
-            </div>
-          </form>
-          
-          {/* Main Note Display with Exact Three-Part Structure */}
-          <div className="relative border rounded-lg bg-white dark:bg-gray-800 dark:border-gray-700">
-            <div className="p-4">
-              {noteContent.trim() === '' ? (
-                <div className="text-gray-400 text-center py-8 dark:text-gray-500">
-                  Your notes will appear here. Add a note to get started.
+              {generatedRecipeImage && (
+                <img
+                  src={generatedRecipeImage}
+                  alt="Recipe"
+                  style={{ maxWidth: 300, maxHeight: 300 }}
+                  className="max-w-full rounded mt-4"
+                />
+              )}
+              {generatedRecipe && (
+                <div className="w-full mt-6">
+                  <h2 className="text-xl font-semibold mb-2">Generated Recipe</h2>
+                  <pre className="bg-gray-100 p-4 rounded whitespace-pre-wrap text-sm">{generatedRecipe}</pre>
                 </div>
-              ) : (
-                // Split content into separate notes by double newlines
-                noteContent.split('\n\n').map((noteBlock, noteIndex) => {
-                  // Split each note into its components (original text, analysis, tag)
-                  const noteParts = noteBlock.split('\n');
-                  
-                  // Extract parts (first line is the original input)
-                  const originalText = noteParts[0] || '';
-                  const analysisLine = noteParts.find(line => line.startsWith('AI Analysis:')) || '';
-                  const tagLine = noteParts.find(line => line.startsWith('Tag:')) || '';
-                  
-                  return originalText.trim() ? (
-                    <div key={noteIndex} className="relative mb-4 pb-3 border-b border-gray-100 dark:border-gray-700">
-                      <div className="flex items-start">
-                        {/* Checkbox */}
-                        <div 
-                          className="cursor-pointer mr-3 mt-1 w-6 h-6 flex-shrink-0"
-                          onClick={(e) => handleCheckboxClick(noteIndex, e)}
-                        >
-                          {activeLineIndex === noteIndex ? (
-                            <div className="w-5 h-5 border border-gray-400 rounded-sm flex items-center justify-center bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="green" className="w-4 h-4">
-                                <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 border border-gray-300 rounded-sm dark:border-gray-600"></div>
-                          )}
-                        </div>
-                        
-                        {/* Note content in simple vertical layout */}
-                        <div className="flex-grow">
-                          {/* Part 1: Original Text */}
-                          <div className="mb-2">
-                            <div className="text-md dark:text-white">
-                              {originalText}
-                            </div>
-                          </div>
-                          
-                          {/* Part 2: AI Analysis */}
-                          {analysisLine && (
-                            <div className="mb-2 text-blue-600 dark:text-blue-400">
-                              {analysisLine}
-                            </div>
-                          )}
-                          
-                          {/* Part 3: Tag */}
-                          {tagLine && (
-                            <div className="text-gray-700 dark:text-gray-400">
-                              {tagLine}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Actions button */}
-                        <div>
-                          <button 
-                            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                            onClick={(e) => handleCheckboxClick(noteIndex, e)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Dropdown Menu when active */}
-                      {activeLineIndex === noteIndex && (
-                        <div 
-                          ref={dropdownRef}
-                          className="absolute bg-white dark:bg-gray-800 border rounded shadow-lg z-10 right-0 top-8 dark:border-gray-700"
-                        >
-                          <button 
-                            onClick={() => handleRescue(noteIndex)} 
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
-                          >
-                            Rescue to Top
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(noteIndex)} 
-                            className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 dark:text-red-400"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : null;
-                })
               )}
             </div>
-          </div>
-          
-          <div className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-            <p>
-              Your notes are automatically saved every few seconds and will appear in the sidebar.
-            </p>
-          </div>
+          )}
+          {selectedModel !== 'product-designer' && selectedModel !== 'recipe-generator' && !roomImage && (
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="mb-4"
+              />
+              <p className="text-gray-500">Upload an image to get started.</p>
+            </div>
+          )}
+          {selectedModel === 'product-designer' && (
+            <div className="w-full mb-4 flex flex-col items-center">
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                placeholder="Describe your product design..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              />
+              <button
+                onClick={generateImage}
+                disabled={isGenerating}
+                className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition"
+              >
+                {isGenerating ? 'Processing...' : 'Generate'}
+              </button>
+              {generatedImage && isValidImageUrl(generatedImage) && (
+                <div className="flex flex-col items-center">
+                  <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
+                  <img src={generatedImage} alt="Output" className="max-w-full rounded mb-4" />
+                  <button
+                    onClick={reset}
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition"
+                  >
+                    Start Over
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {selectedModel === 'travel-visuals' && (
+            <div className="w-full mb-4 flex flex-col items-center">
+              <input
+                type="text"
+                value={travelLocation}
+                onChange={e => setTravelLocation(e.target.value)}
+                placeholder="Location (e.g. Paris, Tokyo)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-2"
+              />
+              <div className="flex gap-2 w-full mb-2">
+                <input
+                  type="date"
+                  value={travelStartDate}
+                  onChange={e => setTravelStartDate(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+                />
+                <input
+                  type="date"
+                  value={travelEndDate}
+                  onChange={e => setTravelEndDate(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+                />
+              </div>
+              <select
+                value={travelStyle}
+                onChange={e => setTravelStyle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm mb-2"
+              >
+                <option value="photorealistic">Photorealistic</option>
+                <option value="watercolor">Watercolor</option>
+                <option value="vintage">Vintage</option>
+                <option value="cyberpunk">Cyberpunk</option>
+                <option value="cartoon">Cartoon</option>
+              </select>
+              <button
+                onClick={generateTravelVisuals}
+                disabled={isTravelLoading}
+                className="mt-2 bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 transition"
+              >
+                {isTravelLoading ? 'Generating...' : 'Generate Itinerary Visuals'}
+              </button>
+              {itineraryImages.length > 0 && (
+                <div className="w-full mt-6 overflow-x-auto">
+                  <div className="flex gap-4">
+                    {itineraryImages.map((item, idx) => (
+                      <div key={idx} className="flex flex-col items-center min-w-[220px]">
+                        <div className="font-semibold mb-2">Day {item.day}</div>
+                        <img src={item.imageUrl} alt={`Day ${item.day}`} className="rounded shadow max-w-xs max-h-60" />
+                        <div className="text-xs text-gray-500 mt-2">{item.prompt.slice(0, 80)}...</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {roomImage && (
+            <div className="flex flex-col items-center">
+              <img src={roomImage} alt="Input" className="max-w-full rounded mb-4" />
+              {!generatedImage && (
+                <button
+                  onClick={generateImage}
+                  disabled={isGenerating}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition"
+                >
+                  {isGenerating ? 'Processing...' : 'Generate'}
+                </button>
+              )}
+              {generatedImage && isValidImageUrl(generatedImage) && (
+                <>
+                  <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
+                  <img src={generatedImage} alt="Output" className="max-w-full rounded mb-4" />
+                  <button
+                    onClick={reset}
+                    className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition"
+                  >
+                    Start Over
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
+        {/* Modal for viewing sidebar image large */}
+        {selectedSidebarImage && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setSelectedSidebarImage(null)}>
+            <img src={selectedSidebarImage} alt="Large view" className="max-w-2xl max-h-[80vh] rounded-xl shadow-2xl border-4 border-white" />
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function isValidImageUrl(url: string | null): boolean {
+  return !!url && (url.startsWith('data:image/') || url.startsWith('http'));
 }

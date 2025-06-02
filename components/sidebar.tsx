@@ -9,8 +9,8 @@ import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion"; // For Quipit icon animation
 import Link from "next/link"; // For Quipit icon link
+import { useAuth } from "@clerk/nextjs";
 // At the top of your file with other imports
-import SavedNotesSection from '@/components/SavedNotesSection';
 
 
 interface TripApiResponse {
@@ -33,6 +33,14 @@ interface SavedTrip {
   cities: string[];
   content: string;
   createdAt: Date;
+}
+
+interface SavedImage {
+  id: string;
+  image_url: string;
+  category: string;
+  type: string;
+  created_at: string;
 }
 
 interface SidebarProps {
@@ -62,7 +70,7 @@ const SavedTripItem: React.FC<SavedTripItemProps> = ({ trip, isActive, onDelete,
         onClick={(e) => onDelete(e, trip.job_id)}
         variant="ghost"
         size="icon"
-        className="opacity-0 group-hover:opacity-100 transition-all"
+        className="transition-all shrink-0"
       >
         <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
       </Button>
@@ -95,6 +103,9 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const { userId } = useAuth();
+  const [selectedImage, setSelectedImage] = useState<SavedImage | null>(null);
 
   const onNavigate = (url: string, pro: boolean) => {
     if (pro && !isPro) {
@@ -105,17 +116,18 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
 
   const navigateToTrip = async (trip: SavedTrip) => {
     if (isNavigating) return;
-    
+    const jobId = trip.job_id;
+    if (!jobId) {
+      toast.error("This trip is missing a job ID and cannot be opened.");
+      setIsNavigating(false);
+      return;
+    }
     try {
       setIsNavigating(true);
-      console.log('Starting navigation to:', trip.job_id);
-      
-      const url = `/agents1?job_id=${trip.job_id}`;
+      console.log('Starting navigation to:', jobId);
+      const url = `/agents1?job_id=${jobId}`;
       window.history.pushState({}, '', url);
-      
-      // Small delay to show loading
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
       window.location.reload();
     } catch (error) {
       console.error('Navigation error:', error);
@@ -169,15 +181,15 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       console.log('Raw API response:', data);
 
       if (data.success && Array.isArray(data.trips)) {
-        const formattedTrips: SavedTrip[] = data.trips.map((trip: TripApiResponse) => ({
-          _id: trip._id,
-          job_id: trip.jobId,
+        const formattedTrips: SavedTrip[] = data.trips.map((trip: any) => ({
+          _id: trip._id || trip.id,
+          job_id: trip.job_id,
           location: trip.location,
-          dateRange: trip.dateRange,
-          interests: trip.interests,
-          cities: trip.cities,
-          content: trip.tripResult,
-          createdAt: new Date(trip.createdAt)
+          dateRange: trip.dateRange || trip.date_range,
+          interests: Array.isArray(trip.interests) ? trip.interests : [],
+          cities: Array.isArray(trip.cities) ? trip.cities : [],
+          content: trip.content || trip.trip_result,
+          createdAt: trip.id ? new Date(trip.id) : new Date()
         }));
         
         console.log('Formatted trips:', formattedTrips);
@@ -188,8 +200,35 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     }
   };
 
+  const fetchSavedImages = async () => {
+    const endpoints = [
+      { type: 'generate-room', url: `/api/generate-room?user_id=${userId}` },
+      { type: 'generate-product', url: `/api/generate-product?user_id=${userId}` },
+      { type: 'generate-recipe', url: `/api/generate-recipe-image?user_id=${userId}` },
+      { type: 'generate-itinerary-visuals', url: `/api/generate-itinerary-visuals?user_id=${userId}` },
+    ];
+
+    let allImages: SavedImage[] = [];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint.url);
+        const data = await response.json();
+        if (data.success && data.result && Array.isArray(data.result.images)) {
+          allImages = allImages.concat(data.result.images);
+        }
+      } catch (err) {
+        // Optionally handle errors for each endpoint
+        console.error(`Error fetching images for ${endpoint.type}:`, err);
+      }
+    }
+
+    setSavedImages(allImages);
+  };
+
   useEffect(() => {
     fetchSavedTrips();
+    fetchSavedImages();
 
     const handleTripSaved = async () => {
       console.log('Trip saved event received in sidebar');
@@ -224,26 +263,15 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     },
   ];
 
-  // Define the three agents for the sidebar, with NovaTrek first
-  const agentRoutes = [
-    {
-      icon: Plane,
-      href: "/agents1",
-      label: "NovaTrek - The Travel Agent",
-      pro: false,
-    },
-    {
-      icon: PenTool,
-      href: "/agents2",
-      label: "DropThought - The Note Taking Agent",
-      pro: false,
-    },
-    {
-      icon: TreePine,
-      href: "/agents3",
-      label: "MindBloom - The Productivity Agent",
-      pro: false,
-    },
+  function handleImageClick(image: SavedImage) {
+    setSelectedImage(image);
+  }
+
+  const imageTypes = [
+    { type: 'generate-room', label: '3D Interior Creator' },
+    { type: 'generate-product', label: 'Product Designer' },
+    { type: 'generate-recipe-image', label: 'Recipe Generator' },
+    { type: 'generate-itinerary-visuals', label: 'Travel Visuals' },
   ];
 
   return (
@@ -299,26 +327,6 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
             </div>
           </div>
 
-          {/* Agents Section */}
-          <div className="p-4 border-t border-gray-100 pt-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Our Agents</h2>
-            <div className="space-y-2">
-              {agentRoutes.map((route) => (
-                <div
-                  onClick={() => onNavigate(route.href, route.pro)}
-                  key={route.href}
-                  className={cn(
-                    "flex items-center p-2 hover:bg-gray-50 rounded-lg transition-all duration-300",
-                    pathname === route.href && "bg-gray-100"
-                  )}
-                >
-                  <route.icon className="h-5 w-5 text-gray-700 mr-3" />
-                  <span className="text-sm font-medium text-gray-600">{route.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           <div className="border-t border-gray-100 pt-4 mt-4">
             <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
               SAVED TRIPS
@@ -334,7 +342,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                       className={`
                         px-2 py-3 w-full
                         hover:bg-blue-50/50 rounded-lg 
-                        cursor-pointer group transition-all
+                        cursor-pointer transition-all
                         ${isActive ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white shadow-sm'}
                       `}
                       onClick={() => navigateToTrip(trip)}
@@ -347,7 +355,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                           onClick={(e) => handleDeleteTrip(e, trip.job_id)}
                           variant="ghost"
                           size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          className="transition-all shrink-0"
                         >
                           <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
                         </Button>
@@ -378,12 +386,54 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
               <p className="px-4 text-sm text-gray-500">No saved trips</p>
             )}
           </div>
-          <SavedNotesSection 
-            isNavigating={isNavigating}
-            setIsNavigating={setIsNavigating}
-          />
+
+          <div className="border-t border-gray-100 pt-4 mt-4">
+            <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
+              SAVED IMAGES
+            </h2>
+            {imageTypes.map(group => {
+              const groupImages = savedImages.filter(img => img.type === group.type);
+              return (
+                <div key={group.type}>
+                  <h3 className="text-xs font-bold mt-4 mb-2">{group.label}</h3>
+                  {groupImages.length > 0 ? (
+                    groupImages.map(img => (
+                      <div key={img.id} className="flex items-center space-x-2">
+                        <img
+                          src={img.image_url}
+                          alt={img.category}
+                          onClick={() => handleImageClick(img)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span className="text-xs text-gray-700">{img.category}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="px-4 text-sm text-gray-500">No saved images</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {selectedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg relative max-w-xs w-full">
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <img src={selectedImage.image_url} alt={selectedImage.category} className="mb-4 max-w-full rounded" />
+            <div className="text-sm text-gray-700 mb-2">Category: {selectedImage.category}</div>
+            {/* Add more details if needed */}
+          </div>
+        </div>
+      )}
     </div>
   );  
 };

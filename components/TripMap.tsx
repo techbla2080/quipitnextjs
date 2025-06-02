@@ -593,7 +593,6 @@ const TripMap: React.FC<TripMapProps> = ({
                 center={mapCenter} 
                 zoom={mapZoom} 
                 scrollWheelZoom={true}
-                ref={mapRef}
               >
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

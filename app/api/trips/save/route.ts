@@ -1,6 +1,4 @@
-import { connectDB } from '@/lib/mongodb';
-import { Trip } from '@/models/Trip';
-import { User } from '@/models/User';
+import { supabase } from '@/lib/supabaseClient';
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 
@@ -11,107 +9,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-    
-    const session = await User.startSession();
-    session.startTransaction();
+    const body = await request.json();
+    console.log("Backend received body:", body);
 
-    try {
-      // Find or create user document with strict userId matching
-      let user = await User.findOne({ userId: userId }).session(session);
-      
-      if (!user) {
-        user = await User.create([{ 
-          userId: userId, 
-          tripCount: 0,
-          subscriptionStatus: 'free'
-        }], { session });
-        user = user[0];
-      }
-
-      // Check if user is pro
-      if (user.subscriptionStatus === 'pro') {
-        const body = await request.json();
-        const trip = await Trip.create([{
-          userId: userId,
-          location: body.location,
-          cities: body.cities,
-          dateRange: body.dateRange,
-          interests: body.interests,
-          jobId: body.jobId,
-          tripResult: body.tripResult
-        }], { session });
-
-        await session.commitTransaction();
-        return NextResponse.json({ 
-          success: true, 
-          trip: trip[0]
-        });
-      }
-
-      // For free users, continue with trip count check
-      const existingTrips = await Trip.countDocuments({ userId: userId }).session(session);
-      
-      console.log(`User ${userId} has ${existingTrips} existing trips`);
-      
-      if (existingTrips !== user.tripCount) {
-        user.tripCount = existingTrips;
-        await user.save({ session });
-        console.log(`Fixed trip count for user ${userId} to ${existingTrips}`);
-      }
-
-      if (user.tripCount >= 2) {
-        await session.abortTransaction();
-        return NextResponse.json({
-          success: false,
-          error: 'Free trip limit reached',
-          requiresSubscription: true,
-          userTrips: user.tripCount
-        }, { status: 403 });
-      }
-
-      const body = await request.json();
-    
-      // Save trip with explicit userId
-      const trip = await Trip.create([{
-        userId: userId,
-        location: body.location,
-        cities: body.cities,
-        dateRange: body.dateRange,
-        interests: body.interests,
-        jobId: body.jobId,
-        tripResult: body.tripResult
-      }], { session });
-
-      // Update count only for this specific user
-      user = await User.findOneAndUpdate(
-        { userId: userId },
-        { $inc: { tripCount: 1 } },
-        { session, new: true }
-      );
-
-      await session.commitTransaction();
-      
-      console.log(`Successfully saved trip for user ${userId}. New trip count: ${user.tripCount}`);
-
-      return NextResponse.json({ 
-        success: true, 
-        trip: trip[0],
-        userTrips: user.tripCount
-      });
-
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
+    // Ensure jobId exists
+    if (!body.jobId) {
+      return NextResponse.json({ success: false, error: 'Missing job_id' }, { status: 400 });
     }
 
+    // Check if a trip with this job_id already exists
+    const { data: existingTrip, error: checkError } = await supabase
+      .from('trips')
+      .select('id')
+      .eq('job_id', body.jobId)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Check error:', checkError);
+      return NextResponse.json({ success: false, error: checkError.message }, { status: 500 });
+    }
+    
+    // If the trip already exists, return success
+    if (existingTrip) {
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Trip already exists',
+        trip: existingTrip 
+      });
+    }
+
+    // Prepare the trip data for a new insert
+    const tripData = {
+      user_id: userId,
+      location: body.location || '',
+      cities: Array.isArray(body.cities) ? body.cities : [],
+      date_range: body.dateRange || '',
+      interests: Array.isArray(body.interests) ? body.interests : [],
+      job_id: body.jobId,
+      trip_result: body.tripResult || ''
+    };
+
+    console.log("Saving new trip with data:", tripData);
+
+    // Insert the new trip
+    const { data, error } = await supabase
+      .from('trips')
+      .insert([tripData])
+      .select();
+
+    if (error) {
+      console.error('Save error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, trip: data && data[0] });
   } catch (error) {
     console.error('Save error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to save trip' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to save trip' }, { status: 500 });
   }
 }

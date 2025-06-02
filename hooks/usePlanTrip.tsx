@@ -48,7 +48,7 @@ export const usePlanTrip = () => {
       console.log("Sending trip data:", updatedTripData);
 
       const response = await axios.post<TripResponse>(
-        'https://triplanner.onrender.com/api/crew', 
+        'https://triplanner-pranavAgarwal10.replit.app/api/crew', 
         updatedTripData,
         {
           headers: {
@@ -69,7 +69,7 @@ export const usePlanTrip = () => {
 
       while (!jobCompleted && attempts < maxAttempts) {
         const statusResponse = await axios.get<TripResponse>(
-          `https://triplanner.onrender.com/api/crew/${jobId}`, 
+          `https://triplanner-pranavAgarwal10.replit.app/api/crew/${jobId}`, 
           {
             headers: {
               Authorization: `Bearer ${token?.trim()}`,
@@ -111,8 +111,8 @@ export const usePlanTrip = () => {
         setError(error as Error);
       }
 
-      return null;
-    }
+        return null;
+      }
   }, [getToken]);
 
   return { planTrip, isLoading, error, itinerary };
