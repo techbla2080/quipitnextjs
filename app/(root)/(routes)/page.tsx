@@ -109,7 +109,7 @@ export default function LandingPage() {
       {/* CTA */}
       <div className="text-center mb-16">
         <h2 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-4">Ready to experience the future?</h2>
-        <a href="/subscription">
+        <a href="/agent-selection">
           <Button className="bg-blue-600 text-white px-8 py-3 text-lg font-semibold rounded-lg shadow hover:bg-blue-700 transition">Start</Button>
         </a>
       </div>

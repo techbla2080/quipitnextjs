@@ -50,10 +50,12 @@ export const Navbar = ({ isPro }: NavbarProps) => {
       </div>
       <div className="flex items-center gap-x-3">
         {!isPro && (
-          <Button onClick={proModal.onOpen} size="sm" variant="premium">
-            Upgrade
-            <Sparkles className="h-4 w-4 fill-white text-white ml-2" />
-          </Button>
+          <Link href="/subscription">
+            <Button size="sm" variant="premium">
+              Pricing
+              <Sparkles className="h-4 w-4 fill-white text-white ml-2" />
+            </Button>
+          </Link>
         )}
         <ModeToggle />
         <UserButton afterSignOutUrl="/" />
