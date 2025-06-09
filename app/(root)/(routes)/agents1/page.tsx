@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ReactMarkdown from "react-markdown";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import UserInfo from "@/components/UserInfo";
 import { useAuth } from "@clerk/nextjs";
 import DebugButton from "@/components/DebugButton";
@@ -136,6 +136,9 @@ export default function TripPlanner() {
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
   const { userId } = useAuth();
 
+  const searchParams = useSearchParams();
+  const currentJobId = searchParams.get("job_id");
+
   // Add this right after your state declarations
   const useLoadingControl = () => {
     const loadingRef = useRef<boolean>(false);
@@ -223,9 +226,6 @@ export default function TripPlanner() {
     setIsLoading(true);
 
     const loadTripFromUrl = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const currentJobId = params.get("job_id");
-      
       if (!currentJobId || !userId) {
         setIsLoading(false);
         console.log("No job_id in URL or no userId available");
@@ -273,7 +273,7 @@ export default function TripPlanner() {
     };
 
     loadTripFromUrl();
-  }, [window.location.search, userId]);
+  }, [currentJobId, userId]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
