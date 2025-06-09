@@ -114,25 +114,12 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     return router.push(url);
   };
 
-  const navigateToTrip = async (trip: SavedTrip) => {
-    if (isNavigating) return;
-    const jobId = trip.job_id;
-    if (!jobId) {
+  const navigateToTrip = (trip: SavedTrip) => {
+    if (!trip.job_id) {
       toast.error("This trip is missing a job ID and cannot be opened.");
-      setIsNavigating(false);
       return;
     }
-    try {
-      setIsNavigating(true);
-      console.log('Starting navigation to:', jobId);
-      const url = `/agents1?job_id=${jobId}`;
-      window.history.pushState({}, '', url);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      window.location.reload();
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setIsNavigating(false);
-    }
+    router.push(`/agents1?job_id=${trip.job_id}`);
   };
 
   const handleDeleteTrip = async (e: React.MouseEvent<HTMLButtonElement>, job_id: string) => {
@@ -188,7 +175,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
           dateRange: trip.dateRange || trip.date_range,
           interests: Array.isArray(trip.interests) ? trip.interests : [],
           cities: Array.isArray(trip.cities) ? trip.cities : [],
-          content: trip.content || trip.trip_result,
+          content: trip.trip_result || trip.content || trip.tripResult || trip.result,
           createdAt: trip.id ? new Date(trip.id) : new Date()
         }));
         

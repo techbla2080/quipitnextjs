@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       date_range: body.dateRange || '',
       interests: Array.isArray(body.interests) ? body.interests : [],
       job_id: body.jobId,
-      trip_result: body.tripResult || ''
+      trip_result: body.trip_result || body.tripResult || ''
     };
 
     console.log("Saving new trip with data:", tripData);

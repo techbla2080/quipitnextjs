@@ -40,6 +40,7 @@ export async function GET() {
         dateRange: trip.date_range || '',
         interests: Array.isArray(trip.interests) ? trip.interests : [],
         cities: Array.isArray(trip.cities) ? trip.cities : [],
+        trip_result: trip.trip_result ?? '',
         tripResult: trip.trip_result ?? '',
         createdAt: trip.created_at || new Date().toISOString()
       }));

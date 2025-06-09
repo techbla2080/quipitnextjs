@@ -30,6 +30,20 @@ const ProfessionalTripView: React.FC<TripViewProps> = ({ tripData }) => {
   const [loading, setLoading] = useState(false);
   const [intro, setIntro] = useState("");
 
+    // ADD THIS DEBUG LOGGING RIGHT HERE
+    useEffect(() => {
+      console.log("=== PROFESSIONAL TRIP VIEW DEBUG ===");
+      console.log("Raw tripData received:", tripData);
+      console.log("tripData.location:", tripData?.location);
+      console.log("tripData.cities:", tripData?.cities);
+      console.log("tripData.dateRange:", tripData?.dateRange);
+      console.log("tripData.interests:", tripData?.interests);
+      console.log("tripData.jobId:", tripData?.jobId);
+      console.log("tripData.tripResult:", tripData?.tripResult);
+      console.log("tripData.tripResult type:", typeof tripData?.tripResult);
+      console.log("====================================");
+    }, [tripData]); 
+
   // Normalize cities and interests with better handling
   const cities = Array.isArray(tripData.cities) 
     ? tripData.cities 

@@ -201,7 +201,7 @@ export default function TripPlanner() {
       setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]),
       setAddedDateRange(trip.dateRange || trip.date_range || ""),
       setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]),
-      setTripResult(trip.content || trip.tripResult || trip.trip_result || trip.result),
+      setTripResult(trip.trip_result || trip.tripResult || trip.result || trip.content),
       setIsViewMode(true),
     ]);
 
@@ -220,38 +220,59 @@ export default function TripPlanner() {
 
   // Replace your existing trip loading useEffect with this
   useEffect(() => {
-    const loadTripFromId = async (currentJobId: string) => {
-      if (!userId) {
-        console.log("No userId available, skipping trip load");
+    setIsLoading(true);
+
+    const loadTripFromUrl = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const currentJobId = params.get("job_id");
+      
+      if (!currentJobId || !userId) {
+        setIsLoading(false);
+        console.log("No job_id in URL or no userId available");
         return;
       }
 
+      console.log("Loading trip with job_id:", currentJobId);
+      
       try {
         const response = await fetch(`/api/trips?userId=${userId}`);
         const data = await response.json();
+        
+        console.log("API response:", data);
 
         if (data.success && data.trips) {
           const trip = data.trips.find((t: any) => t.job_id === currentJobId);
-
+          
           if (trip) {
+            console.log("Found trip:", trip);
+            
             setLoadedTrip(trip);
-            setTripResult(trip.tripResult || trip.trip_result || trip.result);
+            setTripResult(trip.trip_result || trip.tripResult || trip.result || trip.content);
             setAddedLocation(trip.location || "");
-            setCitiesList(Array.isArray(trip.cities) ? trip.cities : [trip.cities]);
+            setCitiesList(Array.isArray(trip.cities) ? trip.cities : trip.cities ? [trip.cities] : []);
             setAddedDateRange(trip.dateRange || trip.date_range || "");
-            setInterestsList(Array.isArray(trip.interests) ? trip.interests : [trip.interests]);
+            setInterestsList(Array.isArray(trip.interests) ? trip.interests : trip.interests ? [trip.interests] : []);
             setJobId(currentJobId);
             setIsViewMode(true);
+            
+            console.log("Trip data loaded successfully");
+          } else {
+            console.error("Trip not found with job_id:", currentJobId);
+            toast.error("Trip not found");
           }
+        } else {
+          console.error("Failed to fetch trips:", data);
+          toast.error("Failed to load trip");
         }
       } catch (error) {
         console.error("Loading error:", error);
+        toast.error("Error loading trip");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    const params = new URLSearchParams(window.location.search);
-    const currentJobId = params.get("job_id");
-    if (currentJobId && userId) loadTripFromId(currentJobId);
+    loadTripFromUrl();
   }, [window.location.search, userId]);
 
   useEffect(() => {
@@ -304,6 +325,21 @@ export default function TripPlanner() {
     setTripResult,
     setJobId,
   ]);
+
+    // ADD THIS DEBUG useEffect RIGHT HERE
+    useEffect(() => {
+      if (loadedTrip) {
+        console.log("=== LOADED TRIP FULL OBJECT ===");
+        console.log("loadedTrip full object:", loadedTrip);
+        console.log("loadedTrip keys:", Object.keys(loadedTrip || {}));
+        console.log("loadedTrip.trip_result:", loadedTrip?.trip_result);
+        console.log("loadedTrip.content:", loadedTrip?.content);
+        console.log("loadedTrip.result:", loadedTrip?.result);
+        console.log("loadedTrip.tripResult:", loadedTrip?.tripResult);
+        console.log("loadedTrip.itinerary:", loadedTrip?.itinerary);
+        console.log("===============================");
+      }
+    }, [loadedTrip]);
 
   const loadSavedItineraries = () => {
     try {
@@ -456,6 +492,24 @@ export default function TripPlanner() {
   const handleSaveItinerary = async (isAutoSave = false, jobIdParam?: string | null, tripResultParam?: any) => {
     const jobIdToUse = jobIdParam || jobId;
     const tripResultToUse = tripResultParam !== undefined ? tripResultParam : tripResult;
+
+    // ADD THESE DEBUG LOGS
+    console.log("DEBUG: tripResultToUse:", tripResultToUse);
+    
+    const tripData = {
+      location: addedLocation,
+      cities: citiesList,
+      dateRange: addedDateRange,
+      interests: interestsList,
+      jobId: jobIdToUse,
+      trip_result: tripResultToUse || "No itinerary generated",
+      userId: userId,
+    };
+
+    // ADD THIS DEBUG LOG
+    console.log("DEBUG: tripData.trip_result:", tripData.trip_result);
+    console.log("DEBUG: Full tripData object:", tripData);
+
     if (!jobIdToUse) {
       if (!isAutoSave) toast.error("No job ID available");
       return;
@@ -488,18 +542,6 @@ export default function TripPlanner() {
       }
 
       console.log("tripResult value and type:", tripResultToUse, typeof tripResultToUse);
-
-      const tripData = {
-        location: addedLocation,
-        cities: citiesList,
-        dateRange: addedDateRange,
-        interests: interestsList,
-        jobId: jobIdToUse,
-        trip_result: tripResultToUse || "No itinerary generated",
-        userId: userId,
-      };
-
-      console.log("Sending trip data:", tripData);
 
       const response = await fetch("/api/trips/save", {
         method: "POST",
@@ -540,24 +582,36 @@ export default function TripPlanner() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-      {/* Sidebar for saved trips */}
-      <div className="hidden md:flex w-64 flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <Sidebar isPro={true} />
-      </div>
-      {/* Main trip planner content */}
-      <div className="flex-1 p-4">
+    <>
+      <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
+        {/* Sidebar for saved trips */}
+        <div className="hidden md:flex w-64 flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <Sidebar isPro={true} />
+        </div>
+        {/* Main trip planner content */}
+        <div className="flex-1 p-4">
         {isViewMode || window.location.search.includes("job_id") ? (
-          <ProfessionalTripView
-            tripData={{
-              location: addedLocation || "",
-              cities: citiesList || [],
-              dateRange: addedDateRange || "",
-              interests: interestsList || [],
-              jobId: jobId || "",
-              tripResult: typeof tripResult === "string" ? tripResult : JSON.stringify(tripResult),
-            }}
-          />
+  <div>    
+    {isLoading ? (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        <span className="ml-4">Loading your trip...</span>
+      </div>
+    ) : loadedTrip ? (
+      <ProfessionalTripView
+        tripData={{
+          location: loadedTrip.location || "",
+          cities: Array.isArray(loadedTrip.cities) ? loadedTrip.cities : (loadedTrip.cities ? [loadedTrip.cities] : []),
+          dateRange: loadedTrip.dateRange || loadedTrip.date_range || "",
+          interests: Array.isArray(loadedTrip.interests) ? loadedTrip.interests : (loadedTrip.interests ? [loadedTrip.interests] : []),
+          jobId: loadedTrip.job_id || "",
+          tripResult: loadedTrip.trip_result || loadedTrip.content || loadedTrip.result || "",
+        }}
+      />
+    ) : (
+      <div className="text-center p-8">Trip not found</div>
+    )}
+  </div>
         ) : (
           <>
             {showCelebration && (
@@ -1137,5 +1191,6 @@ export default function TripPlanner() {
         )}
       </div>
     </div>
-  );
+  </>
+);
 }
