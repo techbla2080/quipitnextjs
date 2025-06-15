@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion"; // For Quipit icon animation
 import Link from "next/link"; // For Quipit icon link
 import { useAuth } from "@clerk/nextjs";
+import { supabase } from '@/lib/supabaseClient'; // Make sure this import is at the top
 // At the top of your file with other imports
 
 
@@ -222,10 +223,17 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       await fetchSavedTrips();
     };
 
+    const handleImageSaved = async () => {
+      console.log('Image saved event received in sidebar');
+      await fetchSavedImages();
+    };
+
     window.addEventListener('tripSaved', handleTripSaved);
-    
+    window.addEventListener('imageSaved', handleImageSaved);
+
     return () => {
       window.removeEventListener('tripSaved', handleTripSaved);
+      window.removeEventListener('imageSaved', handleImageSaved);
     };
   }, []);
 
@@ -257,9 +265,32 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const imageTypes = [
     { type: 'generate-room', label: '3D Interior Creator' },
     { type: 'generate-product', label: 'Product Designer' },
-    { type: 'generate-recipe-image', label: 'Recipe Generator' },
-    { type: 'generate-itinerary-visuals', label: 'Travel Visuals' },
+    { type: 'generate-recipe', label: 'Recipe Generator' },
+    { type: 'generate-itinerary', label: 'Travel Visuals' },
   ];
+
+  const handleDeleteImage = async (img: SavedImage) => {
+    try {
+      // Remove from Supabase
+      const { error } = await supabase
+        .from('saved_images')
+        .delete()
+        .eq('id', img.id);
+
+      if (error) {
+        toast.error('Failed to delete image');
+        return;
+      }
+
+      // Remove from local state
+      setSavedImages(current => current.filter(i => i.image_url !== img.image_url));
+      toast.success('Image deleted successfully');
+      // Optionally, refresh images from backend:
+      window.dispatchEvent(new Event('imageSaved'));
+    } catch (err) {
+      toast.error('Error deleting image');
+    }
+  };
 
   return (
     <div>
@@ -393,6 +424,15 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                           style={{ cursor: 'pointer' }}
                         />
                         <span className="text-xs text-gray-700">{img.category}</span>
+                        <Button
+                          onClick={() => handleDeleteImage(img)}
+                          variant="ghost"
+                          size="icon"
+                          className="transition-all shrink-0"
+                          title="Delete image"
+                        >
+                          <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                        </Button>
                       </div>
                     ))
                   ) : (

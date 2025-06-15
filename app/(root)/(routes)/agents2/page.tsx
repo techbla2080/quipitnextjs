@@ -238,6 +238,7 @@ export default function Agents2Page() {
             ]);
           if (!error) {
             setSavedImages(prev => [{ image_url: newImageUrl, category, type }, ...prev]);
+            window.dispatchEvent(new Event('imageSaved'));
           }
         }
         // --- END AUTOSAVE LOGIC ---
@@ -285,6 +286,7 @@ export default function Agents2Page() {
           ]);
         if (!error) {
           setSavedImages(prev => [{ image_url: recipeImageUrl, category: 'Recipe', type: 'generate-recipe' }, ...prev]);
+          window.dispatchEvent(new Event('imageSaved'));
         }
       }
     } catch (error) {
@@ -324,6 +326,7 @@ export default function Agents2Page() {
           ]);
         if (!error) {
           setSavedImages(prev => [{ image_url: item.imageUrl, category: 'Travel Visual', type: 'generate-itinerary' }, ...prev]);
+          window.dispatchEvent(new Event('imageSaved'));
         }
       }
     } catch (error) {
