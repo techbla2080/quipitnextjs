@@ -1,0 +1,16 @@
+{
+    "functions": {
+      "app/api/generate-room/route.ts": {
+        "maxDuration": 300
+      },
+      "app/api/generate-itinerary-visuals/route.ts": {
+        "maxDuration": 300
+      },
+      "app/api/generate-recipe-image/route.ts": {
+        "maxDuration": 300
+      },
+      "app/api/generate-product/route.ts": {
+        "maxDuration": 300
+      }
+    }
+  }

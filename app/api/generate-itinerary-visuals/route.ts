@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
+// Add timeout configuration for long-running requests
+export const maxDuration = 300; // 5 minutes (300 seconds)
+export const runtime = 'nodejs';
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -40,10 +44,22 @@ export async function POST(req: NextRequest) {
     }
 
     const days = getDaysArray(new Date(startDate), new Date(endDate));
+    
+    // Add a reasonable limit to prevent extremely long trips from timing out
+    if (days.length > 14) {
+      return NextResponse.json(
+        { success: false, error: 'Trip duration too long. Maximum 14 days supported for image generation.' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Generating ${days.length} images for ${location} from ${startDate} to ${endDate}`);
     const results = [];
 
     for (let i = 0; i < days.length; i++) {
       const dayNumber = i + 1;
+      console.log(`Generating image for day ${dayNumber}/${days.length}`);
+      
       const prompt = `
 A ${style} image for a travel itinerary in ${location}, day ${dayNumber}.
 Showcase:
@@ -69,27 +85,44 @@ Showcase:
 The overall scene should feel authentic, lively, and true to the spirit of ${location}.
       `.trim();
 
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt,
-        n: 1,
-        size: "1024x1024", // Using higher quality for better results
-      });
+      try {
+        const response = await openai.images.generate({
+          model: "dall-e-3",
+          prompt,
+          n: 1,
+          size: "1024x1024", // Using higher quality for better results
+        });
 
-      if (!response.data || !response.data[0]) {
+        if (!response.data || !response.data[0]) {
+          console.error(`No image data received for day ${dayNumber}`);
+          return NextResponse.json(
+            { success: false, error: 'No image data received from generation API' },
+            { status: 500 }
+          );
+        }
+        
+        const imageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
+        results.push({
+          day: dayNumber,
+          imageUrl,
+          prompt,
+        });
+        
+        console.log(`Successfully generated image for day ${dayNumber}`);
+      } catch (imageError: any) {
+        console.error(`Error generating image for day ${dayNumber}:`, imageError);
         return NextResponse.json(
-          { success: false, error: 'No image data received from generation API' },
+          { 
+            success: false, 
+            error: `Failed to generate image for day ${dayNumber}: ${imageError.message}`,
+            details: imageError.status || 500
+          },
           { status: 500 }
         );
       }
-      const imageUrl = response.data[0].url || `data:image/png;base64,${response.data[0].b64_json}`;
-      results.push({
-        day: dayNumber,
-        imageUrl,
-        prompt,
-      });
     }
 
+    console.log(`Successfully generated all ${results.length} images`);
     return NextResponse.json(
       { success: true, results },
       { status: 200 }

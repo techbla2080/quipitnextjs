@@ -3,6 +3,10 @@ import OpenAI from 'openai';
 import { toFile } from 'openai/uploads';
 import { createClient } from '@supabase/supabase-js';
 
+// Add timeout configuration for long-running requests
+export const maxDuration = 300; // 5 minutes (300 seconds)
+export const runtime = 'nodejs';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
