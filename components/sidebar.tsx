@@ -11,6 +11,7 @@ import { motion } from "framer-motion"; // For Quipit icon animation
 import Link from "next/link"; // For Quipit icon link
 import { useAuth } from "@clerk/nextjs";
 import { supabase } from '@/lib/supabaseClient'; // Make sure this import is at the top
+import ImageModal from "@/components/ImageModal";
 // At the top of your file with other imports
 
 
@@ -446,20 +447,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
       </div>
 
       {selectedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg relative max-w-xs w-full">
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
-              aria-label="Close"
-            >
-              ×
-            </button>
-            <img src={selectedImage.image_url} alt={selectedImage.category} className="mb-4 max-w-full rounded" />
-            <div className="text-sm text-gray-700 mb-2">Category: {selectedImage.category}</div>
-            {/* Add more details if needed */}
-          </div>
-        </div>
+        <ImageModal src={selectedImage.image_url} onClose={() => setSelectedImage(null)} />
       )}
     </div>
   );  

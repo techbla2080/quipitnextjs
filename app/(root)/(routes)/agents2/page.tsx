@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
 import { useAuth } from "@clerk/nextjs";
 import ImageGenProgress from '@/components/ImageGenProgress';
+import ImageModal from '@/components/ImageModal';
 
 type SavedImage = { image_url: string; category: string };
 
@@ -96,6 +97,7 @@ export default function Agents2Page() {
   const [selectedSidebarImage, setSelectedSidebarImage] = useState<string | null>(null);
   const { userId } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
   // Add this useEffect to fetch saved images on component mount
   useEffect(() => {
@@ -432,7 +434,8 @@ export default function Agents2Page() {
                   src={generatedRecipeImage}
                   alt="Recipe"
                   style={{ maxWidth: 300, maxHeight: 300 }}
-                  className="max-w-full rounded mt-4"
+                  className="max-w-full rounded mt-4 cursor-zoom-in"
+                  onClick={() => setModalImage(generatedRecipeImage)}
                 />
               )}
               {generatedRecipe && (
@@ -475,7 +478,12 @@ export default function Agents2Page() {
               {generatedImage && isValidImageUrl(generatedImage) && (
                 <div className="flex flex-col items-center">
                   <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
-                  <img src={generatedImage} alt="Output" className="max-w-full rounded mb-4" />
+                  <img
+                    src={generatedImage}
+                    alt="Output"
+                    className="max-w-full rounded mb-4 cursor-zoom-in"
+                    onClick={() => setModalImage(generatedImage)}
+                  />
                   <button
                     onClick={reset}
                     className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition"
@@ -533,7 +541,12 @@ export default function Agents2Page() {
                     {itineraryImages.map((item, idx) => (
                       <div key={idx} className="flex flex-col items-center min-w-[220px]">
                         <div className="font-semibold mb-2">Day {item.day}</div>
-                        <img src={item.imageUrl} alt={`Day ${item.day}`} className="rounded shadow max-w-xs max-h-60" />
+                        <img
+                          src={item.imageUrl}
+                          alt={`Day ${item.day}`}
+                          className="rounded shadow max-w-xs max-h-60 cursor-zoom-in"
+                          onClick={() => setModalImage(item.imageUrl)}
+                        />
                         <div className="text-xs text-gray-500 mt-2">{item.prompt.slice(0, 80)}...</div>
                       </div>
                     ))}
@@ -544,7 +557,11 @@ export default function Agents2Page() {
           )}
           {roomImage && (
             <div className="flex flex-col items-center">
-              <img src={roomImage} alt="Input" className="max-w-full rounded mb-4" />
+              <img
+                src={roomImage}
+                alt="Input"
+                className="max-w-full rounded mb-4"
+              />
               {isGenerating ? <ImageGenProgress /> : (
                 <button
                   onClick={generateImage}
@@ -556,7 +573,12 @@ export default function Agents2Page() {
               {generatedImage && isValidImageUrl(generatedImage) && (
                 <>
                   <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
-                  <img src={generatedImage} alt="Output" className="max-w-full rounded mb-4" />
+                  <img
+                    src={generatedImage}
+                    alt="Output"
+                    className="max-w-full rounded mb-4 cursor-zoom-in"
+                    onClick={() => setModalImage(generatedImage)}
+                  />
                   <button
                     onClick={reset}
                     className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition"
@@ -570,9 +592,11 @@ export default function Agents2Page() {
         </div>
         {/* Modal for viewing sidebar image large */}
         {selectedSidebarImage && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setSelectedSidebarImage(null)}>
-            <img src={selectedSidebarImage} alt="Large view" className="max-w-2xl max-h-[80vh] rounded-xl shadow-2xl border-4 border-white" />
-          </div>
+          <ImageModal src={selectedSidebarImage} onClose={() => setSelectedSidebarImage(null)} />
+        )}
+        {/* New immersive modal for generated images */}
+        {modalImage && (
+          <ImageModal src={modalImage} onClose={() => setModalImage(null)} />
         )}
       </div>
       {/* Overlay for mobile */}
