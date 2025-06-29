@@ -55,7 +55,11 @@ export default function ImageGenProgress() {
   };
 
   // Icon drama
-  const icons = [<Wand2 className="h-10 w-10 text-indigo-500 animate-bounce" />, <Image className="h-10 w-10 text-indigo-500 animate-bounce" />, <Star className="h-10 w-10 text-yellow-500 animate-bounce" />];
+  const icons = [
+    <Wand2 key="wand" className="h-10 w-10 text-indigo-500 animate-bounce" />, 
+    <Image key="image" className="h-10 w-10 text-indigo-500 animate-bounce" />, 
+    <Star key="star" className="h-10 w-10 text-yellow-500 animate-bounce" />
+  ];
   const CurrentIcon = icons[currentMessage % icons.length];
 
   return (
