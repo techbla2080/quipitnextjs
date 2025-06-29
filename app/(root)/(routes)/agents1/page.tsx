@@ -20,6 +20,7 @@ import { useWindowSize } from "react-use";
 import ProfessionalTripView from "@/components/ProfessionalTripView";
 import TripMap from "@/components/TripMap";
 import { Sidebar } from "@/components/sidebar";
+import EnhancedLoadingUI from "@/components/EnhancedLoadingUI";
 
 // Create a LinkText component to handle clickable links
 const LinkText = ({ text }: { text: string }) => {
@@ -131,6 +132,7 @@ export default function TripPlanner() {
   // UI states
   const [isLoading, setIsLoading] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const router = useRouter();
 
   const { planTrip, isLoading: isPlanningTrip, error: planningError, itinerary } = usePlanTrip();
@@ -520,8 +522,8 @@ export default function TripPlanner() {
       return;
     }
 
-    if (!loadingControl.startLoading()) {
-      return;
+    if (!isAutoSave) {
+      setIsSaving(true);
     }
 
     const loadingToast = !isAutoSave ? toast.loading("Saving your trip...") : null;
@@ -577,7 +579,9 @@ export default function TripPlanner() {
         toast.error(error instanceof Error ? error.message : "Failed to save trip");
       }
     } finally {
-      loadingControl.stopLoading();
+      if (!isAutoSave) {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -710,6 +714,10 @@ export default function TripPlanner() {
                             selected={startDate}
                             onChange={(date: Date | null) => setStartDate(date)}
                             dateFormat="MM/dd/yyyy"
+                            showMonthDropdown
+                            showYearDropdown
+                            dropdownMode="select"
+                            monthsShown={2}
                             className="w-full border p-2 rounded bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600"
                           />
                         </div>
@@ -719,6 +727,10 @@ export default function TripPlanner() {
                             selected={endDate}
                             onChange={(date: Date | null) => setEndDate(date)}
                             dateFormat="MM/dd/yyyy"
+                            showMonthDropdown
+                            showYearDropdown
+                            dropdownMode="select"
+                            monthsShown={2}
                             className="w-full border p-2 rounded bg-white"
                           />
                         </div>
@@ -759,22 +771,16 @@ export default function TripPlanner() {
                 </div>
 
                 <div className="mt-4 border dark:border-gray-700 p-4 rounded dark:bg-gray-800">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center p-4">
-                      <div
-                        className="loader"
-                        style={{
-                          display: "inline-block",
-                          width: "24px",
-                          height: "24px",
-                          border: "3px solid #3498db",
-                          borderRadius: "50%",
-                          borderTop: "3px solid transparent",
-                          animation: "spin 1s linear infinite",
-                        }}
-                      />
-                      <span className="ml-2 dark:text-gray-300">Processing your itinerary...</span>
-                    </div>
+                  {isLoading || isPlanningTrip ? (
+                    <EnhancedLoadingUI 
+                      isLoading={isLoading || isPlanningTrip}
+                      error={planningError}
+                      onRetry={() => {
+                        if (addedLocation && addedDateRange) {
+                          handlePlanTrip();
+                        }
+                      }}
+                    />
                   ) : tripResult ? (
                     <div>
                       {jobId && !loadingControl.isLoading && (
@@ -1157,22 +1163,32 @@ export default function TripPlanner() {
                   <div className="flex justify-end mt-6 mb-4">
                     <Button 
                       onClick={() => handleSaveItinerary(false)}
+                      disabled={isSaving}
                       className="bg-cyan-500 hover:bg-cyan-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
                     >
-                      <svg 
-                        className="w-5 h-5" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
-                          strokeWidth={2} 
-                          d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" 
-                        />
-                      </svg>
-                      Save Itinerary
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <svg 
+                            className="w-5 h-5" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" 
+                            />
+                          </svg>
+                          Save Itinerary
+                        </>
+                      )}
                     </Button>
                   </div>
                 )}
