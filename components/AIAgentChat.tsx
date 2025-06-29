@@ -39,14 +39,6 @@ export default function AIAgentChat({ task, onTaskUpdate }: AIAgentChatProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-analyze task and provide suggestions after a few seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      analyzeTaskAutomatically();
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
   const analyzeTaskAutomatically = async () => {
     setIsLoading(true);
     try {
@@ -102,6 +94,14 @@ export default function AIAgentChat({ task, onTaskUpdate }: AIAgentChatProps) {
       setIsLoading(false);
     }
   };
+
+  // Auto-analyze task and provide suggestions after a few seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      analyzeTaskAutomatically();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [analyzeTaskAutomatically]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
