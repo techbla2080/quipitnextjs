@@ -419,15 +419,16 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   {groupImages.length > 0 ? (
                     groupImages.map(img => (
                       <div key={img.id} className="flex items-center space-x-2">
-                        <NextImage
-                          src={img.image_url}
-                          alt={img.category}
-                          width={50}
-                          height={50}
-                          className="rounded cursor-pointer"
-                          onClick={() => handleImageClick(img)}
-                          unoptimized={img.image_url.startsWith('data:')}
-                        />
+                        <div style={{ width: 80, height: 80, position: 'relative' }}>
+                          <NextImage
+                            src={img.image_url}
+                            alt={img.category}
+                            fill
+                            className="rounded cursor-pointer object-cover"
+                            onClick={() => handleImageClick(img)}
+                            unoptimized={img.image_url.startsWith('data:')}
+                          />
+                        </div>
                         <span className="text-xs text-gray-700">{img.category}</span>
                         <Button
                           onClick={() => handleDeleteImage(img)}
