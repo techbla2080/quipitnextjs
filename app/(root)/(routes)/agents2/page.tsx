@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Sidebar } from "@/components/sidebar";
 import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
 import { useAuth } from "@clerk/nextjs";
+import ImageGenProgress from '@/components/ImageGenProgress';
 
 type SavedImage = { image_url: string; category: string };
 
@@ -463,13 +464,14 @@ export default function Agents2Page() {
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
               />
-              <button
-                onClick={generateImage}
-                disabled={isGenerating}
-                className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition"
-              >
-                {isGenerating ? 'Processing...' : 'Generate'}
-              </button>
+              {isGenerating ? <ImageGenProgress /> : (
+                <button
+                  onClick={generateImage}
+                  className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition"
+                >
+                  Generate
+                </button>
+              )}
               {generatedImage && isValidImageUrl(generatedImage) && (
                 <div className="flex flex-col items-center">
                   <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
@@ -543,13 +545,12 @@ export default function Agents2Page() {
           {roomImage && (
             <div className="flex flex-col items-center">
               <img src={roomImage} alt="Input" className="max-w-full rounded mb-4" />
-              {!generatedImage && (
+              {isGenerating ? <ImageGenProgress /> : (
                 <button
                   onClick={generateImage}
-                  disabled={isGenerating}
                   className="bg-indigo-600 text-white px-6 py-2 rounded shadow hover:bg-indigo-700 transition"
                 >
-                  {isGenerating ? 'Processing...' : 'Generate'}
+                  Generate
                 </button>
               )}
               {generatedImage && isValidImageUrl(generatedImage) && (
