@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
 import { useAuth } from "@clerk/nextjs";
 import ImageGenProgress from '@/components/ImageGenProgress';
 import ImageModal from '@/components/ImageModal';
+import NextImage from 'next/image';
 
 type SavedImage = { image_url: string; category: string };
 
@@ -430,12 +431,14 @@ export default function Agents2Page() {
                 {isGenerating ? 'Generating...' : 'Generate Recipe'}
               </button>
               {generatedRecipeImage && (
-                <img
+                <NextImage
                   src={generatedRecipeImage}
-                  alt="Recipe"
-                  style={{ maxWidth: 300, maxHeight: 300 }}
+                  alt="Generated Recipe"
+                  width={300}
+                  height={300}
                   className="max-w-full rounded mt-4 cursor-zoom-in"
                   onClick={() => setModalImage(generatedRecipeImage)}
+                  unoptimized={generatedRecipeImage.startsWith('data:')}
                 />
               )}
               {generatedRecipe && (
@@ -478,11 +481,14 @@ export default function Agents2Page() {
               {generatedImage && isValidImageUrl(generatedImage) && (
                 <div className="flex flex-col items-center">
                   <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
-                  <img
+                  <NextImage
                     src={generatedImage}
-                    alt="Output"
+                    alt="Generated Product Design"
+                    width={400}
+                    height={400}
                     className="max-w-full rounded mb-4 cursor-zoom-in"
                     onClick={() => setModalImage(generatedImage)}
+                    unoptimized={generatedImage.startsWith('data:')}
                   />
                   <button
                     onClick={reset}
@@ -541,11 +547,14 @@ export default function Agents2Page() {
                     {itineraryImages.map((item, idx) => (
                       <div key={idx} className="flex flex-col items-center min-w-[220px]">
                         <div className="font-semibold mb-2">Day {item.day}</div>
-                        <img
+                        <NextImage
                           src={item.imageUrl}
-                          alt={`Day ${item.day}`}
+                          alt={`Day ${item.day} Travel Visual`}
+                          width={220}
+                          height={240}
                           className="rounded shadow max-w-xs max-h-60 cursor-zoom-in"
                           onClick={() => setModalImage(item.imageUrl)}
+                          unoptimized={item.imageUrl.startsWith('data:')}
                         />
                         <div className="text-xs text-gray-500 mt-2">{item.prompt.slice(0, 80)}...</div>
                       </div>
@@ -557,10 +566,13 @@ export default function Agents2Page() {
           )}
           {roomImage && (
             <div className="flex flex-col items-center">
-              <img
+              <NextImage
                 src={roomImage}
-                alt="Input"
+                alt="Input Room"
+                width={400}
+                height={300}
                 className="max-w-full rounded mb-4"
+                unoptimized={roomImage.startsWith('data:')}
               />
               {isGenerating ? <ImageGenProgress /> : (
                 <button
@@ -573,11 +585,14 @@ export default function Agents2Page() {
               {generatedImage && isValidImageUrl(generatedImage) && (
                 <>
                   <h2 className="text-xl font-semibold mt-6 mb-2">Output</h2>
-                  <img
+                  <NextImage
                     src={generatedImage}
-                    alt="Output"
+                    alt="Generated Interior Design"
+                    width={400}
+                    height={400}
                     className="max-w-full rounded mb-4 cursor-zoom-in"
                     onClick={() => setModalImage(generatedImage)}
+                    unoptimized={generatedImage.startsWith('data:')}
                   />
                   <button
                     onClick={reset}

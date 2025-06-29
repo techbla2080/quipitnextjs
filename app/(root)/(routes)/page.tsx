@@ -4,6 +4,7 @@ import { Sparkles, Plane, Image, Utensils, Package, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sidebar } from "@/components/sidebar";
+import NextImage from "next/image";
 
 export default function LandingPage() {
   return (
@@ -99,9 +100,9 @@ export default function LandingPage() {
       <section id="demo" className="mb-20 text-center">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">See It In Action</h2>
         <div className="flex flex-wrap justify-center gap-6 mb-8">
-          <img src="/demo1.png" alt="Demo 1" className="rounded-lg shadow w-64 h-40 object-cover" />
-          <img src="/demo2.png" alt="Demo 2" className="rounded-lg shadow w-64 h-40 object-cover" />
-          <img src="/demo3.png" alt="Demo 3" className="rounded-lg shadow w-64 h-40 object-cover" />
+          <NextImage src="/demo1.png" alt="Demo 1" width={256} height={160} className="rounded-lg shadow object-cover" />
+          <NextImage src="/demo2.png" alt="Demo 2" width={256} height={160} className="rounded-lg shadow object-cover" />
+          <NextImage src="/demo3.png" alt="Demo 3" width={256} height={160} className="rounded-lg shadow object-cover" />
         </div>
         <p className="text-gray-600 dark:text-gray-300 mb-8">See what Quipit can do for you!</p>
       </section>

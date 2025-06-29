@@ -12,6 +12,7 @@ import Link from "next/link"; // For Quipit icon link
 import { useAuth } from "@clerk/nextjs";
 import { supabase } from '@/lib/supabaseClient'; // Make sure this import is at the top
 import ImageModal from "@/components/ImageModal";
+import NextImage from "next/image";
 // At the top of your file with other imports
 
 
@@ -418,11 +419,14 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
                   {groupImages.length > 0 ? (
                     groupImages.map(img => (
                       <div key={img.id} className="flex items-center space-x-2">
-                        <img
+                        <NextImage
                           src={img.image_url}
                           alt={img.category}
+                          width={50}
+                          height={50}
+                          className="rounded cursor-pointer"
                           onClick={() => handleImageClick(img)}
-                          style={{ cursor: 'pointer' }}
+                          unoptimized={img.image_url.startsWith('data:')}
                         />
                         <span className="text-xs text-gray-700">{img.category}</span>
                         <Button
