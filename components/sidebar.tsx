@@ -109,6 +109,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
   const { userId } = useAuth();
   const [selectedImage, setSelectedImage] = useState<SavedImage | null>(null);
+  const [imagesLoading, setImagesLoading] = useState(true);
 
   const onNavigate = (url: string, pro: boolean) => {
     if (pro && !isPro) {
@@ -191,6 +192,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
   };
 
   const fetchSavedImages = async () => {
+    setImagesLoading(true); // Start spinner
     const endpoints = [
       { type: 'generate-room', url: `/api/generate-room?user_id=${userId}` },
       { type: 'generate-product', url: `/api/generate-product?user_id=${userId}` },
@@ -214,6 +216,7 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
     }
 
     setSavedImages(allImages);
+    setImagesLoading(false); // Stop spinner after fetch
   };
 
   useEffect(() => {
@@ -411,42 +414,57 @@ export const Sidebar = ({ isPro }: SidebarProps) => {
             <h2 className="px-4 py-2 text-sm font-semibold text-gray-800 tracking-wide">
               SAVED IMAGES
             </h2>
-            {imageTypes.map(group => {
-              const groupImages = savedImages.filter(img => img.type === group.type);
-              return (
-                <div key={group.type}>
-                  <h3 className="text-xs font-bold mt-4 mb-2">{group.label}</h3>
-                  {groupImages.length > 0 ? (
-                    groupImages.map(img => (
-                      <div key={img.id} className="flex items-center space-x-2">
-                        <div style={{ width: 80, height: 80, position: 'relative' }}>
-                          <NextImage
-                            src={img.image_url}
-                            alt={img.category}
-                            fill
-                            className="rounded cursor-pointer object-cover"
-                            onClick={() => handleImageClick(img)}
-                            unoptimized={img.image_url.startsWith('data:')}
-                          />
+            {imagesLoading ? (
+              <div className="flex justify-center items-center py-6">
+                <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              </div>
+            ) : (
+              imageTypes.map(group => {
+                const groupImages = savedImages.filter(img => img.type === group.type);
+                return (
+                  <div key={group.type}>
+                    <h3 className="text-xs font-bold mt-4 mb-2">{group.label}</h3>
+                    {groupImages.length > 0 ? (
+                      groupImages.map(img => (
+                        <div key={img.id} className="flex items-center space-x-2">
+                          <div style={{ width: 80, height: 80, position: 'relative' }}>
+                            {img.image_url ? (
+                              <NextImage
+                                src={img.image_url}
+                                alt={img.category || 'Saved image'}
+                                fill
+                                className="rounded cursor-pointer object-cover"
+                                onClick={() => handleImageClick(img)}
+                                unoptimized={img.image_url.startsWith('data:')}
+                              />
+                            ) : (
+                              <div className="bg-gray-200 w-full h-full flex items-center justify-center rounded">
+                                <span className="text-xs text-gray-500">No image</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-700">{img.category}</span>
+                          <Button
+                            onClick={() => handleDeleteImage(img)}
+                            variant="ghost"
+                            size="icon"
+                            className="transition-all shrink-0"
+                            title="Delete image"
+                          >
+                            <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
+                          </Button>
                         </div>
-                        <span className="text-xs text-gray-700">{img.category}</span>
-                        <Button
-                          onClick={() => handleDeleteImage(img)}
-                          variant="ghost"
-                          size="icon"
-                          className="transition-all shrink-0"
-                          title="Delete image"
-                        >
-                          <Trash className="h-4 w-4 text-gray-400 hover:text-red-500" />
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="px-4 text-sm text-gray-500">No saved images</p>
-                  )}
-                </div>
-              );
-            })}
+                      ))
+                    ) : (
+                      <p className="px-4 text-sm text-gray-500">No saved images</p>
+                    )}
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
