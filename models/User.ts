@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
   userId: string;
   tripCount: number;
+  imageCount: number;
   subscriptionStatus: 'free' | 'pro';
   subscriptionUpdatedAt: Date;
   createdAt: Date;
@@ -18,6 +19,11 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
     index: true,
   },
   tripCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  imageCount: {
     type: Number,
     default: 0,
     min: 0,
@@ -47,6 +53,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
 userSchema.pre<IUser>('save', function (next) {
   if (this.tripCount < 0) {
     this.tripCount = 0;
+  }
+  if (this.imageCount < 0) {
+    this.imageCount = 0;
   }
   next();
 });

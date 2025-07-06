@@ -193,8 +193,18 @@ export default function Agents2Page() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Failed to process image');
       const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.limitReached) {
+          // Trigger subscription modal
+          window.dispatchEvent(new CustomEvent('showSubscriptionModal', {
+            detail: { type: 'image', currentImages: data.currentImages }
+          }));
+          return;
+        }
+        throw new Error(data.error || 'Failed to process image');
+      }
       
       if (data.success) {
         const newImageUrl = data.result?.imageBase64

@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabaseClient';
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
+import { connectDB } from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +17,56 @@ export async function POST(request: Request) {
     // Ensure jobId exists
     if (!body.jobId) {
       return NextResponse.json({ success: false, error: 'Missing job_id' }, { status: 400 });
+    }
+
+    // Check subscription limits before saving
+    await connectDB();
+    let user = await User.findOne({ userId });
+    
+    if (!user) {
+      user = await User.create({
+        userId,
+        tripCount: 0,
+        imageCount: 0,
+        subscriptionStatus: 'free'
+      });
+    }
+
+    // Check if subscription has expired
+    if (user.subscriptionStatus === 'pro' && user.subscriptionEndDate) {
+      const now = new Date();
+      if (now > user.subscriptionEndDate) {
+        user = await User.findOneAndUpdate(
+          { userId },
+          {
+            $set: {
+              subscriptionStatus: 'free',
+              subscriptionStartDate: undefined,
+              subscriptionEndDate: undefined,
+            },
+          },
+          { new: true }
+        );
+      }
+    }
+
+    // Get actual trip count from Supabase
+    const { data: trips, error: tripError } = await supabase
+      .from('trips')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId);
+    
+    const actualTripCount = trips?.length || 0;
+
+    // Check if user can create more trips
+    if (user.subscriptionStatus === 'free' && actualTripCount >= 1) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Trip limit reached. Upgrade to Pro for unlimited trips.',
+        limitReached: true,
+        currentTrips: actualTripCount,
+        limit: 1
+      }, { status: 403 });
     }
 
     // Check if a trip with this job_id already exists

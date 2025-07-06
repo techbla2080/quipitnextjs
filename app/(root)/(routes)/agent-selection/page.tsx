@@ -4,12 +4,19 @@ import { Plane, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import UsageIndicator from "@/components/UsageIndicator";
 
 export default function AgentSelectionPage() {
   const router = useRouter();
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-12 bg-gray-50">
       <h1 className="text-4xl font-bold mb-8 text-blue-700">Choose an Agent</h1>
+      
+      {/* Usage Indicator */}
+      <div className="mb-8 w-full max-w-md">
+        <UsageIndicator />
+      </div>
+      
       <div className="flex flex-col md:flex-row gap-8">
         {/* Travel Agent */}
         <Card className="p-8 bg-white shadow-lg rounded-lg flex flex-col items-center w-80">
