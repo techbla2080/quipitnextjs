@@ -49,14 +49,11 @@ export const Navbar = ({ isPro }: NavbarProps) => {
         </span>
       </div>
       <div className="flex items-center gap-x-3">
-        {!isPro && (
-          <Link href="/settings">
-            <Button size="sm" variant="premium">
-              Upgrade
-              <Sparkles className="h-4 w-4 fill-white text-white ml-2" />
-            </Button>
-          </Link>
-        )}
+        <Link href="/pricing">
+          <Button size="sm" variant="outline">
+            Pricing
+          </Button>
+        </Link>
         <ModeToggle />
         <UserButton afterSignOutUrl="/" />
       </div>
