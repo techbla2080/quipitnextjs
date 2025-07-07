@@ -52,7 +52,7 @@ export default function PricingPage() {
               <Sparkles className="text-yellow-500 w-5 h-5" /> All Future Features
             </li>
           </ul>
-          <Link href="/sign-up">
+          <Link href="/settings">
             <Button className="w-full bg-yellow-400 hover:bg-yellow-500 text-white font-bold text-lg shadow-lg">
               Upgrade to Pro
             </Button>
