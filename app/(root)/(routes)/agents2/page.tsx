@@ -8,6 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 import ImageGenProgress from '@/components/ImageGenProgress';
 import ImageModal from '@/components/ImageModal';
 import NextImage from 'next/image';
+import { useEnforceFreeLimitRedirect } from "@/hooks/useEnforceFreeLimitRedirect";
 
 type SavedImage = { image_url: string; category: string };
 
@@ -75,6 +76,7 @@ const FUNCTION_INFO: Record<string, { name: string; catchline: string }> = {
 };
 
 export default function Agents2Page() {
+  useEnforceFreeLimitRedirect();
   const [selectedModel, setSelectedModel] = useState<ModelType>('3d-interior-creator');
   const [roomImage, setRoomImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);

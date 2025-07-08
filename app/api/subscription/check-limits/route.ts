@@ -1,6 +1,3 @@
-import { connectDB } from '@/lib/mongodb';
-import { User } from '@/models/User';
-import { Trip } from '@/models/Trip';
 import { NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
@@ -15,77 +12,90 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-    
-    let user = await User.findOne({ userId });
-    
-    if (!user) {
-      user = await User.create({
-        userId,
-        tripCount: 0,
-        imageCount: 0,
-        subscriptionStatus: 'free'
-      });
-    }
+    // Get user subscription status from Supabase
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
 
-    // Check if subscription has expired
-    if (user.subscriptionStatus === 'pro' && user.subscriptionEndDate) {
-      const now = new Date();
-      if (now > user.subscriptionEndDate) {
-        // Subscription has expired, update to 'free'
-        user = await User.findOneAndUpdate(
-          { userId },
-          {
-            $set: {
-              subscriptionStatus: 'free',
-              subscriptionStartDate: undefined,
-              subscriptionEndDate: undefined,
-            },
-          },
-          { new: true }
-        );
+    let subscriptionStatus = 'free';
+    let subscriptionExpires = null;
+
+    if (user) {
+      subscriptionStatus = user.subscription_status || 'free';
+      subscriptionExpires = user.subscription_end_date;
+
+      // Check if subscription has expired
+      if (subscriptionStatus === 'pro' && subscriptionExpires) {
+        const now = new Date();
+        const endDate = new Date(subscriptionExpires);
+        if (now > endDate) {
+          // Subscription has expired, update to 'free'
+          await supabase
+            .from('users')
+            .update({ 
+              subscription_status: 'free',
+              subscription_start_date: null,
+              subscription_end_date: null
+            })
+            .eq('user_id', userId);
+          
+          subscriptionStatus = 'free';
+          subscriptionExpires = null;
+        }
       }
+    } else {
+      // Create new user record if doesn't exist
+      await supabase
+        .from('users')
+        .insert([{
+          user_id: userId,
+          subscription_status: 'free',
+          trip_count: 0,
+          image_count: 0
+        }]);
     }
 
-    // Get actual counts from database
-    const actualTrips = await Trip.countDocuments({ userId });
+    // Get actual trip count from Supabase
+    const { data: trips, error: tripError } = await supabase
+      .from('trips')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId);
+    const actualTrips = trips?.length || 0;
     
     // Get actual image count from Supabase
     const { data: images, error: imageError } = await supabase
       .from('saved_images')
       .select('id', { count: 'exact' })
       .eq('user_id', userId);
-    
     const actualImages = images?.length || 0;
 
     // Update user counts if they don't match
-    if (actualTrips !== user.tripCount || actualImages !== user.imageCount) {
-      user = await User.findOneAndUpdate(
-        { userId },
-        { 
-          $set: { 
-            tripCount: actualTrips,
-            imageCount: actualImages
-          } 
-        },
-        { new: true }
-      );
+    if (user && (actualTrips !== user.trip_count || actualImages !== user.image_count)) {
+      await supabase
+        .from('users')
+        .update({ 
+          trip_count: actualTrips,
+          image_count: actualImages
+        })
+        .eq('user_id', userId);
     }
 
     // Check limits for free users
-    const canCreateTrip = user.subscriptionStatus === 'pro' || actualTrips < 1;
-    const canCreateImage = user.subscriptionStatus === 'pro' || actualImages < 1;
+    const canCreateTrip = subscriptionStatus === 'pro' || actualTrips < 1;
+    const canCreateImage = subscriptionStatus === 'pro' || actualImages < 1;
 
     return NextResponse.json({
       success: true,
       user: {
-        userId: user.userId,
-        subscriptionStatus: user.subscriptionStatus,
-        tripCount: user.tripCount,
-        imageCount: user.imageCount,
+        userId: userId,
+        subscriptionStatus: subscriptionStatus,
+        tripCount: actualTrips,
+        imageCount: actualImages,
         canCreateTrip,
         canCreateImage,
-        subscriptionExpires: user.subscriptionEndDate?.toISOString()
+        subscriptionExpires: subscriptionExpires
       },
       limits: {
         freeTripLimit: 1,
