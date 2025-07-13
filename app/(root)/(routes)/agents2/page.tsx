@@ -365,6 +365,27 @@ export default function Agents2Page() {
     if (selectedSidebarImage === img) setSelectedSidebarImage(null);
   };
 
+  // Reset all relevant states when model changes
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value as ModelType;
+    setSelectedModel(value);
+    setRoomImage(null);
+    setGeneratedImage(null);
+    setPrompt('');
+    setDishName('');
+    setRecipePrompt('');
+    setGeneratedRecipe(null);
+    setGeneratedRecipeImage(null);
+    setTravelLocation('');
+    setTravelStartDate('');
+    setTravelEndDate('');
+    setTravelStyle('photorealistic');
+    setItineraryImages([]);
+    setIsGenerating(false);
+    setIsTravelLoading(false);
+    setModalImage(null);
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
@@ -386,7 +407,7 @@ export default function Agents2Page() {
         <div className="flex flex-col md:flex-row gap-4 mb-6 justify-center z-10">
           <select
             value={selectedModel}
-            onChange={e => setSelectedModel(e.target.value as ModelType)}
+            onChange={handleModelChange}
             className="text-base px-4 py-2 rounded-lg shadow border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all duration-200 font-medium"
           >
             {MODEL_OPTIONS.map(opt => (
