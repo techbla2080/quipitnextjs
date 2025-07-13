@@ -456,13 +456,15 @@ export default function Agents2Page() {
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm mb-2"
               />
-              <button
-                onClick={generateRecipe}
-                disabled={isGenerating}
-                className="mt-2 bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
-              >
-                {isGenerating ? 'Generating...' : 'Generate Recipe'}
-              </button>
+              {isGenerating ? <ImageGenProgress /> : (
+                <button
+                  onClick={generateRecipe}
+                  disabled={isGenerating}
+                  className="mt-2 bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 transition"
+                >
+                  Generate Recipe
+                </button>
+              )}
               {generatedRecipeImage && (
                 <NextImage
                   src={generatedRecipeImage}
@@ -567,13 +569,15 @@ export default function Agents2Page() {
                 <option value="cyberpunk">Cyberpunk</option>
                 <option value="cartoon">Cartoon</option>
               </select>
-              <button
-                onClick={generateTravelVisuals}
-                disabled={isTravelLoading}
-                className="mt-2 bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 transition"
-              >
-                {isTravelLoading ? 'Generating...' : 'Generate Itinerary Visuals'}
-              </button>
+              {isTravelLoading ? <ImageGenProgress /> : (
+                <button
+                  onClick={generateTravelVisuals}
+                  disabled={isTravelLoading}
+                  className="mt-2 bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 transition"
+                >
+                  Generate Itinerary Visuals
+                </button>
+              )}
               {itineraryImages.length > 0 && (
                 <div className="w-full mt-6 overflow-x-auto">
                   <div className="flex gap-4">
