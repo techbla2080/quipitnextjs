@@ -598,6 +598,33 @@ export default function TripPlanner() {
         </div>
         {/* Main trip planner content */}
         <div className="flex-1 p-4">
+          {/* TEST BUTTON: Remove after debugging */}
+          <button
+            style={{
+              position: 'fixed',
+              top: 20,
+              right: 20,
+              zIndex: 9999,
+              background: '#fff',
+              border: '2px solid #06b6d4',
+              color: '#06b6d4',
+              borderRadius: '8px',
+              padding: '10px 18px',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('showLockScreen', {
+                detail: {
+                  type: 'trip',
+                  currentTrips: 2,
+                  currentImages: 0
+                }
+              }));
+            }}
+          >
+            Show Lock Screen Test
+          </button>
         {isViewMode || window.location.search.includes("job_id") ? (
   <div>    
     {isLoading ? (
