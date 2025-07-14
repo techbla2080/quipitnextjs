@@ -199,9 +199,13 @@ export default function Agents2Page() {
       
       if (!response.ok) {
         if (data.limitReached) {
-          // Trigger subscription modal
-          window.dispatchEvent(new CustomEvent('showSubscriptionModal', {
-            detail: { type: 'image', currentImages: data.currentImages }
+          // Trigger lock screen
+          window.dispatchEvent(new CustomEvent('showLockScreen', {
+            detail: { 
+              type: 'image', 
+              currentImages: data.currentImages,
+              currentTrips: 0
+            }
           }));
           return;
         }
@@ -279,8 +283,22 @@ export default function Agents2Page() {
         method: 'POST',
         body: formData,
       });
-      if (!response.ok) throw new Error('Failed to generate recipe');
       const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.limitReached) {
+          // Trigger lock screen
+          window.dispatchEvent(new CustomEvent('showLockScreen', {
+            detail: { 
+              type: 'image', 
+              currentImages: data.currentImages,
+              currentTrips: 0
+            }
+          }));
+          return;
+        }
+        throw new Error(data.error || 'Failed to generate recipe');
+      }
       
       // Get the image URL directly from the response
       const recipeImageUrl = data.result?.imageBase64 ? `data:image/png;base64,${data.result.imageBase64}` : null;
@@ -326,8 +344,22 @@ export default function Agents2Page() {
         method: 'POST',
         body: formData,
       });
-      if (!response.ok) throw new Error('Failed to generate itinerary visuals');
       const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.limitReached) {
+          // Trigger lock screen
+          window.dispatchEvent(new CustomEvent('showLockScreen', {
+            detail: { 
+              type: 'image', 
+              currentImages: data.currentImages,
+              currentTrips: 0
+            }
+          }));
+          return;
+        }
+        throw new Error(data.error || 'Failed to generate itinerary visuals');
+      }
       setItineraryImages(data.results || []);
 
       for (const item of data.results || []) {

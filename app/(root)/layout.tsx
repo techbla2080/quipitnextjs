@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar";
 import { checkSubscription } from "@/lib/subscription";
 import SubscriptionLimitsProvider from "@/hooks/useSubscriptionLimits";
+import LockScreenProvider from "@/hooks/useLockScreen";
 
 const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   const isPro = await checkSubscription();
@@ -10,7 +11,9 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
       <Navbar isPro={isPro} />
       <main className="pt-16 h-full overflow-x-hidden">
         <SubscriptionLimitsProvider>
-          {children}
+          <LockScreenProvider>
+            {children}
+          </LockScreenProvider>
         </SubscriptionLimitsProvider>
       </main>
     </div>

@@ -20,6 +20,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check subscription limits
+    const { auth } = await import("@clerk/nextjs/server");
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Import and check user limits
+    const { connectDB } = await import('@/lib/mongodb');
+    const { User } = await import('@/models/User');
+    
+    await connectDB();
+    let user = await User.findOne({ userId });
+    
+    if (!user) {
+      user = await User.create({
+        userId,
+        tripCount: 0,
+        imageCount: 0,
+        subscriptionStatus: 'free'
+      });
+    }
+
+    // Check if subscription has expired
+    if (user.subscriptionStatus === 'pro' && user.subscriptionEndDate) {
+      const now = new Date();
+      if (now > user.subscriptionEndDate) {
+        user = await User.findOneAndUpdate(
+          { userId },
+          {
+            $set: {
+              subscriptionStatus: 'free',
+              subscriptionStartDate: undefined,
+              subscriptionEndDate: undefined,
+            },
+          },
+          { new: true }
+        );
+      }
+    }
+
+    // Get actual image count from Supabase
+    const { data: images, error: imageError } = await supabase
+      .from('saved_images')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId);
+    
+    const actualImageCount = images?.length || 0;
+
+    // Check if user can create more images
+    if (user.subscriptionStatus === 'free' && actualImageCount >= 1) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Image limit reached. Upgrade to Pro for unlimited images.',
+        limitReached: true,
+        currentImages: actualImageCount,
+        limit: 1
+      }, { status: 403 });
+    }
+
     const contentType = req.headers.get('content-type') || '';
     let description = '';
     let cuisineType = '';
