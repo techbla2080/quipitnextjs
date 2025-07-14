@@ -451,9 +451,13 @@ export default function TripPlanner() {
       if (!checkData.canCreate) {
         toast.error("You've reached your free trip limit");
         loadingControl.stopLoading();
-        setTimeout(() => {
-          router.push("/settings");
-        }, 1500);
+        window.dispatchEvent(new CustomEvent('showLockScreen', {
+          detail: {
+            type: 'trip',
+            currentTrips: checkData.currentTrips || 1,
+            currentImages: checkData.currentImages || 0
+          }
+        }));
         return;
       }
 
