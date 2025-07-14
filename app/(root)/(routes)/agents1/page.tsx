@@ -585,25 +585,6 @@ export default function TripPlanner() {
     }
   };
 
-  useEffect(() => {
-    async function checkLimitsAndRedirect() {
-      if (!userId) return;
-      try {
-        const res = await fetch("/api/subscription/check-limits");
-        const data = await res.json();
-        const isFree = data.user.subscriptionStatus === "free";
-        const total = (data.limits.currentTrips || 0) + (data.limits.currentImages || 0);
-        if (isFree && total >= 2) {
-          router.replace("/pricing");
-        }
-      } catch (err) {
-        // Optionally handle error
-        console.error("Failed to check limits", err);
-      }
-    }
-    checkLimitsAndRedirect();
-  }, [userId, router]);
-
   return (
     <>
       <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
