@@ -63,6 +63,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Get actual image count from Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     const { data: images, error: imageError } = await supabase
       .from('saved_images')
       .select('id', { count: 'exact' })
