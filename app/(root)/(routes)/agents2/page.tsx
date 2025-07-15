@@ -102,6 +102,30 @@ export default function Agents2Page() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
 
+  // Add this useEffect to check image generation limit on page load
+  useEffect(() => {
+    async function checkImageLimitOnLoad() {
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/subscription/check?userId=${userId}`);
+        const data = await res.json();
+        if (!data.canCreate) {
+          console.log("Dispatching showLockScreen event on load (image agent)");
+          window.dispatchEvent(new CustomEvent('showLockScreen', {
+            detail: {
+              type: 'image',
+              currentImages: data.currentImages || 1,
+              currentTrips: data.currentTrips || 0
+            }
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to check image limit on load", err);
+      }
+    }
+    checkImageLimitOnLoad();
+  }, [userId]);
+
   // Add this useEffect to fetch saved images on component mount
   useEffect(() => {
     const fetchSavedImages = async () => {
