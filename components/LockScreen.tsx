@@ -58,111 +58,57 @@ export default function LockScreen({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full bg-white dark:bg-gray-800 shadow-2xl rounded-2xl overflow-hidden border-0">
-        {/* Header with Lock Icon */}
-        <div className="bg-gradient-to-r from-red-500 to-pink-500 p-6 text-white relative">
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.5)',
+      zIndex: 99999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 12,
+        padding: 32,
+        minWidth: 320,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 48, color: '#06b6d4', marginBottom: 16 }}>🔒</div>
+        <h2 style={{ fontWeight: 'bold', fontSize: 24, marginBottom: 12 }}>Upgrade Required</h2>
+        <p style={{ marginBottom: 24 }}>You’ve reached your free trip limit.<br />Upgrade to Pro to unlock unlimited trips!</p>
+        <button
+          style={{
+            background: '#06b6d4',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            padding: '12px 32px',
+            fontWeight: 'bold',
+            fontSize: 16,
+            cursor: 'pointer'
+          }}
+          onClick={() => { window.location.href = '/pricing'; }}
+        >
+          Upgrade to Pro
+        </button>
+        <div>
           <button
+            style={{
+              marginTop: 16,
+              background: 'transparent',
+              color: '#06b6d4',
+              border: 'none',
+              fontSize: 14,
+              cursor: 'pointer'
+            }}
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
           >
-            <X className="w-5 h-5" />
+            Close
           </button>
-          
-          <div className="flex items-center justify-center mb-4">
-            <div className="relative">
-              <Lock className="w-12 h-12 text-white" />
-              <div className="absolute -top-1 -right-1">
-                <Crown className="w-6 h-6 text-yellow-300" />
-              </div>
-            </div>
-          </div>
-          
-          <h1 className="text-2xl font-bold text-center">{getTitle()}</h1>
-          <p className="text-red-100 text-sm text-center mt-2">
-            {getDescription()}
-          </p>
         </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="space-y-4 mb-6">
-            <div className="flex items-start gap-3">
-              <Crown className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Unlimited Image Generation</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Create unlimited AI images for rooms, products, recipes, and travel
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Crown className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Unlimited Trip Planning</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Create as many AI-powered travel itineraries as you want
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <Crown className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">Priority Support</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Get faster responses and dedicated support
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Usage */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
-            <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-3">Your Current Usage:</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Plane className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-300">Trips: {currentTrips}/1 (Free)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Image className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-300">Images: {currentImages}/1 (Free)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="space-y-3">
-            <Button 
-              onClick={handleUpgrade}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-semibold"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 animate-spin" />
-                  Loading...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4" />
-                  Upgrade to Pro
-                </div>
-              )}
-            </Button>
-            
-            <Button 
-              onClick={onClose}
-              variant="outline"
-              className="w-full"
-            >
-              Continue with Free Plan
-            </Button>
-          </div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 } 
