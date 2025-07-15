@@ -343,6 +343,28 @@ export default function TripPlanner() {
       }
     }, [loadedTrip]);
 
+  useEffect(() => {
+    async function checkTripLimitOnLoad() {
+      if (!userId) return;
+      try {
+        const res = await fetch(`/api/subscription/check?userId=${userId}`);
+        const data = await res.json();
+        if (!data.canCreate) {
+          window.dispatchEvent(new CustomEvent('showLockScreen', {
+            detail: {
+              type: 'trip',
+              currentTrips: data.currentTrips || 1,
+              currentImages: data.currentImages || 0
+            }
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to check trip limit on load", err);
+      }
+    }
+    checkTripLimitOnLoad();
+  }, [userId]);
+
   const loadSavedItineraries = () => {
     try {
       const stored = localStorage.getItem("itineraries") || sessionStorage.getItem("itineraries_backup");
